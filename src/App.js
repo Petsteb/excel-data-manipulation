@@ -85,6 +85,16 @@ function App() {
       document.documentElement.style.setProperty('--theme-accent', theme.accent);
       document.documentElement.style.setProperty('--theme-background', theme.background);
       document.documentElement.style.setProperty('--theme-card-bg', theme.cardBg);
+      
+      // Apply dark theme class if it's a dark theme
+      const appElement = document.querySelector('.App');
+      if (appElement) {
+        if (theme.isDark) {
+          appElement.classList.add('dark-theme');
+        } else {
+          appElement.classList.remove('dark-theme');
+        }
+      }
     }
   };
 

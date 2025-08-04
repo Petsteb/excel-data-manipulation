@@ -31,7 +31,8 @@
   position: absolute;
   top: 60px;
   right: 0;
-  width: 280px;
+  width: 300px;
+  max-height: 600px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(15px);
   border-radius: 16px;
@@ -65,9 +66,26 @@
   color: #374151;
 }
 
+.theme-section {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.theme-section:last-child {
+  border-bottom: none;
+}
+
+.theme-section-title {
+  margin: 0;
+  padding: 12px 20px 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .theme-options {
   padding: 8px;
-  max-height: 300px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
@@ -148,4 +166,29 @@
 
 .theme-option[style*="--theme-primary: #14b8a6"] {
   --theme-primary-rgb: 20, 184, 166;
+}
+
+/* Dark theme RGB variables */
+.theme-option[style*="--theme-primary: #a78bfa"] {
+  --theme-primary-rgb: 167, 139, 250;
+}
+
+.theme-option[style*="--theme-primary: #60a5fa"] {
+  --theme-primary-rgb: 96, 165, 250;
+}
+
+.theme-option[style*="--theme-primary: #34d399"] {
+  --theme-primary-rgb: 52, 211, 153;
+}
+
+.theme-option[style*="--theme-primary: #f472b6"] {
+  --theme-primary-rgb: 244, 114, 182;
+}
+
+.theme-option[style*="--theme-primary: #fbbf24"] {
+  --theme-primary-rgb: 251, 191, 36;
+}
+
+.theme-option[style*="--theme-primary: #2dd4bf"] {
+  --theme-primary-rgb: 45, 212, 191;
 }

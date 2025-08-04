@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './ThemeMenu.css';
 
 const themes = {
+  // Light Themes
   purple: {
     name: 'Purple',
     primary: '#8b5cf6',
@@ -55,6 +56,68 @@ const themes = {
     accent: '#5eead4',
     background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)',
     cardBg: 'rgba(255, 255, 255, 0.9)'
+  },
+  
+  // Dark Themes
+  purpleDark: {
+    name: 'Purple Dark',
+    primary: '#a78bfa',
+    primaryHover: '#8b5cf6',
+    primaryLight: '#c4b5fd',
+    accent: '#d8b4fe',
+    background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+    cardBg: 'rgba(30, 27, 75, 0.85)',
+    isDark: true
+  },
+  blueDark: {
+    name: 'Ocean Blue Dark',
+    primary: '#60a5fa',
+    primaryHover: '#3b82f6',
+    primaryLight: '#93c5fd',
+    accent: '#bfdbfe',
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    cardBg: 'rgba(15, 23, 42, 0.85)',
+    isDark: true
+  },
+  greenDark: {
+    name: 'Forest Green Dark',
+    primary: '#34d399',
+    primaryHover: '#10b981',
+    primaryLight: '#6ee7b7',
+    accent: '#a7f3d0',
+    background: 'linear-gradient(135deg, #064e3b 0%, #134e4a 100%)',
+    cardBg: 'rgba(6, 78, 59, 0.85)',
+    isDark: true
+  },
+  pinkDark: {
+    name: 'Rose Pink Dark',
+    primary: '#f472b6',
+    primaryHover: '#ec4899',
+    primaryLight: '#f9a8d4',
+    accent: '#fbcfe8',
+    background: 'linear-gradient(135deg, #4a044e 0%, #701a75 100%)',
+    cardBg: 'rgba(74, 4, 78, 0.85)',
+    isDark: true
+  },
+  orangeDark: {
+    name: 'Sunset Orange Dark',
+    primary: '#fbbf24',
+    primaryHover: '#f59e0b',
+    primaryLight: '#fcd34d',
+    accent: '#fde68a',
+    background: 'linear-gradient(135deg, #451a03 0%, #78350f 100%)',
+    cardBg: 'rgba(69, 26, 3, 0.85)',
+    isDark: true
+  },
+  tealDark: {
+    name: 'Teal Dark',
+    primary: '#2dd4bf',
+    primaryHover: '#14b8a6',
+    primaryLight: '#5eead4',
+    accent: '#99f6e4',
+    background: 'linear-gradient(135deg, #042f2e 0%, #134e4a 100%)',
+    cardBg: 'rgba(4, 47, 46, 0.85)',
+    isDark: true
   }
 };
 
@@ -95,31 +158,71 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
           <div className="theme-dropdown-header">
             <h3>Choose Theme</h3>
           </div>
-          <div className="theme-options">
-            {Object.entries(themes).map(([key, theme]) => (
-              <button
-                key={key}
-                className={`theme-option ${currentTheme === key ? 'active' : ''}`}
-                onClick={() => handleThemeSelect(key)}
-                style={{
-                  '--theme-primary': theme.primary,
-                  '--theme-accent': theme.accent
-                }}
-              >
-                <div className="theme-preview">
-                  <div 
-                    className="theme-color-primary" 
-                    style={{ backgroundColor: theme.primary }}
-                  />
-                  <div 
-                    className="theme-color-accent" 
-                    style={{ backgroundColor: theme.accent }}
-                  />
-                </div>
-                <span className="theme-name">{theme.name}</span>
-                {currentTheme === key && <span className="theme-checkmark">✓</span>}
-              </button>
-            ))}
+          
+          {/* Light Themes */}
+          <div className="theme-section">
+            <h4 className="theme-section-title">☀️ Light Themes</h4>
+            <div className="theme-options">
+              {Object.entries(themes)
+                .filter(([key, theme]) => !theme.isDark)
+                .map(([key, theme]) => (
+                <button
+                  key={key}
+                  className={`theme-option ${currentTheme === key ? 'active' : ''}`}
+                  onClick={() => handleThemeSelect(key)}
+                  style={{
+                    '--theme-primary': theme.primary,
+                    '--theme-accent': theme.accent
+                  }}
+                >
+                  <div className="theme-preview">
+                    <div 
+                      className="theme-color-primary" 
+                      style={{ backgroundColor: theme.primary }}
+                    />
+                    <div 
+                      className="theme-color-accent" 
+                      style={{ backgroundColor: theme.accent }}
+                    />
+                  </div>
+                  <span className="theme-name">{theme.name}</span>
+                  {currentTheme === key && <span className="theme-checkmark">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Dark Themes */}
+          <div className="theme-section">
+            <h4 className="theme-section-title">🌙 Dark Themes</h4>
+            <div className="theme-options">
+              {Object.entries(themes)
+                .filter(([key, theme]) => theme.isDark)
+                .map(([key, theme]) => (
+                <button
+                  key={key}
+                  className={`theme-option ${currentTheme === key ? 'active' : ''}`}
+                  onClick={() => handleThemeSelect(key)}
+                  style={{
+                    '--theme-primary': theme.primary,
+                    '--theme-accent': theme.accent
+                  }}
+                >
+                  <div className="theme-preview">
+                    <div 
+                      className="theme-color-primary" 
+                      style={{ backgroundColor: theme.primary }}
+                    />
+                    <div 
+                      className="theme-color-accent" 
+                      style={{ backgroundColor: theme.accent }}
+                    />
+                  </div>
+                  <span className="theme-name">{theme.name}</span>
+                  {currentTheme === key && <span className="theme-checkmark">✓</span>}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
