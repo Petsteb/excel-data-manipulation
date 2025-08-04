@@ -1,6 +1,6 @@
 {
   "name": "excel-file-merger",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Excel File Merger - A desktop app for merging Excel files with source tracking and date column detection",
   "main": "main.js",
   "author": "Excel File Merger Team",
@@ -8,7 +8,13 @@
     "type": "git",
     "url": "https://github.com/your-username/excel-file-merger.git"
   },
-  "keywords": ["excel", "merge", "electron", "desktop", "data-processing"],
+  "keywords": [
+    "excel",
+    "merge",
+    "electron",
+    "desktop",
+    "data-processing"
+  ],
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--no-deprecation electron .",
     "dev": "concurrently --kill-others \"npx react-scripts start\" \"npx wait-on http://localhost:3000 && npx electron . --dev\"",
