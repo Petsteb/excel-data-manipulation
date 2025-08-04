@@ -62,6 +62,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform compatibility
 - No external dependencies for core functionality
 
+## [1.1.0] - 2025-01-04
+
+### Added
+- **Dark Theme Support**: Complete dark mode variants for all existing themes
+- **6 New Dark Themes**: Purple Dark, Ocean Blue Dark, Forest Green Dark, Rose Pink Dark, Sunset Orange Dark, Teal Dark
+- **Enhanced Theme Menu**: Organized light and dark themes with visual icons (☀️/🌙)
+- **Smart Theme System**: Automatic CSS variable switching for optimal dark mode experience
+- **Improved Theme Organization**: Expandable sections with better visual hierarchy
+
+### Enhanced
+- **Theme Dropdown**: Larger, more organized interface with theme sections
+- **CSS Variables**: Complete dark theme compatibility with dynamic text colors
+- **Visual Feedback**: Better contrast and readability across all themes
+- **Accessibility**: Proper contrast ratios for all theme combinations
+
+### Technical
+- Added automatic dark theme class application
+- Enhanced CSS variable system for theme switching
+- Improved theme menu layout and organization
+- Added RGB color variables for all themes
+
 ## [Unreleased]
 
 ### Planned
