@@ -162,7 +162,7 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
         onClick={() => setIsOpen(!isOpen)}
         title="Change Theme"
       >
-        🎨
+        <img src="themes-icon.png" alt="Themes" className="theme-icon" />
       </button>
       
       {isOpen && (
