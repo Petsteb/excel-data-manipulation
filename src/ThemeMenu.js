@@ -187,18 +187,14 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
                     '--theme-accent': theme.accent
                   }}
                 >
-                  <div className="theme-preview">
-                    <div 
-                      className="theme-color-primary" 
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                    <div 
-                      className="theme-color-accent" 
-                      style={{ backgroundColor: theme.accent }}
-                    />
+                  <div 
+                    className="theme-preview-circle" 
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.accent} 50%, ${theme.accent} 100%)`
+                    }}
+                  >
+                    {currentTheme === key && <span className="theme-checkmark">✓</span>}
                   </div>
-                  <span className="theme-name">{theme.name}</span>
-                  {currentTheme === key && <span className="theme-checkmark">✓</span>}
                 </button>
               ))}
             </div>
@@ -220,18 +216,14 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
                     '--theme-accent': theme.accent
                   }}
                 >
-                  <div className="theme-preview">
-                    <div 
-                      className="theme-color-primary" 
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                    <div 
-                      className="theme-color-accent" 
-                      style={{ backgroundColor: theme.accent }}
-                    />
+                  <div 
+                    className="theme-preview-circle" 
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.accent} 50%, ${theme.accent} 100%)`
+                    }}
+                  >
+                    {currentTheme === key && <span className="theme-checkmark">✓</span>}
                   </div>
-                  <span className="theme-name">{theme.name}</span>
-                  {currentTheme === key && <span className="theme-checkmark">✓</span>}
                 </button>
               ))}
             </div>
