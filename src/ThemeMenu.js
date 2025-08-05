@@ -152,7 +152,7 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
 
   const handleThemeSelect = (themeKey) => {
     onThemeChange(themeKey);
-    setIsOpen(false);
+    // Don't close the panel, let it stay open for multiple selections
   };
 
   return (
@@ -162,7 +162,11 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
         onClick={() => setIsOpen(!isOpen)}
         title="Change Theme"
       >
-        <img src="themes-icon.png" alt="Themes" className="theme-icon" />
+        <img 
+          src={themes[currentTheme]?.isDark ? "light-mode-icon.png" : "dark-mode-icon.png"} 
+          alt={themes[currentTheme]?.isDark ? "Switch to Light Mode" : "Switch to Dark Mode"} 
+          className="theme-icon" 
+        />
       </button>
       
       {isOpen && (
