@@ -1,0 +1,74 @@
+{
+  "logs": [
+    {
+      "id": 1,
+      "timestamp": "2025-01-08T10:30:00.000Z",
+      "prompt": "move the summary of uploaded files beneath the upload file section. also make it small enough on the y axis to fit its content and fix the curly bracket at the end (\"i uploaded \"image.png\" to showcase the error). make the columns found as possible dates look like \"image copy.png\", not as rows like in \"image copy 2.png\". resize the upload file section togheter with its summary to be of the same height aas the x and y section. the header match show it as a number out of the total number of files and show it as well for each file in the view pannel of the merge summary if it went well or not for that specific file and also put the said view button inside the same menu as the menu of the summary of the merge. also make a file inse the app that stores all of the prompts that i am giving you togheter with a timestamp, number of tokens used, time to accomplish and end status and index all of the prompts",
+      "startTime": 1704708600000,
+      "endTime": 1704709800000,
+      "duration": 1200000,
+      "durationFormatted": "20m 0s",
+      "tokensUsed": 2847,
+      "status": "completed",
+      "tasks": [
+        {
+          "id": 1,
+          "description": "Move uploaded files summary beneath upload section",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:31:00.000Z",
+          "updatedAt": "2025-01-08T10:42:00.000Z"
+        },
+        {
+          "id": 2,
+          "description": "Fix curly bracket error in uploaded files summary",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:32:00.000Z",
+          "updatedAt": "2025-01-08T10:35:00.000Z"
+        },
+        {
+          "id": 3,
+          "description": "Make date columns display horizontally like badges, not as vertical rows",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:36:00.000Z",
+          "updatedAt": "2025-01-08T10:45:00.000Z"
+        },
+        {
+          "id": 4,
+          "description": "Resize upload section and summary to match height of X/Y section",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:38:00.000Z",
+          "updatedAt": "2025-01-08T10:46:00.000Z"
+        },
+        {
+          "id": 5,
+          "description": "Change header match to show number format (X out of Y files)",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:40:00.000Z",
+          "updatedAt": "2025-01-08T10:47:00.000Z"
+        },
+        {
+          "id": 6,
+          "description": "Add individual file header match status in merge summary popup",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:43:00.000Z",
+          "updatedAt": "2025-01-08T10:48:00.000Z"
+        },
+        {
+          "id": 7,
+          "description": "Move view button inside the merge summary menu",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:44:00.000Z",
+          "updatedAt": "2025-01-08T10:49:00.000Z"
+        },
+        {
+          "id": 8,
+          "description": "Create prompt logging system with timestamps and metadata",
+          "status": "completed",
+          "timestamp": "2025-01-08T10:45:00.000Z",
+          "updatedAt": "2025-01-08T10:50:00.000Z"
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

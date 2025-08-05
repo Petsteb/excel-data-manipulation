@@ -288,7 +288,7 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
 }
 
 // Handle Excel file merging and saving
-ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, outputPath, dateColumnIndices = [], dateColumnsWithTime = [] }) => {
+ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, outputPath, dateColumnIndices = [], dateColumnsWithTime = [], columnNamesRow = 1 }) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Merged Data');
@@ -296,30 +296,42 @@ ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, o
     let currentRow = 1;
     let totalDataRows = 0;
     
-    // Check if headers match across all files
+    // Check if ONLY the Y row (column headers) match across all files
     let headersMatch = true;
-    const referenceHeaders = [];
+    let matchingFiles = 0;
+    const fileDetails = [];
     
-    // Get reference headers from first file
-    for (let i = 0; i < commonLines; i++) {
-      if (filesData[0].data[i]) {
-        referenceHeaders.push(JSON.stringify(filesData[0].data[i]));
-      }
-    }
+    // Get reference column headers from first file (Y row only)
+    const yRowIndex = (columnNamesRow || 1) - 1; // Convert to 0-based index
+    const referenceColumnHeaders = filesData[0].data[yRowIndex] ? 
+      JSON.stringify(filesData[0].data[yRowIndex]) : '';
     
-    // Check headers in other files
-    for (let fileIndex = 1; fileIndex < filesData.length; fileIndex++) {
-      for (let i = 0; i < commonLines; i++) {
-        if (filesData[fileIndex].data[i]) {
-          const currentHeaders = JSON.stringify(filesData[fileIndex].data[i]);
-          if (referenceHeaders[i] !== currentHeaders) {
-            headersMatch = false;
-            break;
-          }
+    // Check Y row (column headers) in all files including the first one
+    filesData.forEach((fileData, fileIndex) => {
+      let fileHeaderMatch = true;
+      
+      if (fileData.data[yRowIndex]) {
+        const currentColumnHeaders = JSON.stringify(fileData.data[yRowIndex]);
+        if (referenceColumnHeaders !== currentColumnHeaders) {
+          fileHeaderMatch = false;
+          headersMatch = false;
         }
+      } else {
+        fileHeaderMatch = false;
+        headersMatch = false;
       }
-      if (!headersMatch) break;
-    }
+      
+      if (fileHeaderMatch) {
+        matchingFiles++;
+      }
+      
+      // Store individual file header match status for later use
+      fileDetails.push({
+        fileName: fileData.fileName,
+        headerMatch: fileHeaderMatch,
+        dataRows: 0 // Will be updated later
+      });
+    });
     
     // Add common header lines
     for (let i = 0; i < commonLines; i++) {
@@ -361,12 +373,11 @@ ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, o
       }
     }
     
-    // Track file name counts for duplicates and collect file details
+    // Track file name counts for duplicates
     const fileNameCounts = {};
-    const fileDetails = [];
     
     // Add data from each file
-    filesData.forEach(fileData => {
+    filesData.forEach((fileData, index) => {
       let displayName = fileData.fileName;
       
       // Handle duplicate file names
@@ -403,10 +414,9 @@ ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, o
         }
       }
       
-      fileDetails.push({
-        fileName: displayName,
-        dataRows: fileDataRows
-      });
+      // Update the file details with the actual data row count and display name
+      fileDetails[index].fileName = displayName;
+      fileDetails[index].dataRows = fileDataRows;
     });
     
     // Save the file
@@ -418,6 +428,7 @@ ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, o
       totalDataRows,
       commonHeaderRows: commonLines,
       headersMatch,
+      matchingFiles,
       fileDetails
     };
     

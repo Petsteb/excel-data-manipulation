@@ -18,12 +18,12 @@ function App() {
   const [selectedDateColumns, setSelectedDateColumns] = useState([]);
   const [autoDetectedDateColumns, setAutoDetectedDateColumns] = useState([]);
   const [dateColumnsWithTime, setDateColumnsWithTime] = useState([]);
-  const [menuStates, setMenuStates] = useState({
-    headerSettings: true,
-    columnSettings: true,
-    fileList: true,
-    processingDetails: false
-  });
+  const [showFileDetails, setShowFileDetails] = useState(false);
+  const [showUploadedFiles, setShowUploadedFiles] = useState(false);
+  const [showOtherColumns, setShowOtherColumns] = useState(false);
+  const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
+  const [showColumnSelectionPopup, setShowColumnSelectionPopup] = useState(false);
+  const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
 
   // Load settings on app start
   useEffect(() => {
@@ -32,11 +32,9 @@ function App() {
         const settings = await window.electronAPI.loadSettings();
         console.log('Loaded settings:', settings);
         
-        // Ensure numeric values are properly parsed and validated
         const commonLinesValue = Number.isInteger(settings.commonLines) ? settings.commonLines : (parseInt(settings.commonLines) || 1);
         let columnNamesRowValue = Number.isInteger(settings.columnNamesRow) ? settings.columnNamesRow : (parseInt(settings.columnNamesRow) || 1);
         
-        // Default y to equal x if not explicitly different
         if (!settings.columnNamesRowExplicitlySet) {
           columnNamesRowValue = commonLinesValue;
         }
@@ -47,11 +45,9 @@ function App() {
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
         setSelectedDateColumns(settings.selectedDateColumns || []);
-        setMenuStates(settings.menuStates || { headerSettings: true, columnSettings: true, fileList: true, processingDetails: false });
         applyTheme(settings.theme || 'purple');
       } catch (error) {
         console.error('Failed to load settings:', error);
-        // Set safe defaults if loading fails
         setCommonLines(1);
         setColumnNamesRow(1);
       } finally {
@@ -69,7 +65,7 @@ function App() {
       console.log('useEffect: columnNamesRow changed to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractColumnNames();
-      }, 300); // Small delay to avoid rapid-fire extractions while typing
+      }, 300);
       
       return () => clearTimeout(delayedExtraction);
     }
@@ -86,7 +82,6 @@ function App() {
       document.documentElement.style.setProperty('--theme-background', theme.background);
       document.documentElement.style.setProperty('--theme-card-bg', theme.cardBg);
       
-      // Apply dark theme class if it's a dark theme
       const appElement = document.querySelector('.App');
       if (appElement) {
         if (theme.isDark) {
@@ -118,31 +113,21 @@ function App() {
   const handleCommonLinesChange = async (value) => {
     const numValue = parseInt(value);
     
-    // Only proceed if it's a valid number
     if (!isNaN(numValue) && numValue > 0) {
-      const currentCommonLines = parseInt(commonLines);
-      const currentColumnNamesRow = parseInt(columnNamesRow);
-      
       setCommonLines(numValue);
-      
-      // Always set y (columnNamesRow) to equal x (commonLines) when x changes
       setColumnNamesRow(numValue);
       
       try {
         const settings = await window.electronAPI.loadSettings();
         const updatedSettings = {
           ...settings,
-          commonLines: numValue
+          commonLines: numValue,
+          columnNamesRow: numValue,
+          columnNamesRowExplicitlySet: false
         };
-        
-        // Always update columnNamesRow to match commonLines when commonLines changes
-        updatedSettings.columnNamesRow = numValue;
-        // Reset the explicitly set flag when x changes
-        updatedSettings.columnNamesRowExplicitlySet = false;
         
         await window.electronAPI.saveSettings(updatedSettings);
         
-        // Re-extract column names when commonLines changes (affects date detection)
         if (filesData.length > 0) {
           await extractColumnNames();
         }
@@ -150,7 +135,6 @@ function App() {
         console.error('Failed to save common lines:', error);
       }
     } else {
-      // Handle invalid input - just update the display
       setCommonLines(value);
     }
   };
@@ -159,10 +143,8 @@ function App() {
   const handleColumnNamesRowChange = async (value) => {
     console.log('=== handleColumnNamesRowChange called with value:', value, 'type:', typeof value);
     
-    // Always update the display value immediately - this will trigger useEffect
     setColumnNamesRow(value);
     
-    // Save to settings if it's a valid number
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
       try {
@@ -172,7 +154,6 @@ function App() {
         await window.electronAPI.saveSettings({
           ...settings,
           columnNamesRow: numValue,
-          // Mark as explicitly set if different from commonLines
           columnNamesRowExplicitlySet: numValue !== currentCommonLines
         });
         console.log('Settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
@@ -188,7 +169,7 @@ function App() {
     
     try {
       console.log('Extracting column names for row:', columnNamesRow, '(type:', typeof columnNamesRow, ') with commonLines:', commonLines, '(type:', typeof commonLines, ')');
-      const rowIndex = (parseInt(columnNamesRow) || 1) - 1; // Convert to 0-based index
+      const rowIndex = (parseInt(columnNamesRow) || 1) - 1;
       const commonLinesInt = parseInt(commonLines) || 1;
       
       console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
@@ -211,13 +192,11 @@ function App() {
         setAutoDetectedDateColumns(result.autoDetectedDateColumns || []);
         setDateColumnsWithTime(result.dateColumnsWithTime || []);
         
-        // Auto-select all detected date columns by default
         if (result.autoDetectedDateColumns && result.autoDetectedDateColumns.length > 0) {
           const newSelectedColumns = [...result.autoDetectedDateColumns];
           console.log('Auto-selecting all date columns:', newSelectedColumns);
           setSelectedDateColumns(newSelectedColumns);
           
-          // Save the auto-selected date columns
           try {
             const settings = await window.electronAPI.loadSettings();
             await window.electronAPI.saveSettings({
@@ -253,8 +232,8 @@ function App() {
   // Handle date column selection (multi-select)
   const handleDateColumnChange = async (columnIndex) => {
     const newSelectedColumns = selectedDateColumns.includes(columnIndex)
-      ? selectedDateColumns.filter(col => col !== columnIndex)  // Remove if already selected
-      : [...selectedDateColumns, columnIndex];  // Add if not selected
+      ? selectedDateColumns.filter(col => col !== columnIndex)
+      : [...selectedDateColumns, columnIndex];
     
     setSelectedDateColumns(newSelectedColumns);
     
@@ -266,25 +245,6 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to save date columns:', error);
-    }
-  };
-
-  // Toggle menu state
-  const toggleMenuState = async (menuKey) => {
-    const newMenuStates = {
-      ...menuStates,
-      [menuKey]: !menuStates[menuKey]
-    };
-    setMenuStates(newMenuStates);
-    
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        menuStates: newMenuStates
-      });
-    } catch (error) {
-      console.error('Failed to save menu states:', error);
     }
   };
 
@@ -301,20 +261,6 @@ function App() {
         setStatus(`${data.length} Excel files loaded successfully`);
         setProcessingSummary(null);
         
-        // Auto-minimize file list after loading
-        const newMenuStates = { ...menuStates, fileList: false };
-        setMenuStates(newMenuStates);
-        try {
-          const settings = await window.electronAPI.loadSettings();
-          await window.electronAPI.saveSettings({
-            ...settings,
-            menuStates: newMenuStates
-          });
-        } catch (error) {
-          console.error('Failed to save menu state:', error);
-        }
-        
-        // Extract column names after loading files
         await extractColumnNames();
       }
     } catch (error) {
@@ -326,14 +272,12 @@ function App() {
     const newSelected = new Set(selectedFileIndices);
     
     if (event.ctrlKey || event.metaKey) {
-      // Ctrl/Cmd click - toggle selection
       if (newSelected.has(index)) {
         newSelected.delete(index);
       } else {
         newSelected.add(index);
       }
     } else if (event.shiftKey && selectedFileIndices.size > 0) {
-      // Shift click - select range
       const indices = Array.from(selectedFileIndices);
       const lastSelected = Math.max(...indices);
       const start = Math.min(lastSelected, index);
@@ -343,7 +287,6 @@ function App() {
         newSelected.add(i);
       }
     } else {
-      // Regular click - select only this item
       newSelected.clear();
       newSelected.add(index);
     }
@@ -361,19 +304,6 @@ function App() {
     setSelectedFiles(newSelectedFiles);
     setSelectedFileIndices(new Set());
     setStatus(`Deleted ${selectedFileIndices.size} files. ${newFilesData.length} files remaining.`);
-  };
-
-  const handleDeleteUnselected = () => {
-    if (selectedFileIndices.size === 0) return;
-    
-    const newFilesData = filesData.filter((_, index) => selectedFileIndices.has(index));
-    const newSelectedFiles = selectedFiles.filter((_, index) => selectedFileIndices.has(index));
-    
-    const deletedCount = filesData.length - newFilesData.length;
-    setFilesData(newFilesData);
-    setSelectedFiles(newSelectedFiles);
-    setSelectedFileIndices(new Set());
-    setStatus(`Deleted ${deletedCount} unselected files. ${newFilesData.length} files remaining.`);
   };
 
   const selectAllFiles = () => {
@@ -413,7 +343,8 @@ function App() {
         commonLines: parseInt(commonLines),
         outputPath,
         dateColumnIndices: selectedDateColumns,
-        dateColumnsWithTime
+        dateColumnsWithTime,
+        columnNamesRow: parseInt(columnNamesRow)
       });
 
       if (result.success) {
@@ -437,6 +368,24 @@ function App() {
         setStatus('File opened successfully');
       } catch (error) {
         setStatus(`Error opening file: ${error.message}`);
+      }
+    }
+  };
+
+  const handleDownloadFile = async () => {
+    if (createdFilePath) {
+      try {
+        // For Electron apps, we can show the file in Explorer/Finder
+        await window.electronAPI.showItemInFolder(createdFilePath);
+        setStatus('File location opened');
+      } catch (error) {
+        // Fallback to opening the file if showItemInFolder is not available
+        try {
+          await window.electronAPI.openFile(createdFilePath);
+          setStatus('File opened successfully');
+        } catch (openError) {
+          setStatus(`Error accessing file: ${error.message}`);
+        }
       }
     }
   };
@@ -476,111 +425,53 @@ function App() {
       </header>
 
       <main className="app-main">
-        <div className="card">
-          <div className="step">
-            <h2>Step 1: Select Excel Files</h2>
-            <button 
-              className="btn btn-primary" 
-              onClick={handleSelectFiles}
-              disabled={isProcessing}
-            >
-              Select Excel Files
-            </button>
-            {filesData.length > 0 && (
-              <div className="file-list">
-                <div className="file-list-header" onClick={() => toggleMenuState('fileList')}>
-                  <div className="file-list-title">
-                    <h3>
-                      <span className={`collapse-icon ${menuStates.fileList ? 'expanded' : 'collapsed'}`}>
-                        ▼
-                      </span>
-                      Loaded Files ({filesData.length})
-                    </h3>
-                    {!menuStates.fileList && (
-                      <div className="file-summary">
-                        <span className="summary-item">
-                          📁 {filesData.length} files
-                        </span>
-                        <span className="summary-item">
-                          📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} total rows
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {menuStates.fileList && (
-                    <div className="file-controls">
-                      <button className="btn btn-small btn-secondary" onClick={(e) => { e.stopPropagation(); selectAllFiles(); }}>
-                        Select All
-                      </button>
-                      <button className="btn btn-small btn-secondary" onClick={(e) => { e.stopPropagation(); deselectAllFiles(); }}>
-                        Deselect All
-                      </button>
-                      <button 
-                        className="btn btn-small btn-danger" 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteSelected(); }}
-                        disabled={selectedFileIndices.size === 0}
-                      >
-                        Delete Selected ({selectedFileIndices.size})
-                      </button>
-                      <button 
-                        className="btn btn-small btn-danger" 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteUnselected(); }}
-                        disabled={selectedFileIndices.size === 0 || selectedFileIndices.size === filesData.length}
-                      >
-                        Keep Only Selected
-                      </button>
-                    </div>
-                  )}
-                </div>
-                
-                {menuStates.fileList && (
-                  <div className="file-list-content">
-                    <div className="file-items">
-                      {filesData.map((fileData, index) => (
-                        <div 
-                          key={index} 
-                          className={`file-item ${selectedFileIndices.has(index) ? 'selected' : ''}`}
-                          onClick={(e) => handleFileClick(index, e)}
-                        >
-                          <div className="file-info">
-                            <strong>{fileData.fileName}</strong>
-                            <span className="file-stats">{fileData.rowCount} rows</span>
-                          </div>
-                          <div className="file-path">{fileData.filePath}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="selection-hint">
-                      <p>💡 Click to select, Ctrl+Click to toggle, Shift+Click to select range</p>
-                    </div>
-                  </div>
-                )}
+        <div className="main-grid">
+          {/* Upload Column - Left */}
+          <div className="upload-column">
+            {/* Upload Section */}
+            <div className="upload-section">
+              <div className="upload-area">
+                <h3>Upload or drag and drop files here</h3>
+                <p>Click to select Excel files to merge</p>
+                <button className="btn btn-primary" onClick={handleSelectFiles} disabled={isProcessing}>
+                  Select Excel Files
+                </button>
               </div>
-            )}
+            </div>
+            
+            {/* Uploaded Files Summary */}
+            <div className="uploaded-files-summary">
+              <h3 className="section-title">Summary of uploaded files</h3>
+              {filesData.length > 0 ? (
+                <div className="file-summary">
+                  <div className="summary-item">📁 {filesData.length} files</div>
+                  <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} total rows</div>
+                  <button 
+                    className="btn btn-small btn-primary" 
+                    onClick={() => setShowUploadedFilesPopup(true)}
+                    style={{marginTop: '10px'}}
+                  >
+                    View
+                  </button>
+                </div>
+              ) : (
+                <div className="no-files">
+                  <p>No files uploaded yet</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {filesData.length > 0 && (
-            <div className="step">
-              <div className="step-header">
-                <h2>Step 2: Configure Settings</h2>
-              </div>
-              
-              <div className="collapsible-section">
-                <div className="section-header" onClick={() => toggleMenuState('headerSettings')}>
-                  <h3>
-                    <span className={`collapse-icon ${menuStates.headerSettings ? 'expanded' : 'collapsed'}`}>
-                      ▼
-                    </span>
-                    Header Settings
-                  </h3>
-                </div>
-                
-                {menuStates.headerSettings && (
-                  <div className="section-content">
+          {/* X and Y Selection Section - Right */}
+          <div className="xy-selection-section">
+
+            <h3 className="section-title">X and y selection with the preview for the date columns</h3>
+            <div className="section-content">
+              {filesData.length > 0 ? (
+                <div>
+                  <div className="input-group-horizontal">
                     <div className="input-group">
-                      <label htmlFor="commonLines">
-                        Number of common header lines to preserve (x):
-                      </label>
+                      <label htmlFor="commonLines">X (Common lines):</label>
                       <input
                         id="commonLines"
                         type="number"
@@ -588,153 +479,82 @@ function App() {
                         max="100"
                         value={commonLines}
                         onChange={(e) => handleCommonLinesChange(e.target.value)}
-                        onBlur={(e) => {
-                          // Ensure extraction happens when user finishes typing
-                          const numValue = parseInt(e.target.value);
-                          if (!isNaN(numValue) && numValue >= 0 && filesData.length > 0) {
-                            console.log('onBlur (commonLines): Ensuring column extraction for value:', numValue);
-                            extractColumnNames();
-                          }
-                        }}
                         disabled={isProcessing}
                       />
                     </div>
                     
                     <div className="input-group">
-                      <label htmlFor="columnNamesRow">
-                        Row number containing column names (y):
-                      </label>
+                      <label htmlFor="columnNamesRow">Y (Column row):</label>
                       <input
                         id="columnNamesRow"
                         type="number"
                         min="1"
                         max="100"
                         value={columnNamesRow}
-                        onChange={(e) => {
-                          console.log('onChange event triggered with:', e.target.value);
-                          handleColumnNamesRowChange(e.target.value);
-                        }}
-                        onBlur={(e) => {
-                          // Ensure extraction happens when user finishes typing
-                          const numValue = parseInt(e.target.value);
-                          if (!isNaN(numValue) && numValue > 0 && filesData.length > 0) {
-                            console.log('onBlur: Ensuring column extraction for value:', numValue);
-                            extractColumnNames();
-                          }
-                        }}
+                        onChange={(e) => handleColumnNamesRowChange(e.target.value)}
                         disabled={isProcessing}
                       />
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="collapsible-section">
-                <div className="section-header" onClick={() => toggleMenuState('columnSettings')}>
-                  <h3>
-                    <span className={`collapse-icon ${menuStates.columnSettings ? 'expanded' : 'collapsed'}`}>
-                      ▼
-                    </span>
-                    Column Settings
-                  </h3>
-                </div>
-                
-                {menuStates.columnSettings && (
-                  <div className="section-content">
-                    {columnNames.length > 0 ? (
-                      <>
-                        {autoDetectedDateColumns.length > 0 && (
-                          <>
-                            <div className="column-info">
-                              <h4>Date Columns Detected (Row {columnNamesRow}):</h4>
-                              <p className="column-hint">Click to select/deselect date columns for formatting. Selected columns will be formatted as dates in the merged file:</p>
-                            </div>
-                            <div className="column-grid">
-                              {autoDetectedDateColumns.map((colIndex) => {
-                                const col = columnNames[colIndex];
-                                const isSelected = selectedDateColumns.includes(colIndex);
-                                const hasTime = dateColumnsWithTime.includes(colIndex);
-                                
-                                return (
-                                  <button
-                                    key={colIndex}
-                                    className={`column-btn ${isSelected ? 'selected-date' : 'auto-detected-date'}`}
-                                    onClick={() => handleDateColumnChange(colIndex)}
-                                    disabled={isProcessing}
-                                  >
-                                    <div className="column-header">
-                                      <span className="column-name">{col?.name || `Column ${colIndex + 1}`}</span>
-                                      <span className="column-index">#{colIndex + 1}</span>
-                                    </div>
-                                    {isSelected ? (
-                                      <div className="date-indicator selected">
-                                        ✅ Selected for Date Formatting {hasTime ? '⏰' : ''}
-                                      </div>
-                                    ) : (
-                                      <div className="date-indicator auto-detected">
-                                        🤖 Auto-detected (Click to Select) {hasTime ? '⏰' : ''}
-                                      </div>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
+                  {columnNames.length > 0 && autoDetectedDateColumns.length > 0 && (
+                    <div className="date-columns-preview">
+                      <h4>Date Columns Found: {autoDetectedDateColumns.length}</h4>
+                      <div className="date-columns-horizontal">
+                        {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
+                          const col = columnNames[colIndex];
+                          const hasTime = dateColumnsWithTime.includes(colIndex);
+                          
+                          return (
+                            <span key={colIndex} className="date-column-badge">
+                              {col?.name || `Column ${colIndex + 1}`} {hasTime ? '⏰' : ''}
+                            </span>
+                          );
+                        })}
+                        {autoDetectedDateColumns.length > 3 && (
+                          <span className="more-columns">...and {autoDetectedDateColumns.length - 3} more</span>
                         )}
-                        
-                        {/* Show all other columns in a minimized list */}
-                        {columnNames.filter((_, index) => !autoDetectedDateColumns.includes(index)).length > 0 && (
-                          <details className="other-columns-section">
-                            <summary>
-                              <h4>Other Columns ({columnNames.filter((_, index) => !autoDetectedDateColumns.includes(index)).length})</h4>
-                            </summary>
-                            <div className="other-columns-grid">
-                              {columnNames.map((col, index) => {
-                                if (autoDetectedDateColumns.includes(index)) return null;
-                                
-                                return (
-                                  <div key={index} className="other-column-item">
-                                    <span className="column-name">{col?.name || `Column ${index + 1}`}</span>
-                                    <span className="column-index">#{index + 1}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </details>
-                        )}
-                      </>
-                    ) : (
-                      <div className="no-columns">
-                        <p>No columns detected in the data. Please check if the column names row (y) and common header lines (x) settings are correct.</p>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                    </div>
+                  )}
 
-          {filesData.length > 0 && (
-            <div className="step">
-              <h2>Step 3: Merge Files</h2>
-              <button 
-                className="btn btn-success" 
-                onClick={handleMergeFiles}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Processing...' : 'Merge and Save'}
-              </button>
+                  <button 
+                    className="btn btn-small btn-primary" 
+                    onClick={() => setShowColumnSelectionPopup(true)}
+                    style={{marginTop: '10px'}}
+                    disabled={columnNames.length === 0}
+                  >
+                    View
+                  </button>
+                </div>
+              ) : (
+                <div className="no-preview">
+                  <p>Upload files to see column preview</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          {createdFilePath && (
-            <div className="step">
-              <h2>Step 4: Open Result</h2>
-              {processingSummary && (
-                <div className="processing-summary">
+          {/* Merge Section - Center */}
+          <div className="merge-section">
+            <button 
+              className="merge-button" 
+              onClick={handleMergeFiles}
+              disabled={isProcessing || filesData.length === 0}
+            >
+              {isProcessing ? 'Processing...' : 'Merge Files'}
+            </button>
+          </div>
+
+          {/* Merged Files Section - Bottom */}
+          <div className="merged-files-section">
+            <h3 className="section-title">Summary of merged files</h3>
+            <div className="section-content">
+              {processingSummary ? (
+                <div className="merged-summary">
                   <div className="summary-stats">
                     <div className="stat-item">
-                      <strong>✅ Successfully merged {processingSummary.filesProcessed} files</strong>
+                      <strong>✅ Files merged:</strong> {processingSummary.filesProcessed}
                     </div>
                     <div className="stat-item">
                       <strong>📊 Total data rows:</strong> {processingSummary.totalDataRows}
@@ -743,61 +563,160 @@ function App() {
                       <strong>📄 Common header rows:</strong> {processingSummary.commonHeaderRows}
                     </div>
                     <div className="stat-item">
-                      <strong>🔍 Headers match:</strong> 
-                      <span className={`status-badge ${processingSummary.headersMatch ? 'success' : 'warning'}`}>
-                        {processingSummary.headersMatch ? '✓ Yes' : '⚠ No'}
+                      <strong>🔍 Column headers match:</strong> 
+                      <span className={`status-badge ${processingSummary.matchingFiles === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
+                        {processingSummary.matchingFiles || 0} out of {processingSummary.filesProcessed} files
                       </span>
                     </div>
                   </div>
                   
-                  <div className="collapsible-section">
-                    <div className="section-header" onClick={() => toggleMenuState('processingDetails')}>
-                      <h3>
-                        <span className={`collapse-icon ${menuStates.processingDetails ? 'expanded' : 'collapsed'}`}>
-                          ▼
-                        </span>
-                        Detailed Processing Information
-                      </h3>
+                  <div className="merged-actions">
+                    <div className="view-action">
+                      <button className="btn btn-small btn-primary" onClick={() => setShowMergedFilesPopup(true)}>
+                        View
+                      </button>
                     </div>
-                    
-                    {menuStates.processingDetails && (
-                      <div className="section-content">
-                        <div className="file-details">
-                          <h4>File Details:</h4>
-                          {processingSummary.fileDetails.map((file, index) => (
-                            <div key={index} className="file-detail">
-                              <strong>{file.fileName}:</strong> {file.dataRows} data rows
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="primary-actions">
+                      <button className="download-button" onClick={handleDownloadFile}>
+                        Download
+                      </button>
+                      <button className="btn btn-accent" onClick={handleOpenFile}>
+                        Open
+                      </button>
+                      <button className="btn btn-secondary" onClick={resetApp}>
+                        Remake
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <div className="no-merged-files">
+                  <p>Merged file summary will appear here after processing</p>
+                </div>
               )}
-              <div className="result-actions">
-                <button 
-                  className="btn btn-accent" 
-                  onClick={handleOpenFile}
-                >
-                  Open Merged File
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={resetApp}
-                >
-                  Start Over
-                </button>
+            </div>
+          </div>
+        </div>
+
+        {status && (
+          <div className="status-message">
+            <p>{status}</p>
+          </div>
+        )}
+
+        {/* Popup Modals */}
+        {showUploadedFilesPopup && (
+          <div className="popup-overlay" onClick={() => setShowUploadedFilesPopup(false)}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              <div className="popup-header">
+                <h3>All Uploaded Files</h3>
+                <button className="close-btn" onClick={() => setShowUploadedFilesPopup(false)}>×</button>
+              </div>
+              <div className="popup-body">
+                <div className="file-list-detailed">
+                  {filesData.map((fileData, index) => (
+                    <div 
+                      key={index} 
+                      className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
+                      onClick={(e) => handleFileClick(index, e)}
+                    >
+                      <div className="file-name-detailed">{fileData.fileName}</div>
+                      <div className="file-info">
+                        <span className="file-rows">{fileData.rowCount} rows</span>
+                        <span className="file-path">{fileData.filePath}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="file-controls">
+                  <button className="btn btn-secondary" onClick={selectAllFiles}>Select All</button>
+                  <button className="btn btn-secondary" onClick={deselectAllFiles}>Deselect All</button>
+                  <button className="btn btn-danger" onClick={handleDeleteSelected} disabled={selectedFileIndices.size === 0}>
+                    Delete Selected ({selectedFileIndices.size})
+                  </button>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {status && (
-            <div className="status-message">
-              <p>{status}</p>
+        {showColumnSelectionPopup && (
+          <div className="popup-overlay" onClick={() => setShowColumnSelectionPopup(false)}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              <div className="popup-header">
+                <h3>All Columns - Select/Deselect Date Columns</h3>
+                <button className="close-btn" onClick={() => setShowColumnSelectionPopup(false)}>×</button>
+              </div>
+              <div className="popup-body">
+                <div className="columns-grid">
+                  {columnNames.map((col, index) => {
+                    const isSelected = selectedDateColumns.includes(index);
+                    const isAutoDetected = autoDetectedDateColumns.includes(index);
+                    const hasTime = dateColumnsWithTime.includes(index);
+                    
+                    return (
+                      <button
+                        key={index}
+                        className={`column-btn ${isSelected ? 'selected' : ''} ${isAutoDetected ? 'auto-detected' : ''}`}
+                        onClick={() => handleDateColumnChange(index)}
+                        disabled={isProcessing}
+                      >
+                        <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
+                        <div className="column-info">
+                          {isAutoDetected && <span className="badge auto">Auto</span>}
+                          {hasTime && <span className="badge time">⏰</span>}
+                          {isSelected && <span className="badge selected">✅</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {showMergedFilesPopup && processingSummary && (
+          <div className="popup-overlay" onClick={() => setShowMergedFilesPopup(false)}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              <div className="popup-header">
+                <h3>Merged Files Summary</h3>
+                <button className="close-btn" onClick={() => setShowMergedFilesPopup(false)}>×</button>
+              </div>
+              <div className="popup-body">
+                <div className="merged-files-detailed">
+                  {processingSummary.fileDetails && processingSummary.fileDetails.map((file, index) => (
+                    <div key={index} className="merged-file-item">
+                      <div className="file-info-merged">
+                        <div className="file-name-merged">{file.fileName}</div>
+                        <div className="file-status">
+                          <span className="file-rows-merged">{file.dataRows} rows</span>
+                          <span className={`header-status ${file.headerMatch ? 'match' : 'no-match'}`}>
+                            {file.headerMatch ? '✓ Headers match' : '⚠ Headers differ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="summary-totals">
+                  <div className="total-item">
+                    <strong>Total Files:</strong> {processingSummary.filesProcessed}
+                  </div>
+                  <div className="total-item">
+                    <strong>Total Rows:</strong> {processingSummary.totalDataRows}
+                  </div>
+                  <div className="total-item">
+                    <strong>Common Headers:</strong> {processingSummary.commonHeaderRows}
+                  </div>
+                  <div className="total-item">
+                    <strong>Header Matches:</strong> {processingSummary.matchingFiles || 0} out of {processingSummary.filesProcessed}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
