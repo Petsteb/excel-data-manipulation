@@ -3,6 +3,18 @@ import './ThemeMenu.css';
 
 const themes = {
   // Light Themes
+  professional: {
+    name: 'Professional',
+    primary: '#4f46e5',
+    primaryHover: '#4338ca',
+    primaryLight: '#6366f1',
+    accent: '#10b981',
+    background: '#f8fafc',
+    cardBg: '#ffffff',
+    shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    borderColor: '#e2e8f0'
+  },
   purple: {
     name: 'Purple',
     primary: '#8b5cf6',

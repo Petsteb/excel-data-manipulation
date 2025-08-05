@@ -16,7 +16,7 @@ function loadSettings() {
     console.error('Error loading settings:', error);
   }
   return {
-    theme: 'purple',
+    theme: 'professional',
     commonLines: 1,
     columnNamesRow: 1,
     selectedDateColumns: [],

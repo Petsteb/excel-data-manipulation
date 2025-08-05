@@ -11,7 +11,7 @@ function App() {
   const [createdFilePath, setCreatedFilePath] = useState('');
   const [status, setStatus] = useState('');
   const [processingSummary, setProcessingSummary] = useState(null);
-  const [currentTheme, setCurrentTheme] = useState('purple');
+  const [currentTheme, setCurrentTheme] = useState('professional');
   const [isLoading, setIsLoading] = useState(true);
   const [columnNamesRow, setColumnNamesRow] = useState(1);
   const [columnNames, setColumnNames] = useState([]);
@@ -41,11 +41,11 @@ function App() {
         
         console.log('Parsed values - commonLines:', commonLinesValue, 'columnNamesRow:', columnNamesRowValue);
         
-        setCurrentTheme(settings.theme || 'purple');
+        setCurrentTheme(settings.theme || 'professional');
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
         setSelectedDateColumns(settings.selectedDateColumns || []);
-        applyTheme(settings.theme || 'purple');
+        applyTheme(settings.theme || 'professional');
       } catch (error) {
         console.error('Failed to load settings:', error);
         setCommonLines(1);
@@ -81,6 +81,9 @@ function App() {
       document.documentElement.style.setProperty('--theme-accent', theme.accent);
       document.documentElement.style.setProperty('--theme-background', theme.background);
       document.documentElement.style.setProperty('--theme-card-bg', theme.cardBg);
+      document.documentElement.style.setProperty('--theme-shadow', theme.shadow || '0 20px 40px rgba(139, 92, 246, 0.1)');
+      document.documentElement.style.setProperty('--theme-shadow-hover', theme.shadowHover || '0 25px 50px rgba(139, 92, 246, 0.15)');
+      document.documentElement.style.setProperty('--theme-border-color', theme.borderColor || 'rgba(255, 255, 255, 0.2)');
       
       const appElement = document.querySelector('.App');
       if (appElement) {
@@ -565,7 +568,7 @@ function App() {
                     <div className="stat-item">
                       <strong>🔍 Column headers match:</strong> 
                       <span className={`status-badge ${processingSummary.matchingFiles === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
-                        {processingSummary.matchingFiles || 0} out of {processingSummary.filesProcessed} files
+                        {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
                       </span>
                     </div>
                   </div>
@@ -710,7 +713,7 @@ function App() {
                     <strong>Common Headers:</strong> {processingSummary.commonHeaderRows}
                   </div>
                   <div className="total-item">
-                    <strong>Header Matches:</strong> {processingSummary.matchingFiles || 0} out of {processingSummary.filesProcessed}
+                    <strong>Header Matches:</strong> {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
                   </div>
                 </div>
               </div>
