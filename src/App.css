@@ -113,6 +113,11 @@
   border-radius: 8px;
 }
 
+.snap-line.outline.collision {
+  border: 2px dashed #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
 /* Enhanced grid dots for better snapping visibility */
 .App.layout-mode {
   background: var(--theme-background);

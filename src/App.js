@@ -533,7 +533,7 @@ function App() {
   };
 
   // Show snap lines - now shows complete panel outline
-  const showSnapLines = (x, y, width, height) => {
+  const showSnapLines = (x, y, width, height, wouldCollide = false) => {
     const lines = [];
     
     // Always show the outline at the snapped position (coordinates are already snapped)
@@ -543,7 +543,8 @@ function App() {
       x: x,
       y: y,
       width: width || 240,
-      height: height || 180
+      height: height || 180,
+      collision: wouldCollide
     });
     
     setSnapLines(lines);
@@ -611,17 +612,13 @@ function App() {
       const snappedX = Math.max(0, Math.round(elementX / gridSize) * gridSize);
       const snappedY = Math.max(0, Math.round(elementY / gridSize) * gridSize);
       
-      // Check if this snapped position would cause collision
-      if (checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight)) {
-        // Find a non-colliding position
-        const { x: validX, y: validY } = findNonCollidingPosition(draggedElement.id, elementX, elementY, elementWidth, elementHeight);
-        console.log(`Drag over - target blocked at (${snappedX}, ${snappedY}), showing alternative at (${validX}, ${validY})`);
-        showSnapLines(validX, validY, elementWidth, elementHeight);
-      } else {
-        // Position is valid, show it
-        console.log(`Drag over - valid position at (${snappedX}, ${snappedY})`);
-        showSnapLines(snappedX, snappedY, elementWidth, elementHeight);
-      }
+      // Check collision and show appropriate visual feedback
+      const tempPositions = { ...panelPositions };
+      delete tempPositions[draggedElement.id];
+      const wouldCollide = checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight, tempPositions);
+      
+      // Show snap lines with collision indicator
+      showSnapLines(snappedX, snappedY, elementWidth, elementHeight, wouldCollide);
     }
   };
 
@@ -699,22 +696,25 @@ function App() {
       const otherX = otherPos.x || 0;
       const otherY = otherPos.y || 0;
       
-      // Check if rectangles overlap or are too close (standard AABB collision detection)
+      // Standard AABB collision detection with spacing
+      // Check if rectangles are too close (less than minSpacing apart)
+      const leftEdge = x;
       const rightEdge = x + elementWidth;
+      const topEdge = y;
       const bottomEdge = y + elementHeight;
+      
+      const otherLeftEdge = otherX;
       const otherRightEdge = otherX + otherWidth;
+      const otherTopEdge = otherY;
       const otherBottomEdge = otherY + otherHeight;
       
-      // Rectangles overlap if:
-      // - left edge of element is less than right edge of other + spacing
-      // - right edge of element is greater than left edge of other - spacing  
-      // - top edge of element is less than bottom edge of other + spacing
-      // - bottom edge of element is greater than top edge of other - spacing
-      const overlapX = (x < otherRightEdge + minSpacing) && (rightEdge > otherX - minSpacing);
-      const overlapY = (y < otherBottomEdge + minSpacing) && (bottomEdge > otherY - minSpacing);
+      // Check if there's sufficient spacing between rectangles
+      const hasHorizontalGap = (rightEdge + minSpacing <= otherLeftEdge) || (otherRightEdge + minSpacing <= leftEdge);
+      const hasVerticalGap = (bottomEdge + minSpacing <= otherTopEdge) || (otherBottomEdge + minSpacing <= topEdge);
       
-      if (overlapX && overlapY) {
-        return true; // Collision detected
+      // If there's no sufficient gap in both directions, it's a collision
+      if (!hasHorizontalGap && !hasVerticalGap) {
+        return true;
       }
     }
     
@@ -756,19 +756,9 @@ function App() {
       const elementY = (e.clientY - rect.top) - dragOffset.y;
       
       // Get element dimensions
-      const draggingElement = document.querySelector('.dragging');
-      let elementWidth = 240;
-      let elementHeight = 180;
-      
-      if (draggingElement) {
-        const elementRect = draggingElement.getBoundingClientRect();
-        elementWidth = elementRect.width;
-        elementHeight = elementRect.height;
-      } else {
-        const currentPos = panelPositions[draggedElement.id] || {};
-        elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
-        elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
-      }
+      const currentPos = panelPositions[draggedElement.id] || {};
+      const elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
+      const elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
       
       // Snap to grid
       const gridSize = 20;
@@ -785,6 +775,7 @@ function App() {
         console.log(`❌ Drop rejected - collision detected for ${draggedElement.id} at (${snappedX}, ${snappedY})`);
       } else {
         // No collision - allow the move
+        console.log(`✅ Drop accepted - ${draggedElement.id} moved to (${snappedX}, ${snappedY})`);
         const newPositions = {
           ...panelPositions,
           [draggedElement.id]: { 
@@ -796,7 +787,6 @@ function App() {
           }
         };
         setPanelPositions(newPositions);
-        console.log(`✅ Drop accepted - ${draggedElement.id} moved to (${snappedX}, ${snappedY})`);
       }
       
       // Clean up
@@ -1611,7 +1601,7 @@ function App() {
         {snapLines.map(line => (
           <div 
             key={line.id}
-            className={`snap-line ${line.type}`}
+            className={`snap-line ${line.type} ${line.collision ? 'collision' : ''}`}
             style={
               line.type === 'outline' ? {
                 left: `${line.x}px`,
