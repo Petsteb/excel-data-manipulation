@@ -34,6 +34,7 @@ function App() {
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({});
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [snapLines, setSnapLines] = useState([]);
   const [availablePanels, setAvailablePanels] = useState([
     { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
     { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
@@ -526,6 +527,37 @@ function App() {
     setIsLayoutMenuOpen(!isLayoutMenuOpen);
   };
 
+  // Show snap lines
+  const showSnapLines = (x, y) => {
+    const gridSize = 20;
+    const lines = [];
+    
+    // Add horizontal snap line
+    if (y % gridSize === 0) {
+      lines.push({
+        id: 'snap-h',
+        type: 'horizontal',
+        position: y
+      });
+    }
+    
+    // Add vertical snap line
+    if (x % gridSize === 0) {
+      lines.push({
+        id: 'snap-v', 
+        type: 'vertical',
+        position: x
+      });
+    }
+    
+    setSnapLines(lines);
+  };
+  
+  // Hide snap lines
+  const hideSnapLines = () => {
+    setSnapLines([]);
+  };
+
   // Handle drag start for panels and buttons
   const handleDragStart = (e, element) => {
     setDraggedElement(element);
@@ -548,7 +580,82 @@ function App() {
     if (isLayoutMode && draggedElement) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
+      
+      // Show snap lines during drag
+      const rect = e.currentTarget.getBoundingClientRect();
+      const elementX = (e.clientX - rect.left) - dragOffset.x;
+      const elementY = (e.clientY - rect.top) - dragOffset.y;
+      
+      const snappedX = Math.max(0, Math.round(elementX / 20) * 20);
+      const snappedY = Math.max(0, Math.round(elementY / 20) * 20);
+      
+      showSnapLines(snappedX, snappedY);
     }
+  };
+
+  // Check for collisions with other elements
+  const checkCollision = (elementId, x, y, width, height) => {
+    // Get current element dimensions
+    const currentElement = panelPositions[elementId];
+    const elementWidth = width || currentElement?.width || 240;
+    const elementHeight = height || currentElement?.height || 180;
+    
+    // Check against all other positioned elements
+    for (const [otherId, otherPos] of Object.entries(panelPositions)) {
+      if (otherId === elementId) continue;
+      
+      const otherWidth = otherPos.width || 240;
+      const otherHeight = otherPos.height || 180;
+      const otherX = otherPos.x || 0;
+      const otherY = otherPos.y || 0;
+      
+      // Check if rectangles overlap
+      const noOverlap = (
+        x >= otherX + otherWidth ||  // Current is to the right of other
+        x + elementWidth <= otherX || // Current is to the left of other
+        y >= otherY + otherHeight ||  // Current is below other
+        y + elementHeight <= otherY   // Current is above other
+      );
+      
+      if (!noOverlap) {
+        return true; // Collision detected
+      }
+    }
+    return false; // No collision
+  };
+  
+  // Find nearest non-colliding position
+  const findNonCollidingPosition = (elementId, targetX, targetY, width, height) => {
+    const gridSize = 20;
+    let x = Math.max(0, Math.round(targetX / gridSize) * gridSize);
+    let y = Math.max(0, Math.round(targetY / gridSize) * gridSize);
+    
+    // If no collision at target position, use it
+    if (!checkCollision(elementId, x, y, width, height)) {
+      return { x, y };
+    }
+    
+    // Search in expanding spiral for nearest free position
+    const maxSearch = 50; // Maximum search distance in grid units
+    for (let radius = 1; radius <= maxSearch; radius++) {
+      // Check positions in expanding square around target
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          // Only check border of current square
+          if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+          
+          const testX = Math.max(0, x + dx * gridSize);
+          const testY = Math.max(0, y + dy * gridSize);
+          
+          if (!checkCollision(elementId, testX, testY, width, height)) {
+            return { x: testX, y: testY };
+          }
+        }
+      }
+    }
+    
+    // Fallback to original position if no space found
+    return { x, y };
   };
 
   // Handle drop
@@ -561,11 +668,15 @@ function App() {
       const elementX = (e.clientX - rect.left) - dragOffset.x;
       const elementY = (e.clientY - rect.top) - dragOffset.y;
       
-      // Snap to the nearest 20px grid point
-      const x = Math.max(0, Math.round(elementX / 20) * 20);
-      const y = Math.max(0, Math.round(elementY / 20) * 20);
+      // Get element dimensions
+      const currentPos = panelPositions[draggedElement.id] || {};
+      const elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
+      const elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
       
-      console.log(`Dragged ${draggedElement.id} to grid position (${x}, ${y})`);
+      // Find nearest non-colliding grid position
+      const { x, y } = findNonCollidingPosition(draggedElement.id, elementX, elementY, elementWidth, elementHeight);
+      
+      console.log(`Dragged ${draggedElement.id} to collision-free position (${x}, ${y})`);
       
       const newPositions = {
         ...panelPositions,
@@ -581,6 +692,7 @@ function App() {
       // Clean up
       setDraggedElement(null);
       setDragOffset({ x: 0, y: 0 });
+      hideSnapLines();
       document.querySelector('.app-main').classList.remove('drag-active');
       
       // Remove dragging class from all elements
@@ -598,6 +710,7 @@ function App() {
       appMain.classList.remove('drag-active');
     }
     setDraggedElement(null);
+    hideSnapLines();
   };
 
   // Add panel or button
@@ -678,11 +791,30 @@ function App() {
       
       element.style.width = newWidth + 'px';
       element.style.height = newHeight + 'px';
+      
+      // Show snap lines for resize operation
+      const elementRect = element.getBoundingClientRect();
+      const appRect = document.querySelector('.app-main').getBoundingClientRect();
+      const relativeRight = elementRect.right - appRect.left;
+      const relativeBottom = elementRect.bottom - appRect.top;
+      
+      // Show snap lines for right and bottom edges
+      const lines = [];
+      if (relativeRight % 20 === 0) {
+        lines.push({ id: 'resize-v', type: 'vertical', position: relativeRight });
+      }
+      if (relativeBottom % 20 === 0) {
+        lines.push({ id: 'resize-h', type: 'horizontal', position: relativeBottom });
+      }
+      setSnapLines(lines);
     };
 
     const handleMouseUp = async () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Hide snap lines
+      hideSnapLines();
       
       // Get final dimensions and ensure they're snapped to grid
       const finalWidth = parseInt(element.style.width, 10);
@@ -694,18 +826,36 @@ function App() {
       element.style.width = snappedWidth + 'px';
       element.style.height = snappedHeight + 'px';
       
-      // Store size in panelPositions along with position
-      setPanelPositions(prev => {
-        const elementKey = element.getAttribute('data-panel') || elementId.replace('panel-', '').replace('-container', '');
-        return {
+      // Check for collisions with new size and adjust position if needed
+      const elementKey = element.getAttribute('data-panel') || elementId.replace('panel-', '').replace('-container', '');
+      const currentPos = panelPositions[elementKey] || { x: 0, y: 0 };
+      
+      // If collision detected, find new position
+      if (checkCollision(elementKey, currentPos.x, currentPos.y, snappedWidth, snappedHeight)) {
+        const { x, y } = findNonCollidingPosition(elementKey, currentPos.x, currentPos.y, snappedWidth, snappedHeight);
+        
+        // Update position if it had to move
+        setPanelPositions(prev => ({
+          ...prev,
+          [elementKey]: {
+            ...prev[elementKey],
+            x,
+            y,
+            width: snappedWidth,
+            height: snappedHeight
+          }
+        }));
+      } else {
+        // No collision, just update size
+        setPanelPositions(prev => ({
           ...prev,
           [elementKey]: {
             ...prev[elementKey],
             width: snappedWidth,
             height: snappedHeight
           }
-        };
-      });
+        }));
+      }
       
       // Auto-save layout after resize
       setTimeout(saveLayoutSettings, 100);
@@ -1441,6 +1591,17 @@ function App() {
             </div>
           </div>
         )}
+        
+        {/* Snap Lines */}
+        {snapLines.map(line => (
+          <div 
+            key={line.id}
+            className={`snap-line ${line.type}`}
+            style={{
+              [line.type === 'horizontal' ? 'top' : 'left']: `${line.position}px`
+            }}
+          />
+        ))}
         
         {/* Layout Mode Dropdown Menu */}
         {isLayoutMode && (

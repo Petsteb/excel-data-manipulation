@@ -84,6 +84,45 @@
   background-image: radial-gradient(circle, var(--theme-primary) 2px, transparent 2px);
 }
 
+/* Miro-like snap indicators */
+.snap-line {
+  position: absolute;
+  background: var(--theme-primary);
+  opacity: 0.8;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+
+.snap-line.horizontal {
+  height: 1px;
+  width: 100%;
+  left: 0;
+}
+
+.snap-line.vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+}
+
+/* Enhanced grid dots for better snapping visibility */
+.App.layout-mode {
+  background: var(--theme-background);
+  background-image: 
+    radial-gradient(circle, var(--text-secondary) 1px, transparent 1px),
+    radial-gradient(circle, var(--text-secondary) 0.5px, transparent 0.5px);
+  background-size: 20px 20px, 100px 100px;
+  background-position: 0 0, 0 0;
+  position: relative;
+}
+
+.App.layout-mode.drag-active {
+  background-image: 
+    radial-gradient(circle, var(--theme-primary) 1.5px, transparent 1.5px),
+    radial-gradient(circle, var(--theme-primary) 0.5px, transparent 0.5px);
+}
+
 /* Top Menu Bar */
 .top-menu-bar {
   position: absolute;
@@ -2244,19 +2283,27 @@
   position: relative;
   display: inline-block;
   margin-right: 10px;
+  z-index: 1010;
 }
 
 /* In layout mode, individual buttons have minimum size and draggable styling */
 .individual-button.layout-draggable {
-  min-width: 60px;
-  min-height: 60px;
+  min-width: 80px;
+  min-height: 80px;
   border: 2px dashed var(--theme-primary);
-  background: rgba(var(--theme-primary-rgb, 139, 92, 246), 0.05);
+  background: rgba(var(--theme-primary-rgb, 139, 92, 246), 0.1);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: move;
+  z-index: 1010;
+  position: relative;
+}
+
+/* Ensure buttons stay visible when positioned absolutely */
+.individual-button.layout-draggable[style*="position: absolute"] {
+  z-index: 1020;
 }
 
 /* Remove button for individual buttons */
