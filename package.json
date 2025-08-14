@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--no-deprecation electron .",
-    "dev": "concurrently --kill-others \"cross-env PORT=8080 NODE_OPTIONS='--no-deprecation' npx react-scripts start\" \"npx wait-on http://localhost:8080 && cross-env NODE_OPTIONS='--no-deprecation' npx electron . --dev\"",
+    "dev": "concurrently --kill-others \"cross-env PORT=3000 NODE_OPTIONS='--no-deprecation' npx react-scripts start\" \"npx wait-on http://localhost:3000 && cross-env NODE_OPTIONS='--no-deprecation' npx electron . --dev\"",
     "react-dev": "cross-env NODE_OPTIONS=--no-deprecation react-scripts start",
     "electron-dev": "wait-on http://localhost:8080 && cross-env NODE_OPTIONS=--no-deprecation electron . --dev",
     "dev-manual": "echo Start React server first with: npm run react-dev && echo Then in another terminal run: npm run electron-start",

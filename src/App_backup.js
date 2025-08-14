@@ -532,19 +532,28 @@ function App() {
     setIsLayoutMenuOpen(!isLayoutMenuOpen);
   };
 
-  // Show snap lines - now shows complete panel outline
-  const showSnapLines = (x, y, width, height) => {
+  // Show snap lines
+  const showSnapLines = (x, y) => {
+    const gridSize = 20;
     const lines = [];
     
-    // Always show the outline at the snapped position (coordinates are already snapped)
-    lines.push({
-      id: 'panel-outline',
-      type: 'outline',
-      x: x,
-      y: y,
-      width: width || 240,
-      height: height || 180
-    });
+    // Add horizontal snap line
+    if (y % gridSize === 0) {
+      lines.push({
+        id: 'snap-h',
+        type: 'horizontal',
+        position: y
+      });
+    }
+    
+    // Add vertical snap line
+    if (x % gridSize === 0) {
+      lines.push({
+        id: 'snap-v', 
+        type: 'vertical',
+        position: x
+      });
+    }
     
     setSnapLines(lines);
   };
@@ -560,18 +569,11 @@ function App() {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
     
-    // Create a transparent drag image to prevent browser's default ghost image
-    const dragImage = new Image();
-    dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    
     // Calculate the offset between the mouse cursor and the element's top-left corner
     const rect = e.target.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     setDragOffset({ x: offsetX, y: offsetY });
-    
-    console.log(`Drag start - offset: (${offsetX}, ${offsetY}), element: ${element.id}`);
     
     // Add dragging class for visual feedback
     e.target.classList.add('dragging');
@@ -584,140 +586,46 @@ function App() {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       
-      // Show panel outline during drag - use same calculation as drop
+      // Show snap lines during drag
       const rect = e.currentTarget.getBoundingClientRect();
       const elementX = (e.clientX - rect.left) - dragOffset.x;
       const elementY = (e.clientY - rect.top) - dragOffset.y;
       
-      // Get actual element dimensions from the DOM
-      let elementWidth = 240;
-      let elementHeight = 180;
+      const snappedX = Math.max(0, Math.round(elementX / 20) * 20);
+      const snappedY = Math.max(0, Math.round(elementY / 20) * 20);
       
-      // Find the dragging element by class
-      const draggingElement = document.querySelector('.dragging');
-      if (draggingElement) {
-        const elementRect = draggingElement.getBoundingClientRect();
-        elementWidth = elementRect.width;
-        elementHeight = elementRect.height;
-      } else {
-        // Fallback to stored positions or defaults
-        const currentPos = panelPositions[draggedElement.id] || {};
-        elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
-        elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
-      }
-      
-      // First snap to grid
-      const gridSize = 20;
-      const snappedX = Math.max(0, Math.round(elementX / gridSize) * gridSize);
-      const snappedY = Math.max(0, Math.round(elementY / gridSize) * gridSize);
-      
-      // Check if this snapped position would cause collision
-      if (checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight)) {
-        // Find a non-colliding position
-        const { x: validX, y: validY } = findNonCollidingPosition(draggedElement.id, elementX, elementY, elementWidth, elementHeight);
-        console.log(`Drag over - target blocked at (${snappedX}, ${snappedY}), showing alternative at (${validX}, ${validY})`);
-        showSnapLines(validX, validY, elementWidth, elementHeight);
-      } else {
-        // Position is valid, show it
-        console.log(`Drag over - valid position at (${snappedX}, ${snappedY})`);
-        showSnapLines(snappedX, snappedY, elementWidth, elementHeight);
-      }
+      showSnapLines(snappedX, snappedY);
     }
   };
 
-  // Get actual element position and dimensions from DOM
-  const getElementBounds = (elementId) => {
-    // Try multiple selectors to find the element
-    const selectors = [
-      `[data-panel="${elementId}"]`,
-      `#${elementId}`,
-      `#${elementId}-container`,
-      `#panel-1[data-panel="${elementId}"]`,
-      `#panel-2[data-panel="${elementId}"]`,
-      `#panel-3[data-panel="${elementId}"]`,
-      `#panel-4[data-panel="${elementId}"]`,
-      `#panel-5[data-panel="${elementId}"]`,
-      `.upload-section[data-panel="${elementId}"]`,
-      `.uploaded-files-summary[data-panel="${elementId}"]`,
-      `.xy-selection-section[data-panel="${elementId}"]`,
-      `.date-columns-section[data-panel="${elementId}"]`,
-      `.merged-files-section[data-panel="${elementId}"]`
-    ];
+  // Check for collisions with other elements
+  const checkCollision = (elementId, x, y, width, height) => {
+    // Get current element dimensions
+    const currentElement = panelPositions[elementId];
+    const elementWidth = width || currentElement?.width || 240;
+    const elementHeight = height || currentElement?.height || 180;
     
-    let domElement = null;
-    for (const selector of selectors) {
-      domElement = document.querySelector(selector);
-      if (domElement) {
-        console.log(`Found element ${elementId} with selector: ${selector}`);
-        break;
-      }
-    }
-    
-    if (domElement && !domElement.classList.contains('dragging')) {
-      const rect = domElement.getBoundingClientRect();
-      const appRect = document.querySelector('.app-main')?.getBoundingClientRect();
-      
-      if (appRect) {
-        const bounds = {
-          x: rect.left - appRect.left,
-          y: rect.top - appRect.top,
-          width: rect.width,
-          height: rect.height
-        };
-        console.log(`Element ${elementId} bounds:`, bounds);
-        return bounds;
-      }
-    }
-    console.log(`Could not find bounds for element: ${elementId}`);
-    return null;
-  };
-
-  // Debug function to log all panel positions
-  const logAllPanelPositions = () => {
-    console.log('=== ALL PANEL POSITIONS ===');
-    for (const [id, pos] of Object.entries(panelPositions)) {
-      console.log(`${id}: (${pos.x}, ${pos.y}) size (${pos.width || 240}, ${pos.height || 180})`);
-    }
-    console.log('=== END POSITIONS ===');
-  };
-
-  // Check for collisions with other elements - strict 1 dot (20px) minimum spacing
-  const checkCollision = (elementId, x, y, width, height, currentPositions = null) => {
-    const elementWidth = width || 240;
-    const elementHeight = height || 180;
-    const minSpacing = 20; // Exactly 1 dot spacing as requested
-    
-    // Use provided positions or current state
-    const positions = currentPositions || panelPositions;
-    
-    // Check against all positioned elements
-    for (const [otherId, otherPos] of Object.entries(positions)) {
-      if (otherId === elementId) continue; // Skip self
+    // Check against all other positioned elements
+    for (const [otherId, otherPos] of Object.entries(panelPositions)) {
+      if (otherId === elementId) continue;
       
       const otherWidth = otherPos.width || 240;
       const otherHeight = otherPos.height || 180;
       const otherX = otherPos.x || 0;
       const otherY = otherPos.y || 0;
       
-      // Check if rectangles overlap or are too close (standard AABB collision detection)
-      const rightEdge = x + elementWidth;
-      const bottomEdge = y + elementHeight;
-      const otherRightEdge = otherX + otherWidth;
-      const otherBottomEdge = otherY + otherHeight;
+      // Check if rectangles overlap
+      const noOverlap = (
+        x >= otherX + otherWidth ||  // Current is to the right of other
+        x + elementWidth <= otherX || // Current is to the left of other
+        y >= otherY + otherHeight ||  // Current is below other
+        y + elementHeight <= otherY   // Current is above other
+      );
       
-      // Rectangles overlap if:
-      // - left edge of element is less than right edge of other + spacing
-      // - right edge of element is greater than left edge of other - spacing  
-      // - top edge of element is less than bottom edge of other + spacing
-      // - bottom edge of element is greater than top edge of other - spacing
-      const overlapX = (x < otherRightEdge + minSpacing) && (rightEdge > otherX - minSpacing);
-      const overlapY = (y < otherBottomEdge + minSpacing) && (bottomEdge > otherY - minSpacing);
-      
-      if (overlapX && overlapY) {
+      if (!noOverlap) {
         return true; // Collision detected
       }
     }
-    
     return false; // No collision
   };
   
@@ -732,17 +640,27 @@ function App() {
       return { x, y };
     }
     
-    // Simple grid search from top-left
-    for (let testY = 0; testY < 800; testY += gridSize) {
-      for (let testX = 0; testX < 1200; testX += gridSize) {
-        if (!checkCollision(elementId, testX, testY, width, height)) {
-          return { x: testX, y: testY };
+    // Search in expanding spiral for nearest free position
+    const maxSearch = 50; // Maximum search distance in grid units
+    for (let radius = 1; radius <= maxSearch; radius++) {
+      // Check positions in expanding square around target
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          // Only check border of current square
+          if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+          
+          const testX = Math.max(0, x + dx * gridSize);
+          const testY = Math.max(0, y + dy * gridSize);
+          
+          if (!checkCollision(elementId, testX, testY, width, height)) {
+            return { x: testX, y: testY };
+          }
         }
       }
     }
     
-    // Fallback to origin
-    return { x: 0, y: 0 };
+    // Fallback to original position if no space found
+    return { x, y };
   };
 
   // Handle drop
@@ -756,48 +674,25 @@ function App() {
       const elementY = (e.clientY - rect.top) - dragOffset.y;
       
       // Get element dimensions
-      const draggingElement = document.querySelector('.dragging');
-      let elementWidth = 240;
-      let elementHeight = 180;
+      const currentPos = panelPositions[draggedElement.id] || {};
+      const elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
+      const elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
       
-      if (draggingElement) {
-        const elementRect = draggingElement.getBoundingClientRect();
-        elementWidth = elementRect.width;
-        elementHeight = elementRect.height;
-      } else {
-        const currentPos = panelPositions[draggedElement.id] || {};
-        elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
-        elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
-      }
+      // Find nearest non-colliding grid position
+      const { x, y } = findNonCollidingPosition(draggedElement.id, elementX, elementY, elementWidth, elementHeight);
       
-      // Snap to grid
-      const gridSize = 20;
-      const snappedX = Math.max(0, Math.round(elementX / gridSize) * gridSize);
-      const snappedY = Math.max(0, Math.round(elementY / gridSize) * gridSize);
+      console.log(`Dragged ${draggedElement.id} to collision-free position (${x}, ${y})`);
       
-      // Create temporary positions without current element for collision check
-      const tempPositions = { ...panelPositions };
-      delete tempPositions[draggedElement.id];
+      const newPositions = {
+        ...panelPositions,
+        [draggedElement.id]: { 
+          ...panelPositions[draggedElement.id],
+          x, 
+          y 
+        }
+      };
       
-      // Check if the snapped position would collide
-      if (checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight, tempPositions)) {
-        // Collision detected - reject the drop and keep element at original position
-        console.log(`❌ Drop rejected - collision detected for ${draggedElement.id} at (${snappedX}, ${snappedY})`);
-      } else {
-        // No collision - allow the move
-        const newPositions = {
-          ...panelPositions,
-          [draggedElement.id]: { 
-            ...panelPositions[draggedElement.id],
-            x: snappedX, 
-            y: snappedY,
-            width: elementWidth,
-            height: elementHeight
-          }
-        };
-        setPanelPositions(newPositions);
-        console.log(`✅ Drop accepted - ${draggedElement.id} moved to (${snappedX}, ${snappedY})`);
-      }
+      setPanelPositions(newPositions);
       
       // Clean up
       setDraggedElement(null);
@@ -1014,15 +909,131 @@ function App() {
       onDrop={isLayoutMode ? handleDrop : undefined}
     >
       <div className="top-menu-bar">
-        <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
-        <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
-        <button 
-          className={`layout-button ${isLayoutMode ? 'active' : ''}`}
-          onClick={toggleLayoutMode}
-          title="Toggle Layout Mode"
+        {/* Individual Theme Button */}
+        {isPanelVisible('theme-button') && (
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
+          id="theme-button-container"
+          data-panel="theme-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'theme-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={panelPositions['theme-button'] ? {
+            position: 'absolute',
+            left: `${panelPositions['theme-button'].x}px`,
+            top: `${panelPositions['theme-button'].y}px`,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['theme-button'].width ? `${panelPositions['theme-button'].width}px` : '60px',
+            height: panelPositions['theme-button'].height ? `${panelPositions['theme-button'].height}px` : '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
         >
-          <img src={dashboardIcon} alt="Layout" className="layout-icon" />
-        </button>
+          {isLayoutMode && (
+            <>
+              <button 
+                className="panel-remove-btn"
+                onClick={() => removeElement({id: 'theme-button', type: 'button'})}
+                title="Remove Button"
+              >
+                ×
+              </button>
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'theme-button-container')}
+              />
+            </>
+          )}
+          <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
+        </div>
+        )}
+        
+        {/* Individual Language Button */}
+        {isPanelVisible('language-button') && (
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
+          id="language-button-container"
+          data-panel="language-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'language-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={panelPositions['language-button'] ? {
+            position: 'absolute',
+            left: `${panelPositions['language-button'].x}px`,
+            top: `${panelPositions['language-button'].y}px`,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['language-button'].width ? `${panelPositions['language-button'].width}px` : '60px',
+            height: panelPositions['language-button'].height ? `${panelPositions['language-button'].height}px` : '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
+        >
+          {isLayoutMode && (
+            <>
+              <button 
+                className="panel-remove-btn"
+                onClick={() => removeElement({id: 'language-button', type: 'button'})}
+                title="Remove Button"
+              >
+                ×
+              </button>
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'language-button-container')}
+              />
+            </>
+          )}
+          <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
+        </div>
+        )}
+        
+        {/* Individual Layout Button */}
+        {isPanelVisible('layout-button') && (
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
+          id="layout-button-container"
+          data-panel="layout-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'layout-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={panelPositions['layout-button'] ? {
+            position: 'absolute',
+            left: `${panelPositions['layout-button'].x}px`,
+            top: `${panelPositions['layout-button'].y}px`,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['layout-button'].width ? `${panelPositions['layout-button'].width}px` : '60px',
+            height: panelPositions['layout-button'].height ? `${panelPositions['layout-button'].height}px` : '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
+        >
+          {isLayoutMode && (
+            <>
+              {/* Layout button cannot be removed - no remove button */}
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'layout-button-container')}
+              />
+            </>
+          )}
+          <button 
+            className={`layout-button ${isLayoutMode ? 'active' : ''}`}
+            onClick={toggleLayoutMode}
+            title="Toggle Layout Mode"
+          >
+            <img src={dashboardIcon} alt="Layout" className="layout-icon" />
+          </button>
+        </div>
+        )}
       </div>
       
       {/* Header removed - no title needed */}
@@ -1612,16 +1623,9 @@ function App() {
           <div 
             key={line.id}
             className={`snap-line ${line.type}`}
-            style={
-              line.type === 'outline' ? {
-                left: `${line.x}px`,
-                top: `${line.y}px`,
-                width: `${line.width}px`,
-                height: `${line.height}px`
-              } : {
-                [line.type === 'horizontal' ? 'top' : 'left']: `${line.position}px`
-              }
-            }
+            style={{
+              [line.type === 'horizontal' ? 'top' : 'left']: `${line.position}px`
+            }}
           />
         ))}
         

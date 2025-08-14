@@ -1,5 +1,6 @@
 :root {
   --theme-primary: #4f46e5;
+  --theme-primary-rgb: 79, 70, 229;
   --theme-primary-hover: #4338ca;
   --theme-primary-light: #6366f1;
   --theme-accent: #10b981;
@@ -106,6 +107,12 @@
   top: 0;
 }
 
+.snap-line.outline {
+  border: 2px dashed var(--theme-primary);
+  background: rgba(var(--theme-primary-rgb, 79, 70, 229), 0.1);
+  border-radius: 8px;
+}
+
 /* Enhanced grid dots for better snapping visibility */
 .App.layout-mode {
   background: var(--theme-background);
@@ -123,7 +130,7 @@
     radial-gradient(circle, var(--theme-primary) 0.5px, transparent 0.5px);
 }
 
-/* Top Menu Bar - EXTREME VISIBILITY DEBUGGING */
+/* Top Menu Bar */
 .top-menu-bar {
   position: fixed !important;
   top: 20px !important;
@@ -133,11 +140,6 @@
   gap: 10px !important;
   z-index: 99999 !important;
   pointer-events: auto !important;
-  background: rgba(255, 0, 0, 0.5) !important; /* Red background for debugging */
-  border: 3px solid blue !important; /* Blue border for debugging */
-  padding: 10px !important;
-  min-width: 200px !important;
-  min-height: 50px !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
@@ -2276,10 +2278,10 @@
   box-shadow: 0 10px 30px rgba(var(--theme-primary-rgb, 139, 92, 246), 0.3) !important;
 }
 
-/* Show grid snap preview - no transparency */
+/* Show grid snap preview - no transparency, no offset, stay in place */
 .layout-draggable.dragging {
   opacity: 1 !important;
-  transform: scale(1.02);
+  transform: none !important;
   z-index: 1000 !important;
   border: 3px solid var(--theme-primary) !important;
   box-shadow: 0 20px 50px rgba(var(--theme-primary-rgb, 139, 92, 246), 0.6) !important;
@@ -2293,7 +2295,7 @@
 
 /* Remove grid snap indicator - not needed anymore */
 
-/* Individual Button Containers - DEBUGGING */
+/* Individual Button Containers */
 .individual-button {
   position: relative !important;
   display: inline-block !important;
@@ -2302,17 +2304,50 @@
   pointer-events: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
-  background: rgba(0, 255, 0, 0.3) !important; /* Green background for debugging */
-  border: 2px solid orange !important; /* Orange border for debugging */
-  min-width: 50px !important;
-  min-height: 50px !important;
 }
 
 .individual-button * {
   visibility: visible !important;
   opacity: 1 !important;
-  display: inline-block !important;
   pointer-events: auto !important;
+}
+
+/* Make theme and language buttons more visible in top menu */
+.top-menu-bar .theme-menu {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.top-menu-bar .theme-toggle-btn {
+  width: 32px !important;
+  height: 32px !important;
+  background: white !important;
+  border: 2px solid #4f46e5 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.top-menu-bar .language-menu {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.top-menu-bar .language-toggle-btn {
+  width: 32px !important;
+  height: 32px !important;
+  background: white !important;
+  border: 2px solid #4f46e5 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.top-menu-bar .layout-button {
+  width: 32px !important;
+  height: 32px !important;
+  background: white !important;
+  border: 2px solid #4f46e5 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* In layout mode, individual buttons have minimum size and draggable styling */
