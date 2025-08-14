@@ -521,6 +521,10 @@ function App() {
     
     if (newLayoutMode) {
       setIsLayoutMenuOpen(false); // Close menu when entering layout mode
+      // Initialize panel positions when entering layout mode
+      setTimeout(() => {
+        initializePanelPositions();
+      }, 100); // Small delay to ensure DOM is updated
     } else {
       // Save layout when exiting layout mode
       await saveLayoutSettings();
@@ -678,6 +682,35 @@ function App() {
     console.log('=== END POSITIONS ===');
   };
 
+  // Initialize panel positions from DOM when entering layout mode
+  const initializePanelPositions = () => {
+    const newPositions = { ...panelPositions };
+    
+    const allElements = [
+      ...availablePanels.filter(p => p.active),
+      ...availableButtons.filter(b => b.active && b.id !== 'theme-button' && b.id !== 'language-button' && b.id !== 'layout-button')
+    ];
+    
+    allElements.forEach(element => {
+      if (!newPositions[element.id]) {
+        const domElement = document.getElementById(element.id);
+        if (domElement) {
+          const rect = domElement.getBoundingClientRect();
+          const containerRect = document.querySelector('.app-main').getBoundingClientRect();
+          
+          newPositions[element.id] = {
+            x: Math.round((rect.left - containerRect.left) / 20) * 20, // Snap to grid
+            y: Math.round((rect.top - containerRect.top) / 20) * 20,   // Snap to grid
+            width: rect.width,
+            height: rect.height
+          };
+        }
+      }
+    });
+    
+    setPanelPositions(newPositions);
+  };
+
   // Check for collisions with other elements - strict 1 dot (20px) minimum spacing
   const checkCollision = (elementId, x, y, width, height, currentPositions = null) => {
     const elementWidth = width || 240;
@@ -687,33 +720,56 @@ function App() {
     // Use provided positions or current state
     const positions = currentPositions || panelPositions;
     
-    // Check against all positioned elements
-    for (const [otherId, otherPos] of Object.entries(positions)) {
-      if (otherId === elementId) continue; // Skip self
+    // Get all active panels and buttons from DOM to ensure we have real positions
+    const allElements = [
+      ...availablePanels.filter(p => p.active),
+      ...availableButtons.filter(b => b.active && b.id !== 'theme-button' && b.id !== 'language-button' && b.id !== 'layout-button')
+    ];
+    
+    for (const element of allElements) {
+      if (element.id === elementId) continue; // Skip self
       
-      const otherWidth = otherPos.width || 240;
-      const otherHeight = otherPos.height || 180;
-      const otherX = otherPos.x || 0;
-      const otherY = otherPos.y || 0;
+      let otherX, otherY, otherWidth, otherHeight;
       
-      // Standard AABB collision detection with spacing
-      // Check if rectangles are too close (less than minSpacing apart)
-      const leftEdge = x;
-      const rightEdge = x + elementWidth;
-      const topEdge = y;
-      const bottomEdge = y + elementHeight;
+      // First try to get position from stored positions
+      if (positions[element.id]) {
+        const pos = positions[element.id];
+        otherX = pos.x || 0;
+        otherY = pos.y || 0;
+        otherWidth = pos.width || 240;
+        otherHeight = pos.height || 180;
+      } else {
+        // Fallback: get position from DOM element
+        const domElement = document.getElementById(element.id);
+        if (domElement) {
+          const rect = domElement.getBoundingClientRect();
+          const containerRect = document.querySelector('.app-main').getBoundingClientRect();
+          otherX = rect.left - containerRect.left;
+          otherY = rect.top - containerRect.top;
+          otherWidth = rect.width;
+          otherHeight = rect.height;
+        } else {
+          continue; // Skip if can't find element
+        }
+      }
       
-      const otherLeftEdge = otherX;
-      const otherRightEdge = otherX + otherWidth;
-      const otherTopEdge = otherY;
-      const otherBottomEdge = otherY + otherHeight;
+      // AABB collision detection with minimum spacing
+      // Calculate edges of both rectangles
+      const left1 = x;
+      const right1 = x + elementWidth;
+      const top1 = y;
+      const bottom1 = y + elementHeight;
       
-      // Check if there's sufficient spacing between rectangles
-      const hasHorizontalGap = (rightEdge + minSpacing <= otherLeftEdge) || (otherRightEdge + minSpacing <= leftEdge);
-      const hasVerticalGap = (bottomEdge + minSpacing <= otherTopEdge) || (otherBottomEdge + minSpacing <= topEdge);
+      const left2 = otherX;
+      const right2 = otherX + otherWidth;
+      const top2 = otherY;
+      const bottom2 = otherY + otherHeight;
       
-      // If there's no sufficient gap in both directions, it's a collision
-      if (!hasHorizontalGap && !hasVerticalGap) {
+      // Check if rectangles are overlapping or too close
+      const horizontalOverlap = (left1 < right2 + minSpacing) && (right1 > left2 - minSpacing);
+      const verticalOverlap = (top1 < bottom2 + minSpacing) && (bottom1 > top2 - minSpacing);
+      
+      if (horizontalOverlap && verticalOverlap) {
         return true;
       }
     }
@@ -772,10 +828,9 @@ function App() {
       // Check if the snapped position would collide
       if (checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight, tempPositions)) {
         // Collision detected - reject the drop and keep element at original position
-        console.log(`❌ Drop rejected - collision detected for ${draggedElement.id} at (${snappedX}, ${snappedY})`);
+        // Do nothing - panel stays where it was
       } else {
         // No collision - allow the move
-        console.log(`✅ Drop accepted - ${draggedElement.id} moved to (${snappedX}, ${snappedY})`);
         const newPositions = {
           ...panelPositions,
           [draggedElement.id]: { 
