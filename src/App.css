@@ -123,20 +123,30 @@
     radial-gradient(circle, var(--theme-primary) 0.5px, transparent 0.5px);
 }
 
-/* Top Menu Bar */
+/* Top Menu Bar - EXTREME VISIBILITY DEBUGGING */
 .top-menu-bar {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 9999;
-  pointer-events: none;
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+  background: rgba(255, 0, 0, 0.5) !important; /* Red background for debugging */
+  border: 3px solid blue !important; /* Blue border for debugging */
+  padding: 10px !important;
+  min-width: 200px !important;
+  min-height: 50px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .top-menu-bar > * {
-  pointer-events: auto;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-block !important;
 }
 
 /* Layout Button - 3x3 dots size */
@@ -2283,13 +2293,26 @@
 
 /* Remove grid snap indicator - not needed anymore */
 
-/* Individual Button Containers */
+/* Individual Button Containers - DEBUGGING */
 .individual-button {
-  position: relative;
-  display: inline-block;
-  margin-right: 10px;
-  z-index: 10000;
-  pointer-events: auto;
+  position: relative !important;
+  display: inline-block !important;
+  margin-right: 10px !important;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: rgba(0, 255, 0, 0.3) !important; /* Green background for debugging */
+  border: 2px solid orange !important; /* Orange border for debugging */
+  min-width: 50px !important;
+  min-height: 50px !important;
+}
+
+.individual-button * {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
 }
 
 /* In layout mode, individual buttons have minimum size and draggable styling */

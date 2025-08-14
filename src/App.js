@@ -904,6 +904,8 @@ function App() {
       onDrop={isLayoutMode ? handleDrop : undefined}
     >
       <div className="top-menu-bar" style={{display: 'flex', position: 'fixed', top: '20px', right: '20px', zIndex: 9999}}>
+        {console.log('Top menu bar is rendering')}
+        {console.log('About to render theme button')}
         {/* Individual Theme Button */}
         <div 
           className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
@@ -941,9 +943,11 @@ function App() {
               />
             </>
           )}
+          <span style={{color: 'red', fontSize: '16px', fontWeight: 'bold'}}>THEME</span>
           <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
         </div>
         
+        {console.log('About to render language button')}
         {/* Individual Language Button */}
         <div 
           className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
@@ -981,9 +985,11 @@ function App() {
               />
             </>
           )}
+          <span style={{color: 'red', fontSize: '16px', fontWeight: 'bold'}}>LANG</span>
           <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
         </div>
         
+        {console.log('About to render layout button')}
         {/* Individual Layout Button */}
         <div 
           className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
@@ -1015,10 +1021,12 @@ function App() {
               />
             </>
           )}
+          <span style={{color: 'red', fontSize: '16px', fontWeight: 'bold'}}>LAYOUT</span>
           <button 
             className={`layout-button ${isLayoutMode ? 'active' : ''}`}
             onClick={toggleLayoutMode}
             title="Toggle Layout Mode"
+            style={{backgroundColor: 'yellow', border: '2px solid red', minWidth: '40px', minHeight: '40px'}}
           >
             <img src={dashboardIcon} alt="Layout" className="layout-icon" />
           </button>
