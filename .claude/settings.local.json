@@ -43,7 +43,8 @@
       "Bash(dir:*)",
       "Bash(ls:*)",
       "Bash(npm view:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npx electron:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
