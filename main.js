@@ -94,7 +94,7 @@ function createWindow() {
   const isDev = process.argv.includes('--dev');
   
   if (isDev) {
-    mainWindow.loadURL('http://localhost:3001');
+    mainWindow.loadURL('http://localhost:8080');
     // Developer tools disabled - remove the next line to enable them
     // mainWindow.webContents.openDevTools();
   } else {
