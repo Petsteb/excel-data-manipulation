@@ -42,7 +42,8 @@
       "Bash(npx electron-packager:*)",
       "Bash(dir:*)",
       "Bash(ls:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

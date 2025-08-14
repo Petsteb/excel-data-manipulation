@@ -2384,9 +2384,22 @@
   display: none !important;
 }
 
-/* Always show top menu bar buttons */
+/* Always show top menu bar buttons - override any hiding */
+.top-menu-bar {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .top-menu-bar .individual-button {
   display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.top-menu-bar .individual-button * {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Ensure layout button is always visible */

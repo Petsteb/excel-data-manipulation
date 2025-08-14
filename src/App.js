@@ -903,10 +903,10 @@ function App() {
       onDragOver={isLayoutMode ? handleDragOver : undefined}
       onDrop={isLayoutMode ? handleDrop : undefined}
     >
-      <div className="top-menu-bar">
+      <div className="top-menu-bar" style={{display: 'flex', position: 'fixed', top: '20px', right: '20px', zIndex: 9999}}>
         {/* Individual Theme Button */}
         <div 
-          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('theme-button') ? 'panel-hidden' : ''}`}
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
           id="theme-button-container"
           data-panel="theme-button"
           draggable={isLayoutMode}
@@ -946,7 +946,7 @@ function App() {
         
         {/* Individual Language Button */}
         <div 
-          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('language-button') ? 'panel-hidden' : ''}`}
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
           id="language-button-container"
           data-panel="language-button"
           draggable={isLayoutMode}
@@ -986,7 +986,7 @@ function App() {
         
         {/* Individual Layout Button */}
         <div 
-          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('layout-button') ? 'panel-hidden' : ''}`}
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''}`}
           id="layout-button-container"
           data-panel="layout-button"
           draggable={isLayoutMode}
