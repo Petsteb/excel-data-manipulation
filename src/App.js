@@ -565,9 +565,15 @@ function App() {
       const x = Math.max(0, Math.round(elementX / 20) * 20);
       const y = Math.max(0, Math.round(elementY / 20) * 20);
       
+      console.log(`Dragged ${draggedElement.id} to grid position (${x}, ${y})`);
+      
       const newPositions = {
         ...panelPositions,
-        [draggedElement.id]: { x, y }
+        [draggedElement.id]: { 
+          ...panelPositions[draggedElement.id],
+          x, 
+          y 
+        }
       };
       
       setPanelPositions(newPositions);
@@ -655,15 +661,20 @@ function App() {
     const element = document.getElementById(elementId);
     const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
     const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+    
+    // Determine minimum sizes based on element type
+    const isButton = element.classList.contains('individual-button');
+    const minWidth = isButton ? 80 : 240;
+    const minHeight = isButton ? 80 : 180;
 
     const handleMouseMove = (e) => {
       // Calculate new dimensions
       let newWidth = startWidth + (e.clientX - startX);
       let newHeight = startHeight + (e.clientY - startY);
       
-      // Snap to 20px grid increments
-      newWidth = Math.max(200, Math.round(newWidth / 20) * 20);
-      newHeight = Math.max(150, Math.round(newHeight / 20) * 20);
+      // Snap to 20px grid increments with proper minimums
+      newWidth = Math.max(minWidth, Math.round(newWidth / 20) * 20);
+      newHeight = Math.max(minHeight, Math.round(newHeight / 20) * 20);
       
       element.style.width = newWidth + 'px';
       element.style.height = newHeight + 'px';
@@ -673,10 +684,15 @@ function App() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      // Save the new size to layout settings
-      const elementRect = element.getBoundingClientRect();
-      const newWidth = Math.round(elementRect.width / 20) * 20;
-      const newHeight = Math.round(elementRect.height / 20) * 20;
+      // Get final dimensions and ensure they're snapped to grid
+      const finalWidth = parseInt(element.style.width, 10);
+      const finalHeight = parseInt(element.style.height, 10);
+      const snappedWidth = Math.max(minWidth, Math.round(finalWidth / 20) * 20);
+      const snappedHeight = Math.max(minHeight, Math.round(finalHeight / 20) * 20);
+      
+      // Apply snapped dimensions
+      element.style.width = snappedWidth + 'px';
+      element.style.height = snappedHeight + 'px';
       
       // Store size in panelPositions along with position
       setPanelPositions(prev => {
@@ -685,8 +701,8 @@ function App() {
           ...prev,
           [elementKey]: {
             ...prev[elementKey],
-            width: newWidth,
-            height: newHeight
+            width: snappedWidth,
+            height: snappedHeight
           }
         };
       });
