@@ -56,3 +56,6 @@ settings.json
 # Temporary files
 *.tmp
 *.temp
+
+# Personal notes
+to do.txt

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
+import LanguageMenu, { languages } from './LanguageMenu';
+import { useTranslation } from './translations';
+import dashboardIcon from './dashboard.png';
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const { t } = useTranslation(currentLanguage);
   const [filesData, setFilesData] = useState([]);
   const [selectedFileIndices, setSelectedFileIndices] = useState(new Set());
   const [commonLines, setCommonLines] = useState(1);
@@ -24,6 +29,24 @@ function App() {
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [showColumnSelectionPopup, setShowColumnSelectionPopup] = useState(false);
   const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
+  const [isLayoutMode, setIsLayoutMode] = useState(false);
+  const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
+  const [draggedElement, setDraggedElement] = useState(null);
+  const [panelPositions, setPanelPositions] = useState({});
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [availablePanels, setAvailablePanels] = useState([
+    { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
+    { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
+    { id: 'header-selection-panel', name: 'Header Selection Panel', type: 'panel', active: true },
+    { id: 'date-columns-panel', name: 'Date Columns Panel', type: 'panel', active: true },
+    { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
+  ]);
+  const [availableButtons, setAvailableButtons] = useState([
+    { id: 'theme-button', name: 'Theme Button', type: 'button', active: true },
+    { id: 'language-button', name: 'Language Button', type: 'button', active: true },
+    { id: 'layout-button', name: 'Layout Button', type: 'button', active: true },
+    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
+  ]);
 
   // Load settings on app start
   useEffect(() => {
@@ -42,10 +65,26 @@ function App() {
         console.log('Parsed values - commonLines:', commonLinesValue, 'columnNamesRow:', columnNamesRowValue);
         
         setCurrentTheme(settings.theme || 'professional');
+        setCurrentLanguage(settings.language || 'en');
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
         setSelectedDateColumns(settings.selectedDateColumns || []);
-        applyTheme(settings.theme || 'professional');
+        
+        // Load saved layout positions
+        if (settings.panelPositions) {
+          setPanelPositions(settings.panelPositions);
+        }
+        if (settings.availablePanels) {
+          setAvailablePanels(settings.availablePanels);
+        }
+        if (settings.availableButtons) {
+          setAvailableButtons(settings.availableButtons);
+        }
+        
+        // Apply theme after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          applyTheme(settings.theme || 'professional');
+        }, 100);
       } catch (error) {
         console.error('Failed to load settings:', error);
         setCommonLines(1);
@@ -57,6 +96,13 @@ function App() {
 
     loadAppSettings();
   }, []);
+
+  // Apply theme when component mounts and currentTheme changes
+  useEffect(() => {
+    if (currentTheme) {
+      applyTheme(currentTheme);
+    }
+  }, [currentTheme]);
 
   // Auto-extract columns when columnNamesRow changes
   useEffect(() => {
@@ -78,7 +124,7 @@ function App() {
       document.documentElement.style.setProperty('--theme-primary', theme.primary);
       document.documentElement.style.setProperty('--theme-primary-hover', theme.primaryHover);
       document.documentElement.style.setProperty('--theme-primary-light', theme.primaryLight);
-      document.documentElement.style.setProperty('--theme-accent', theme.accent);
+      document.documentElement.style.setProperty('--theme-accent', theme.primary);
       document.documentElement.style.setProperty('--theme-background', theme.background);
       document.documentElement.style.setProperty('--theme-card-bg', theme.cardBg);
       document.documentElement.style.setProperty('--theme-shadow', theme.shadow || '0 20px 40px rgba(139, 92, 246, 0.1)');
@@ -109,6 +155,21 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to save theme:', error);
+    }
+  };
+
+  // Handle language change
+  const handleLanguageChange = async (languageKey) => {
+    setCurrentLanguage(languageKey);
+    
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        language: languageKey
+      });
+    } catch (error) {
+      console.error('Failed to save language:', error);
     }
   };
 
@@ -251,18 +312,42 @@ function App() {
     }
   };
 
-  const handleSelectFiles = async () => {
+  const handleSelectFiles = async (append = false) => {
     try {
       const filePaths = await window.electronAPI.selectExcelFiles();
       if (filePaths.length > 0) {
-        setSelectedFiles(filePaths);
-        setSelectedFileIndices(new Set());
-        setStatus('Files selected. Reading data...');
+        let newFilePaths = filePaths;
+        let newData = [];
         
-        const data = await window.electronAPI.readExcelFiles(filePaths);
-        setFilesData(data);
-        setStatus(`${data.length} Excel files loaded successfully`);
-        setProcessingSummary(null);
+        if (append && selectedFiles.length > 0) {
+          // Filter out files that are already selected
+          const existingPaths = selectedFiles.map(path => path.toLowerCase());
+          newFilePaths = filePaths.filter(path => !existingPaths.includes(path.toLowerCase()));
+          
+          if (newFilePaths.length === 0) {
+            setStatus('All selected files are already uploaded');
+            return;
+          }
+          
+          setStatus(`Adding ${newFilePaths.length} new files...`);
+          newData = await window.electronAPI.readExcelFiles(newFilePaths);
+          
+          // Combine with existing data
+          setSelectedFiles([...selectedFiles, ...newFilePaths]);
+          setFilesData([...filesData, ...newData]);
+          setSelectedFileIndices(new Set());
+          setStatus(`${filesData.length + newData.length} Excel files loaded successfully (${newData.length} added)`);
+        } else {
+          // Replace existing files (original behavior)
+          setSelectedFiles(newFilePaths);
+          setSelectedFileIndices(new Set());
+          setStatus('Files selected. Reading data...');
+          
+          newData = await window.electronAPI.readExcelFiles(newFilePaths);
+          setFilesData(newData);
+          setStatus(`${newData.length} Excel files loaded successfully`);
+          setProcessingSummary(null);
+        }
         
         await extractColumnNames();
       }
@@ -407,6 +492,213 @@ function App() {
     setIsProcessing(false);
   };
 
+  // Save layout settings
+  const saveLayoutSettings = async () => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        panelPositions,
+        availablePanels,
+        availableButtons
+      });
+      console.log('Layout settings saved');
+    } catch (error) {
+      console.error('Failed to save layout settings:', error);
+    }
+  };
+
+  // Toggle layout mode
+  const toggleLayoutMode = async () => {
+    const newLayoutMode = !isLayoutMode;
+    setIsLayoutMode(newLayoutMode);
+    
+    if (newLayoutMode) {
+      setIsLayoutMenuOpen(false); // Close menu when entering layout mode
+    } else {
+      // Save layout when exiting layout mode
+      await saveLayoutSettings();
+    }
+  };
+
+  // Toggle layout menu
+  const toggleLayoutMenu = () => {
+    setIsLayoutMenuOpen(!isLayoutMenuOpen);
+  };
+
+  // Handle drag start for panels and buttons
+  const handleDragStart = (e, element) => {
+    setDraggedElement(element);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    
+    // Calculate the offset between the mouse cursor and the element's top-left corner
+    const rect = e.target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    setDragOffset({ x: offsetX, y: offsetY });
+    
+    // Add dragging class for visual feedback
+    e.target.classList.add('dragging');
+    document.querySelector('.app-main').classList.add('drag-active');
+  };
+
+  // Handle drag over
+  const handleDragOver = (e) => {
+    if (isLayoutMode && draggedElement) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e) => {
+    if (isLayoutMode && draggedElement) {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      
+      // Calculate where the element should be placed (cursor position minus offset)
+      const elementX = (e.clientX - rect.left) - dragOffset.x;
+      const elementY = (e.clientY - rect.top) - dragOffset.y;
+      
+      // Snap to the nearest 20px grid point
+      const x = Math.max(0, Math.round(elementX / 20) * 20);
+      const y = Math.max(0, Math.round(elementY / 20) * 20);
+      
+      const newPositions = {
+        ...panelPositions,
+        [draggedElement.id]: { x, y }
+      };
+      
+      setPanelPositions(newPositions);
+      
+      // Clean up
+      setDraggedElement(null);
+      setDragOffset({ x: 0, y: 0 });
+      document.querySelector('.app-main').classList.remove('drag-active');
+      
+      // Remove dragging class from all elements
+      document.querySelectorAll('.dragging').forEach(el => {
+        el.classList.remove('dragging');
+      });
+    }
+  };
+
+  // Handle drag end
+  const handleDragEnd = (e) => {
+    e.target.classList.remove('dragging');
+    const appMain = document.querySelector('.app-main');
+    if (appMain) {
+      appMain.classList.remove('drag-active');
+    }
+    setDraggedElement(null);
+  };
+
+  // Add panel or button
+  const addElement = async (element) => {
+    if (element.type === 'panel') {
+      setAvailablePanels(prev => 
+        prev.map(p => p.id === element.id ? { ...p, active: true } : p)
+      );
+    } else {
+      setAvailableButtons(prev => 
+        prev.map(b => b.id === element.id ? { ...b, active: true } : b)
+      );
+    }
+    // Auto-save layout changes
+    setTimeout(saveLayoutSettings, 100);
+  };
+
+  // Remove panel or button
+  const removeElement = async (element) => {
+    if (element.type === 'panel') {
+      setAvailablePanels(prev => 
+        prev.map(p => p.id === element.id ? { ...p, active: false } : p)
+      );
+      // Remove position data when removing panel
+      setPanelPositions(prev => {
+        const newPositions = { ...prev };
+        delete newPositions[element.id];
+        return newPositions;
+      });
+    } else {
+      setAvailableButtons(prev => 
+        prev.map(b => b.id === element.id ? { ...b, active: false } : b)
+      );
+      // Remove position data when removing button
+      setPanelPositions(prev => {
+        const newPositions = { ...prev };
+        delete newPositions[element.id];
+        return newPositions;
+      });
+    }
+    // Auto-save layout changes
+    setTimeout(saveLayoutSettings, 100);
+  };
+
+  // Get panel visibility
+  const isPanelVisible = (panelId) => {
+    // In normal mode, always show all panels
+    if (!isLayoutMode) return true;
+    
+    // In layout mode, show based on active state
+    const panel = availablePanels.find(p => p.id === panelId);
+    return panel ? panel.active : true;
+  };
+
+  // Handle resize start
+  const handleResizeStart = (e, elementId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const element = document.getElementById(elementId);
+    const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+    const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+
+    const handleMouseMove = (e) => {
+      // Calculate new dimensions
+      let newWidth = startWidth + (e.clientX - startX);
+      let newHeight = startHeight + (e.clientY - startY);
+      
+      // Snap to 20px grid increments
+      newWidth = Math.max(200, Math.round(newWidth / 20) * 20);
+      newHeight = Math.max(150, Math.round(newHeight / 20) * 20);
+      
+      element.style.width = newWidth + 'px';
+      element.style.height = newHeight + 'px';
+    };
+
+    const handleMouseUp = async () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Save the new size to layout settings
+      const elementRect = element.getBoundingClientRect();
+      const newWidth = Math.round(elementRect.width / 20) * 20;
+      const newHeight = Math.round(elementRect.height / 20) * 20;
+      
+      // Store size in panelPositions along with position
+      setPanelPositions(prev => {
+        const elementKey = element.getAttribute('data-panel') || elementId.replace('panel-', '').replace('-container', '');
+        return {
+          ...prev,
+          [elementKey]: {
+            ...prev[elementKey],
+            width: newWidth,
+            height: newHeight
+          }
+        };
+      });
+      
+      // Auto-save layout after resize
+      setTimeout(saveLayoutSettings, 100);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   if (isLoading) {
     return (
       <div className="App loading">
@@ -419,154 +711,570 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} />
+    <div 
+      className={`App ${isLayoutMode ? 'layout-mode' : ''}`}
+      onDragOver={isLayoutMode ? handleDragOver : undefined}
+      onDrop={isLayoutMode ? handleDrop : undefined}
+    >
+      <div className="top-menu-bar">
+        {/* Individual Theme Button */}
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('theme-button') ? 'panel-hidden' : ''}`}
+          id="theme-button-container"
+          data-panel="theme-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'theme-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={isLayoutMode && panelPositions['theme-button'] ? {
+            position: 'absolute',
+            left: panelPositions['theme-button'].x,
+            top: panelPositions['theme-button'].y,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['theme-button'].width || '60px',
+            height: panelPositions['theme-button'].height || '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
+        >
+          {isLayoutMode && (
+            <>
+              <button 
+                className="panel-remove-btn"
+                onClick={() => removeElement({id: 'theme-button', type: 'button'})}
+                title="Remove Button"
+              >
+                ×
+              </button>
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'theme-button-container')}
+              />
+            </>
+          )}
+          <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
+        </div>
+        
+        {/* Individual Language Button */}
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('language-button') ? 'panel-hidden' : ''}`}
+          id="language-button-container"
+          data-panel="language-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'language-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={isLayoutMode && panelPositions['language-button'] ? {
+            position: 'absolute',
+            left: panelPositions['language-button'].x,
+            top: panelPositions['language-button'].y,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['language-button'].width || '60px',
+            height: panelPositions['language-button'].height || '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
+        >
+          {isLayoutMode && (
+            <>
+              <button 
+                className="panel-remove-btn"
+                onClick={() => removeElement({id: 'language-button', type: 'button'})}
+                title="Remove Button"
+              >
+                ×
+              </button>
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'language-button-container')}
+              />
+            </>
+          )}
+          <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
+        </div>
+        
+        {/* Individual Layout Button */}
+        <div 
+          className={`individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('layout-button') ? 'panel-hidden' : ''}`}
+          id="layout-button-container"
+          data-panel="layout-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'layout-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={isLayoutMode && panelPositions['layout-button'] ? {
+            position: 'absolute',
+            left: panelPositions['layout-button'].x,
+            top: panelPositions['layout-button'].y,
+            zIndex: 1002,
+            minWidth: '60px',
+            minHeight: '60px',
+            width: panelPositions['layout-button'].width || '60px',
+            height: panelPositions['layout-button'].height || '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          } : {}}
+        >
+          {isLayoutMode && (
+            <>
+              <button 
+                className="panel-remove-btn"
+                onClick={() => removeElement({id: 'layout-button', type: 'button'})}
+                title="Remove Button"
+              >
+                ×
+              </button>
+              <div 
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, 'layout-button-container')}
+              />
+            </>
+          )}
+          <button 
+            className={`layout-button ${isLayoutMode ? 'active' : ''}`}
+            onClick={toggleLayoutMode}
+            title="Toggle Layout Mode"
+          >
+            <img src={dashboardIcon} alt="Layout" className="layout-icon" />
+          </button>
+        </div>
+      </div>
       
-      <header className="app-header">
-        <h1>Excel File Merger</h1>
-        <p>Merge multiple Excel files with source tracking</p>
-      </header>
+      {/* Header removed - no title needed */}
+      {(processingSummary || filesData.length > 0) && (
+        <div className="remake-button-container">
+          <button className="btn btn-secondary" onClick={resetApp}>
+            {t('remake')}
+          </button>
+        </div>
+      )}
 
-      <main className="app-main">
+      <main className={`app-main ${isLayoutMode ? 'layout-mode' : ''}`}>
         <div className="main-grid">
           {/* Upload Column - Left */}
           <div className="upload-column">
-            {/* Upload Section */}
-            <div className="upload-section">
-              <div className="upload-area">
-                <h3>Upload or drag and drop files here</h3>
-                <p>Click to select Excel files to merge</p>
-                <button className="btn btn-primary" onClick={handleSelectFiles} disabled={isProcessing}>
-                  Select Excel Files
-                </button>
+            {/* Panel 1 - Upload Files */}
+            <div 
+              className={`upload-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('upload-panel') ? 'panel-hidden' : ''}`} 
+              id="panel-1" 
+              data-panel="upload-panel"
+              draggable={isLayoutMode}
+              onDragStart={(e) => handleDragStart(e, { id: 'upload-panel', type: 'panel' })}
+              onDragEnd={handleDragEnd}
+              style={isLayoutMode && panelPositions['upload-panel'] ? {
+                position: 'absolute',
+                left: panelPositions['upload-panel'].x,
+                top: panelPositions['upload-panel'].y,
+                width: panelPositions['upload-panel'].width || 'auto',
+                height: panelPositions['upload-panel'].height || 'auto',
+                zIndex: 10
+              } : {}}
+            >
+              {isLayoutMode && (
+                <>
+                  <button 
+                    className="panel-remove-btn"
+                    onClick={() => removeElement({id: 'upload-panel', type: 'panel'})}
+                    title="Remove Panel"
+                  >
+                    ×
+                  </button>
+                  <div 
+                    className="resize-handle"
+                    onMouseDown={(e) => handleResizeStart(e, 'panel-1')}
+                  />
+                </>
+              )}
+              <div 
+                className="upload-area"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove('drag-over');
+                  
+                  const files = Array.from(e.dataTransfer.files);
+                  const excelFiles = files.filter(file => 
+                    file.name.toLowerCase().endsWith('.xlsx') || 
+                    file.name.toLowerCase().endsWith('.xls')
+                  );
+                  
+                  if (excelFiles.length > 0) {
+                    try {
+                      const filePaths = excelFiles.map(file => file.path);
+                      let newFilePaths = filePaths;
+                      let newData = [];
+                      
+                      if (selectedFiles.length > 0) {
+                        // Filter out files that are already selected
+                        const existingPaths = selectedFiles.map(path => path.toLowerCase());
+                        newFilePaths = filePaths.filter(path => !existingPaths.includes(path.toLowerCase()));
+                        
+                        if (newFilePaths.length === 0) {
+                          setStatus('All dropped files are already uploaded');
+                          return;
+                        }
+                        
+                        setStatus(`Adding ${newFilePaths.length} dropped files...`);
+                        newData = await window.electronAPI.readExcelFiles(newFilePaths);
+                        
+                        // Combine with existing data
+                        setSelectedFiles([...selectedFiles, ...newFilePaths]);
+                        setFilesData([...filesData, ...newData]);
+                        setSelectedFileIndices(new Set());
+                        setStatus(`${filesData.length + newData.length} Excel files loaded successfully (${newData.length} added)`);
+                      } else {
+                        // No existing files, just load the dropped ones
+                        setSelectedFiles(newFilePaths);
+                        setSelectedFileIndices(new Set());
+                        setStatus('Dropped files selected. Reading data...');
+                        
+                        newData = await window.electronAPI.readExcelFiles(newFilePaths);
+                        setFilesData(newData);
+                        setStatus(`${newData.length} Excel files loaded successfully`);
+                        setProcessingSummary(null);
+                      }
+                      
+                      await extractColumnNames();
+                    } catch (error) {
+                      setStatus(`Error processing dropped files: ${error.message}`);
+                    }
+                  } else {
+                    setStatus('Please drop Excel files (.xlsx or .xls)');
+                  }
+                }}
+              >
+                <h3>{t('uploadTitle')}</h3>
+                <p>{t('uploadDescription')}</p>
+                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
+                  <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
+                    {t('selectExcelFiles')}
+                  </button>
+                  {filesData.length > 0 && (
+                    <button className="btn btn-secondary" onClick={() => handleSelectFiles(true)} disabled={isProcessing}>
+                      {t('addMoreFiles')}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             
-            {/* Uploaded Files Summary */}
-            <div className="uploaded-files-summary">
-              <h3 className="section-title">Summary of uploaded files</h3>
+            {/* Panel 2 - Uploaded Files Summary */}
+            <div 
+              className={`uploaded-files-summary ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('files-summary-panel') ? 'panel-hidden' : ''}`} 
+              id="panel-2" 
+              data-panel="files-summary-panel"
+              draggable={isLayoutMode}
+              onDragStart={(e) => handleDragStart(e, { id: 'files-summary-panel', type: 'panel' })}
+              onDragEnd={handleDragEnd}
+              style={isLayoutMode && panelPositions['files-summary-panel'] ? {
+                position: 'absolute',
+                left: panelPositions['files-summary-panel'].x,
+                top: panelPositions['files-summary-panel'].y,
+                width: panelPositions['files-summary-panel'].width || 'auto',
+                height: panelPositions['files-summary-panel'].height || 'auto',
+                zIndex: 10
+              } : {}}
+            >
+              {isLayoutMode && (
+                <>
+                  <button 
+                    className="panel-remove-btn"
+                    onClick={() => removeElement({id: 'files-summary-panel', type: 'panel'})}
+                    title="Remove Panel"
+                  >
+                    ×
+                  </button>
+                  <div 
+                    className="resize-handle"
+                    onMouseDown={(e) => handleResizeStart(e, 'panel-2')}
+                  />
+                </>
+              )}
+              <h3 className="section-title">{t('uploadedFilesSummary')}</h3>
               {filesData.length > 0 ? (
                 <div className="file-summary">
-                  <div className="summary-item">📁 {filesData.length} files</div>
-                  <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} total rows</div>
+                  <div className="summary-item">📁 {filesData.length} {t('files')}</div>
+                  <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} {t('totalRows')}</div>
                   <button 
-                    className="btn btn-small btn-primary" 
+                    className="btn btn-small btn-primary summary-view-btn" 
                     onClick={() => setShowUploadedFilesPopup(true)}
-                    style={{marginTop: '10px'}}
                   >
-                    View
+                    {t('viewUploadedFiles')}
                   </button>
                 </div>
               ) : (
                 <div className="no-files">
-                  <p>No files uploaded yet</p>
+                  <p>{t('noFilesUploaded')}</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* X and Y Selection Section - Right */}
-          <div className="xy-selection-section">
-
-            <h3 className="section-title">X and y selection with the preview for the date columns</h3>
-            <div className="section-content">
-              {filesData.length > 0 ? (
-                <div>
-                  <div className="input-group-horizontal">
-                    <div className="input-group">
-                      <label htmlFor="commonLines">X (Common lines):</label>
-                      <input
-                        id="commonLines"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={commonLines}
-                        onChange={(e) => handleCommonLinesChange(e.target.value)}
-                        disabled={isProcessing}
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <label htmlFor="columnNamesRow">Y (Column row):</label>
-                      <input
-                        id="columnNamesRow"
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={columnNamesRow}
-                        onChange={(e) => handleColumnNamesRowChange(e.target.value)}
-                        disabled={isProcessing}
-                      />
-                    </div>
-                  </div>
-
-                  {columnNames.length > 0 && autoDetectedDateColumns.length > 0 && (
-                    <div className="date-columns-preview">
-                      <h4>Date Columns Found: {autoDetectedDateColumns.length}</h4>
-                      <div className="date-columns-horizontal">
-                        {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
-                          const col = columnNames[colIndex];
-                          const hasTime = dateColumnsWithTime.includes(colIndex);
-                          
-                          return (
-                            <span key={colIndex} className="date-column-badge">
-                              {col?.name || `Column ${colIndex + 1}`} {hasTime ? '⏰' : ''}
-                            </span>
-                          );
-                        })}
-                        {autoDetectedDateColumns.length > 3 && (
-                          <span className="more-columns">...and {autoDetectedDateColumns.length - 3} more</span>
-                        )}
+          {/* Right Column - Header and Date Panels */}
+          <div className="right-column">
+            {/* Panel 3 - Header and Columns Selection */}
+            <div 
+              className={`xy-selection-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('header-selection-panel') ? 'panel-hidden' : ''}`} 
+              id="panel-3" 
+              data-panel="header-selection-panel"
+              draggable={isLayoutMode}
+              onDragStart={(e) => handleDragStart(e, { id: 'header-selection-panel', type: 'panel' })}
+              onDragEnd={handleDragEnd}
+              style={isLayoutMode && panelPositions['header-selection-panel'] ? {
+                position: 'absolute',
+                left: panelPositions['header-selection-panel'].x,
+                top: panelPositions['header-selection-panel'].y,
+                width: panelPositions['header-selection-panel'].width || 'auto',
+                height: panelPositions['header-selection-panel'].height || 'auto',
+                zIndex: 10
+              } : {}}
+            >
+              {isLayoutMode && (
+                <>
+                  <button 
+                    className="panel-remove-btn"
+                    onClick={() => removeElement({id: 'header-selection-panel', type: 'panel'})}
+                    title="Remove Panel"
+                  >
+                    ×
+                  </button>
+                  <div 
+                    className="resize-handle"
+                    onMouseDown={(e) => handleResizeStart(e, 'panel-3')}
+                  />
+                </>
+              )}
+              <h3 className="section-title">{t('headerColumnsSelection')}</h3>
+              <div className="section-content">
+                {filesData.length > 0 ? (
+                  <div>
+                    <div className="input-group-horizontal">
+                      <div className="input-group">
+                        <label htmlFor="commonLines">{t('headerNumberOfRows')} <span className="tooltip-trigger" title={t('headerNumberTooltip')}></span></label>
+                        <input
+                          id="commonLines"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={commonLines}
+                          onChange={(e) => handleCommonLinesChange(e.target.value)}
+                          disabled={isProcessing}
+                        />
+                      </div>
+                      
+                      <div className="input-group">
+                        <label htmlFor="columnNamesRow">{t('columnsRow')} <span className="tooltip-trigger" title={t('columnsRowTooltip')}></span></label>
+                        <input
+                          id="columnNamesRow"
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={columnNamesRow}
+                          onChange={(e) => handleColumnNamesRowChange(e.target.value)}
+                          disabled={isProcessing}
+                        />
                       </div>
                     </div>
-                  )}
+                  </div>
+                ) : (
+                  <div className="no-preview">
+                    <p>{t('uploadFilesToSeePreview')}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
+            {/* Panel 4 - Columns that will be Formatted as Date */}
+            <div 
+              className={`date-columns-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('date-columns-panel') ? 'panel-hidden' : ''}`} 
+              id="panel-4" 
+              data-panel="date-columns-panel"
+              draggable={isLayoutMode}
+              onDragStart={(e) => handleDragStart(e, { id: 'date-columns-panel', type: 'panel' })}
+              onDragEnd={handleDragEnd}
+              style={isLayoutMode && panelPositions['date-columns-panel'] ? {
+                position: 'absolute',
+                left: panelPositions['date-columns-panel'].x,
+                top: panelPositions['date-columns-panel'].y,
+                width: panelPositions['date-columns-panel'].width || 'auto',
+                height: panelPositions['date-columns-panel'].height || 'auto',
+                zIndex: 10
+              } : {}}
+            >
+              {isLayoutMode && (
+                <>
                   <button 
-                    className="btn btn-small btn-primary" 
-                    onClick={() => setShowColumnSelectionPopup(true)}
-                    style={{marginTop: '10px'}}
-                    disabled={columnNames.length === 0}
+                    className="panel-remove-btn"
+                    onClick={() => removeElement({id: 'date-columns-panel', type: 'panel'})}
+                    title="Remove Panel"
                   >
-                    View
+                    ×
                   </button>
-                </div>
-              ) : (
-                <div className="no-preview">
-                  <p>Upload files to see column preview</p>
-                </div>
+                  <div 
+                    className="resize-handle"
+                    onMouseDown={(e) => handleResizeStart(e, 'panel-4')}
+                  />
+                </>
               )}
+              <h3 className="section-title">{t('dateColumnsTitle')}</h3>
+              <div className="section-content">
+                {filesData.length > 0 ? (
+                  <div>
+                    {columnNames.length > 0 && autoDetectedDateColumns.length > 0 ? (
+                      <div className="date-columns-preview">
+                        <h4>{t('dateColumnsFound')} {autoDetectedDateColumns.length} <span className="tooltip-trigger" title={t('dateColumnsTooltip')}></span></h4>
+                        <div className="date-columns-horizontal">
+                          {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
+                            const col = columnNames[colIndex];
+                            const hasTime = dateColumnsWithTime.includes(colIndex);
+                            
+                            return (
+                              <span key={colIndex} className="date-column-badge">
+                                {col?.name || `Column ${colIndex + 1}`} {hasTime ? '⏰' : ''}
+                              </span>
+                            );
+                          })}
+                          {autoDetectedDateColumns.length > 3 && (
+                            <span className="more-columns">{t('andMore')} {autoDetectedDateColumns.length - 3} {t('more')}</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : columnNames.length > 0 ? (
+                      <div className="no-preview">
+                        <p>{t('noDateColumnsDetected')}</p>
+                      </div>
+                    ) : (
+                      <div className="no-preview">
+                        <p>{t('uploadFilesToDetectDate')}</p>
+                      </div>
+                    )}
+
+                    <button 
+                      className="btn btn-small btn-primary" 
+                      onClick={() => setShowColumnSelectionPopup(true)}
+                      style={{marginTop: '10px'}}
+                      disabled={columnNames.length === 0}
+                    >
+                      {t('viewColumns')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="no-preview">
+                    <p>{t('uploadFilesToDetectDate')}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Merge Section - Center */}
-          <div className="merge-section">
+          <div 
+            className={`merge-section individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('merge-button') ? 'panel-hidden' : ''}`}
+            id="merge-section"
+            data-panel="merge-button"
+            draggable={isLayoutMode}
+            onDragStart={(e) => handleDragStart(e, { id: 'merge-button', type: 'button' })}
+            onDragEnd={handleDragEnd}
+            style={isLayoutMode && panelPositions['merge-button'] ? {
+              position: 'absolute',
+              left: panelPositions['merge-button'].x,
+              top: panelPositions['merge-button'].y,
+              width: panelPositions['merge-button'].width || 'auto',
+              height: panelPositions['merge-button'].height || 'auto',
+              zIndex: 10,
+              minWidth: '60px',
+              minHeight: '60px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            } : {}}
+          >
+            {isLayoutMode && (
+              <>
+                <button 
+                  className="panel-remove-btn"
+                  onClick={() => removeElement({id: 'merge-button', type: 'button'})}
+                  title="Remove Button"
+                >
+                  ×
+                </button>
+                <div 
+                  className="resize-handle"
+                  onMouseDown={(e) => handleResizeStart(e, 'merge-section')}
+                />
+              </>
+            )}
             <button 
               className="merge-button" 
               onClick={handleMergeFiles}
               disabled={isProcessing || filesData.length === 0}
             >
-              {isProcessing ? 'Processing...' : 'Merge Files'}
+              {isProcessing ? t('processing') : t('mergeFiles')}
             </button>
           </div>
 
-          {/* Merged Files Section - Bottom */}
-          <div className="merged-files-section">
-            <h3 className="section-title">Summary of merged files</h3>
+          {/* Panel 5 - Summary of Merged Files */}
+          <div 
+            className={`merged-files-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('merged-summary-panel') ? 'panel-hidden' : ''}`} 
+            id="panel-5" 
+            data-panel="merged-summary-panel"
+            draggable={isLayoutMode}
+            onDragStart={(e) => handleDragStart(e, { id: 'merged-summary-panel', type: 'panel' })}
+            onDragEnd={handleDragEnd}
+            style={isLayoutMode && panelPositions['merged-summary-panel'] ? {
+              position: 'absolute',
+              left: panelPositions['merged-summary-panel'].x,
+              top: panelPositions['merged-summary-panel'].y,
+              width: panelPositions['merged-summary-panel'].width || 'auto',
+              height: panelPositions['merged-summary-panel'].height || 'auto',
+              zIndex: 10
+            } : {}}
+          >
+            {isLayoutMode && (
+              <>
+                <button 
+                  className="panel-remove-btn"
+                  onClick={() => removeElement({id: 'merged-summary-panel', type: 'panel'})}
+                  title="Remove Panel"
+                >
+                  ×
+                </button>
+                <div 
+                  className="resize-handle"
+                  onMouseDown={(e) => handleResizeStart(e, 'panel-5')}
+                />
+              </>
+            )}
+            <h3 className="section-title">{t('mergedFilesSummary')}</h3>
             <div className="section-content">
               {processingSummary ? (
                 <div className="merged-summary">
                   <div className="summary-stats">
                     <div className="stat-item">
-                      <strong>✅ Files merged:</strong> {processingSummary.filesProcessed}
+                      <strong>✅ {t('filesMerged')}</strong> <span className="stat-number">{processingSummary.filesProcessed}</span>
                     </div>
                     <div className="stat-item">
-                      <strong>📊 Total data rows:</strong> {processingSummary.totalDataRows}
+                      <strong>📊 {t('totalDataRows')}</strong> <span className="stat-number">{processingSummary.totalDataRows}</span>
                     </div>
                     <div className="stat-item">
-                      <strong>📄 Common header rows:</strong> {processingSummary.commonHeaderRows}
+                      <strong>📄 {t('commonHeaderRows')}</strong> <span className="stat-number">{processingSummary.commonHeaderRows}</span>
                     </div>
                     <div className="stat-item">
-                      <strong>🔍 Column headers match:</strong> 
+                      <strong>🔍 {t('columnHeadersMatch')}</strong> 
                       <span className={`status-badge ${processingSummary.matchingFiles === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
                         {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
                       </span>
@@ -576,25 +1284,22 @@ function App() {
                   <div className="merged-actions">
                     <div className="view-action">
                       <button className="btn btn-small btn-primary" onClick={() => setShowMergedFilesPopup(true)}>
-                        View
+                        {t('viewMergedFiles')}
                       </button>
                     </div>
                     <div className="primary-actions">
                       <button className="download-button" onClick={handleDownloadFile}>
-                        Download
+                        {t('download')}
                       </button>
                       <button className="btn btn-accent" onClick={handleOpenFile}>
-                        Open
-                      </button>
-                      <button className="btn btn-secondary" onClick={resetApp}>
-                        Remake
+                        {t('open')}
                       </button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="no-merged-files">
-                  <p>Merged file summary will appear here after processing</p>
+                  <p>{t('mergedFileSummaryWillAppear')}</p>
                 </div>
               )}
             </div>
@@ -718,6 +1423,74 @@ function App() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+        
+        {/* Layout Mode Dropdown Menu */}
+        {isLayoutMode && (
+          <div className="layout-controls">
+            <button 
+              className="layout-menu-toggle"
+              onClick={toggleLayoutMenu}
+              title={isLayoutMenuOpen ? "Collapse Menu" : "Show Element Menu"}
+            >
+              <span className={`arrow ${isLayoutMenuOpen ? 'up' : 'down'}`}>
+                {isLayoutMenuOpen ? '▲' : '▼'}
+              </span>
+            </button>
+            
+            {isLayoutMenuOpen && (
+              <div className="layout-dropdown">
+                <div className="dropdown-header">
+                  <h3>Element Library</h3>
+                  <button className="close-layout-btn" onClick={toggleLayoutMode}>Exit Layout Mode</button>
+                </div>
+                
+                <div className="dropdown-content">
+                  <div className="dropdown-section">
+                    <h4>Panels</h4>
+                    <div className="dropdown-items">
+                      {availablePanels.filter(panel => !panel.active).map(panel => (
+                        <div key={panel.id} className="dropdown-item">
+                          <span className="item-name">{panel.name}</span>
+                          <button 
+                            className="btn-add" 
+                            onClick={() => addElement(panel)}
+                            title="Add Panel"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ))}
+                      {availablePanels.filter(panel => !panel.active).length === 0 && (
+                        <div className="no-items">All panels are currently visible</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="dropdown-section">
+                    <h4>Buttons</h4>
+                    <div className="dropdown-items">
+                      {availableButtons.filter(button => !button.active).map(button => (
+                        <div key={button.id} className="dropdown-item">
+                          <span className="item-name">{button.name}</span>
+                          <button 
+                            className="btn-add" 
+                            onClick={() => addElement(button)}
+                            title="Add Button"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ))}
+                      {availableButtons.filter(button => !button.active).length === 0 && (
+                        <div className="no-items">All buttons are currently visible</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
