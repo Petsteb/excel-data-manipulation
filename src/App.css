@@ -125,13 +125,18 @@
 
 /* Top Menu Bar */
 .top-menu-bar {
-  position: absolute;
+  position: fixed;
   top: 20px;
   right: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
-  z-index: 1001;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.top-menu-bar > * {
+  pointer-events: auto;
 }
 
 /* Layout Button - 3x3 dots size */
@@ -2283,7 +2288,8 @@
   position: relative;
   display: inline-block;
   margin-right: 10px;
-  z-index: 1010;
+  z-index: 10000;
+  pointer-events: auto;
 }
 
 /* In layout mode, individual buttons have minimum size and draggable styling */
@@ -2376,6 +2382,18 @@
 /* Panel visibility controls */
 .panel-hidden {
   display: none !important;
+}
+
+/* Always show top menu bar buttons */
+.top-menu-bar .individual-button {
+  display: inline-block !important;
+}
+
+/* Ensure layout button is always visible */
+.individual-button[data-panel="layout-button"] {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Dark theme adjustments for dropdown */

@@ -43,10 +43,10 @@ function App() {
     { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
   ]);
   const [availableButtons, setAvailableButtons] = useState([
-    { id: 'theme-button', name: 'Theme Button', type: 'button', active: true },
-    { id: 'language-button', name: 'Language Button', type: 'button', active: true },
-    { id: 'layout-button', name: 'Layout Button', type: 'button', active: true },
-    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
+    { id: 'theme-button', name: 'Theme Button', type: 'button', active: true, required: false },
+    { id: 'language-button', name: 'Language Button', type: 'button', active: true, required: false },
+    { id: 'layout-button', name: 'Layout Button', type: 'button', active: true, required: true },
+    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true, required: false }
   ]);
 
   // Load settings on app start
@@ -730,6 +730,15 @@ function App() {
 
   // Remove panel or button
   const removeElement = async (element) => {
+    // Protect required buttons from deletion
+    if (element.type === 'button') {
+      const button = availableButtons.find(b => b.id === element.id);
+      if (button?.required) {
+        console.log(`Cannot remove ${element.id} - it is required`);
+        return;
+      }
+    }
+    
     if (element.type === 'panel') {
       setAvailablePanels(prev => 
         prev.map(p => p.id === element.id ? { ...p, active: false } : p)
@@ -755,14 +764,26 @@ function App() {
     setTimeout(saveLayoutSettings, 100);
   };
 
-  // Get panel visibility
-  const isPanelVisible = (panelId) => {
-    // In normal mode, always show all panels
+  // Get panel or button visibility
+  const isPanelVisible = (elementId) => {
+    // In normal mode, always show all elements
     if (!isLayoutMode) return true;
     
     // In layout mode, show based on active state
-    const panel = availablePanels.find(p => p.id === panelId);
-    return panel ? panel.active : true;
+    // Check panels first
+    const panel = availablePanels.find(p => p.id === elementId);
+    if (panel) {
+      return panel.active;
+    }
+    
+    // Check buttons
+    const button = availableButtons.find(b => b.id === elementId);
+    if (button) {
+      return button.active;
+    }
+    
+    // Default to visible if not found
+    return true;
   };
 
   // Handle resize start
@@ -987,13 +1008,7 @@ function App() {
         >
           {isLayoutMode && (
             <>
-              <button 
-                className="panel-remove-btn"
-                onClick={() => removeElement({id: 'layout-button', type: 'button'})}
-                title="Remove Button"
-              >
-                ×
-              </button>
+              {/* Layout button cannot be removed - no remove button */}
               <div 
                 className="resize-handle"
                 onMouseDown={(e) => handleResizeStart(e, 'layout-button-container')}
