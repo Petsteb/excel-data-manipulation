@@ -2,7 +2,7 @@
   "name": "excel-file-merger",
   "version": "1.1.0",
   "description": "Excel File Merger - A desktop app for merging Excel files with source tracking and date column detection",
-  "main": "main.js",
+  "main": "./main.js",
   "author": "Excel File Merger Team",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--no-deprecation electron .",
-    "dev": "concurrently --kill-others \"npx react-scripts start\" \"npx wait-on http://localhost:3000 && npx electron . --dev\"",
+    "dev": "concurrently --kill-others \"cross-env NODE_OPTIONS='--no-deprecation' npx react-scripts start\" \"npx wait-on http://localhost:3000 && cross-env NODE_OPTIONS='--no-deprecation' npx electron . --dev\"",
     "react-dev": "cross-env NODE_OPTIONS=--no-deprecation react-scripts start",
     "electron-dev": "wait-on http://localhost:3000 && cross-env NODE_OPTIONS=--no-deprecation electron . --dev",
     "dev-manual": "echo Start React server first with: npm run react-dev && echo Then in another terminal run: npm run electron-start",
@@ -31,20 +31,21 @@
     "commit-version": "git add . && git commit -m \"Version bump to $(node -p \"require('./package.json').version\")\""
   },
   "dependencies": {
-    "electron": "^28.0.0",
+    "exceljs": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "exceljs": "^4.4.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "react-scripts": "^5.0.1",
-    "electron-builder": "^24.9.1",
-    "concurrently": "^8.2.2",
-    "wait-on": "^7.2.0",
-    "cross-env": "^7.0.3",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
+    "@types/react-dom": "^18.2.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-packager": "^17.1.2",
+    "react-scripts": "5.1.0-next.26",
+    "wait-on": "^7.2.0"
   },
   "homepage": "./",
   "browserslist": {
@@ -61,14 +62,26 @@
   },
   "build": {
     "appId": "com.excelmerger.app",
-    "productName": "Excel Merger",
+    "productName": "Excel File Merger",
     "directories": {
       "output": "dist"
     },
+    "extends": null,
     "files": [
       "build/**/*",
       "main.js",
-      "preload.js"
-    ]
+      "preload.js",
+      "public/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "certificateFile": null,
+      "certificatePassword": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

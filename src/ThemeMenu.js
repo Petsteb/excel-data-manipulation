@@ -394,6 +394,20 @@ const themes = {
     deletable: true
   },
 
+  grayscaleLight: {
+    name: 'Grayscale Light',
+    primary: '#2B2B2B',
+    primaryHover: '#1F1F1F',
+    primaryLight: '#404040',
+    accent: '#B3B3B3',
+    background: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    shadow: '0 1px 3px 0 rgba(43, 43, 43, 0.1), 0 1px 2px 0 rgba(43, 43, 43, 0.06)',
+    shadowHover: '0 4px 6px -1px rgba(43, 43, 43, 0.1), 0 2px 4px -1px rgba(43, 43, 43, 0.06)',
+    borderColor: '#D4D4D4',
+    deletable: true
+  },
+
   // ===== DARK THEMES =====
 
   // Dark Professional
@@ -609,13 +623,77 @@ const themes = {
     borderColor: 'rgba(252, 211, 77, 0.2)',
     isDark: true,
     deletable: true
+  },
+
+  grayscaleDark: {
+    name: 'Grayscale Dark',
+    primary: '#D4D4D4',
+    primaryHover: '#B3B3B3',
+    primaryLight: '#FFFFFF',
+    accent: '#B3B3B3',
+    background: 'linear-gradient(135deg, #2B2B2B 0%, #1F1F1F 100%)',
+    cardBg: 'rgba(43, 43, 43, 0.9)',
+    shadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+    shadowHover: '0 20px 40px rgba(0, 0, 0, 0.4)',
+    borderColor: 'rgba(212, 212, 212, 0.2)',
+    isDark: true,
+    deletable: true
   }
 };
 
-function ThemeMenu({ currentTheme, onThemeChange }) {
+// Function to convert hex color to HSL for sorting by hue
+function hexToHsl(hex) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  
+  // Convert to RGB
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, l;
+  
+  l = (max + min) / 2;
+  
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  
+  return [h * 360, s, l];
+}
+
+// Function to sort themes by color hue
+function sortThemesByColor(themesObj) {
+  return Object.entries(themesObj).sort(([keyA, themeA], [keyB, themeB]) => {
+    const [hueA] = hexToHsl(themeA.primary);
+    const [hueB] = hexToHsl(themeB.primary);
+    
+    // Handle grayscale themes (very low saturation) - put them at the end
+    const [, satA] = hexToHsl(themeA.primary);
+    const [, satB] = hexToHsl(themeB.primary);
+    
+    if (satA < 0.1 && satB >= 0.1) return 1;
+    if (satB < 0.1 && satA >= 0.1) return -1;
+    if (satA < 0.1 && satB < 0.1) return 0;
+    
+    return hueA - hueB;
+  });
+}
+
+function ThemeMenu({ currentTheme, onThemeChange, t }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const [themesToDelete, setThemesToDelete] = useState([]);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -632,51 +710,7 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
   }, []);
 
   const handleThemeSelect = (themeKey) => {
-    if (isDeveloperMode && themesToDelete.includes(themeKey)) {
-      return; // Don't select themes that are marked for deletion
-    }
     onThemeChange(themeKey);
-    // Don't close the panel, let it stay open for multiple selections
-  };
-
-  const toggleDeveloperMode = () => {
-    setIsDeveloperMode(!isDeveloperMode);
-    setThemesToDelete([]); // Clear deletion list when toggling
-  };
-
-  const toggleThemeForDeletion = (themeKey) => {
-    if (themes[themeKey]?.deletable === false) return; // Can't delete non-deletable themes
-    
-    setThemesToDelete(prev => 
-      prev.includes(themeKey) 
-        ? prev.filter(key => key !== themeKey)
-        : [...prev, themeKey]
-    );
-  };
-
-  const confirmDeleteThemes = () => {
-    if (themesToDelete.length === 0) return;
-    
-    // Create new themes object without deleted themes
-    const newThemes = { ...themes };
-    themesToDelete.forEach(themeKey => {
-      delete newThemes[themeKey];
-    });
-    
-    // If current theme is being deleted, switch to professional
-    if (themesToDelete.includes(currentTheme)) {
-      onThemeChange('professional');
-    }
-    
-    // Update the themes object (in a real app, this would update the state/storage)
-    Object.keys(themes).forEach(key => {
-      if (themesToDelete.includes(key)) {
-        delete themes[key];
-      }
-    });
-    
-    setThemesToDelete([]);
-    alert(`Deleted ${themesToDelete.length} theme(s)`);
   };
 
   return (
@@ -684,7 +718,7 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
       <button 
         className="theme-toggle-btn"
         onClick={() => setIsOpen(!isOpen)}
-        title="Change Theme"
+        title={t ? t('changeTheme') : "Change Theme"}
       >
         <img 
           src={themes[currentTheme]?.isDark ? "dark-mode-icon.png" : "light-mode-icon.png"} 
@@ -696,59 +730,37 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
       {isOpen && (
         <div className="theme-dropdown">
           <div className="theme-dropdown-header">
-            <h3>Choose Theme</h3>
-            <div className="developer-controls">
-              <button 
-                className={`dev-mode-toggle ${isDeveloperMode ? 'active' : ''}`}
-                onClick={toggleDeveloperMode}
-                title="Toggle Developer Mode"
-              >
-                🔧 Dev Mode
-              </button>
-              {isDeveloperMode && themesToDelete.length > 0 && (
-                <button 
-                  className="delete-themes-btn"
-                  onClick={confirmDeleteThemes}
-                  title={`Delete ${themesToDelete.length} theme(s)`}
-                >
-                  🗑️ Delete ({themesToDelete.length})
-                </button>
-              )}
-            </div>
+            <h3>{t ? t('chooseTheme') : 'Choose Theme'}</h3>
           </div>
           
-          {/* Light Themes */}
-          <div className="theme-section">
-            <h4 className="theme-section-title">☀️ Light Themes</h4>
+          <div className="theme-sections-container">
+            {/* Light Themes */}
+            <div className="theme-section">
+            <h4 className="theme-section-title">{t ? t('lightThemes') : '☀️ Light Themes'}</h4>
             <div className="theme-options">
-              {Object.entries(themes)
-                .filter(([key, theme]) => !theme.isDark)
-                .map(([key, theme]) => (
+              {sortThemesByColor(Object.fromEntries(
+                Object.entries(themes).filter(([key, theme]) => !theme.isDark)
+              )).map(([key, theme]) => (
                 <div key={key} className="theme-option-container">
                   <button
-                    className={`theme-option ${currentTheme === key ? 'active' : ''} ${isDeveloperMode && themesToDelete.includes(key) ? 'marked-for-deletion' : ''}`}
-                    onClick={() => isDeveloperMode ? toggleThemeForDeletion(key) : handleThemeSelect(key)}
+                    className={`theme-option ${currentTheme === key ? 'active' : ''}`}
+                    onClick={() => handleThemeSelect(key)}
                     style={{
                       '--theme-primary': theme.primary,
-                      '--theme-accent': theme.accent
+                      '--theme-accent': theme.primary
                     }}
-                    title={isDeveloperMode ? (theme.deletable === false ? 'Cannot delete this theme' : `Click to ${themesToDelete.includes(key) ? 'unmark' : 'mark'} for deletion`) : theme.name}
-                    disabled={isDeveloperMode && theme.deletable === false}
+                    title={theme.name}
                   >
                     <div 
                       className="theme-preview-circle" 
                       style={{
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.accent} 50%, ${theme.accent} 100%)`
+                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.primary} 50%, ${theme.primary} 100%)`
                       }}
                     >
-                      {currentTheme === key && !isDeveloperMode && <span className="theme-checkmark">✓</span>}
-                      {isDeveloperMode && themesToDelete.includes(key) && <span className="delete-mark">✗</span>}
-                      {isDeveloperMode && theme.deletable === false && <span className="protected-mark">🔒</span>}
+                      {currentTheme === key && <span className="theme-checkmark">✓</span>}
                     </div>
                   </button>
-                  {!isDeveloperMode && (
-                    <div className="theme-name-label">{theme.name}</div>
-                  )}
+                  <div className="theme-name-label">{theme.name}</div>
                 </div>
               ))}
             </div>
@@ -756,39 +768,35 @@ function ThemeMenu({ currentTheme, onThemeChange }) {
           
           {/* Dark Themes */}
           <div className="theme-section">
-            <h4 className="theme-section-title">🌙 Dark Themes</h4>
+            <h4 className="theme-section-title">{t ? t('darkThemes') : '🌙 Dark Themes'}</h4>
             <div className="theme-options">
-              {Object.entries(themes)
-                .filter(([key, theme]) => theme.isDark)
-                .map(([key, theme]) => (
+              {sortThemesByColor(Object.fromEntries(
+                Object.entries(themes).filter(([key, theme]) => theme.isDark)
+              )).map(([key, theme]) => (
                 <div key={key} className="theme-option-container">
                   <button
-                    className={`theme-option ${currentTheme === key ? 'active' : ''} ${isDeveloperMode && themesToDelete.includes(key) ? 'marked-for-deletion' : ''}`}
-                    onClick={() => isDeveloperMode ? toggleThemeForDeletion(key) : handleThemeSelect(key)}
+                    className={`theme-option ${currentTheme === key ? 'active' : ''}`}
+                    onClick={() => handleThemeSelect(key)}
                     style={{
                       '--theme-primary': theme.primary,
-                      '--theme-accent': theme.accent
+                      '--theme-accent': theme.primary
                     }}
-                    title={isDeveloperMode ? (theme.deletable === false ? 'Cannot delete this theme' : `Click to ${themesToDelete.includes(key) ? 'unmark' : 'mark'} for deletion`) : theme.name}
-                    disabled={isDeveloperMode && theme.deletable === false}
+                    title={theme.name}
                   >
                     <div 
                       className="theme-preview-circle" 
                       style={{
-                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.accent} 50%, ${theme.accent} 100%)`
+                        background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.primary} 50%, ${theme.primary} 100%)`
                       }}
                     >
-                      {currentTheme === key && !isDeveloperMode && <span className="theme-checkmark">✓</span>}
-                      {isDeveloperMode && themesToDelete.includes(key) && <span className="delete-mark">✗</span>}
-                      {isDeveloperMode && theme.deletable === false && <span className="protected-mark">🔒</span>}
+                      {currentTheme === key && <span className="theme-checkmark">✓</span>}
                     </div>
                   </button>
-                  {!isDeveloperMode && (
-                    <div className="theme-name-label">{theme.name}</div>
-                  )}
+                  <div className="theme-name-label">{theme.name}</div>
                 </div>
               ))}
             </div>
+          </div>
           </div>
         </div>
       )}

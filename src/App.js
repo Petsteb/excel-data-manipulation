@@ -725,15 +725,15 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'theme-button', type: 'button' })}
           onDragEnd={handleDragEnd}
-          style={isLayoutMode && panelPositions['theme-button'] ? {
+          style={panelPositions['theme-button'] ? {
             position: 'absolute',
-            left: panelPositions['theme-button'].x,
-            top: panelPositions['theme-button'].y,
+            left: `${panelPositions['theme-button'].x}px`,
+            top: `${panelPositions['theme-button'].y}px`,
             zIndex: 1002,
             minWidth: '60px',
             minHeight: '60px',
-            width: panelPositions['theme-button'].width || '60px',
-            height: panelPositions['theme-button'].height || '60px',
+            width: panelPositions['theme-button'].width ? `${panelPositions['theme-button'].width}px` : '60px',
+            height: panelPositions['theme-button'].height ? `${panelPositions['theme-button'].height}px` : '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -765,15 +765,15 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'language-button', type: 'button' })}
           onDragEnd={handleDragEnd}
-          style={isLayoutMode && panelPositions['language-button'] ? {
+          style={panelPositions['language-button'] ? {
             position: 'absolute',
-            left: panelPositions['language-button'].x,
-            top: panelPositions['language-button'].y,
+            left: `${panelPositions['language-button'].x}px`,
+            top: `${panelPositions['language-button'].y}px`,
             zIndex: 1002,
             minWidth: '60px',
             minHeight: '60px',
-            width: panelPositions['language-button'].width || '60px',
-            height: panelPositions['language-button'].height || '60px',
+            width: panelPositions['language-button'].width ? `${panelPositions['language-button'].width}px` : '60px',
+            height: panelPositions['language-button'].height ? `${panelPositions['language-button'].height}px` : '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -805,15 +805,15 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'layout-button', type: 'button' })}
           onDragEnd={handleDragEnd}
-          style={isLayoutMode && panelPositions['layout-button'] ? {
+          style={panelPositions['layout-button'] ? {
             position: 'absolute',
-            left: panelPositions['layout-button'].x,
-            top: panelPositions['layout-button'].y,
+            left: `${panelPositions['layout-button'].x}px`,
+            top: `${panelPositions['layout-button'].y}px`,
             zIndex: 1002,
             minWidth: '60px',
             minHeight: '60px',
-            width: panelPositions['layout-button'].width || '60px',
-            height: panelPositions['layout-button'].height || '60px',
+            width: panelPositions['layout-button'].width ? `${panelPositions['layout-button'].width}px` : '60px',
+            height: panelPositions['layout-button'].height ? `${panelPositions['layout-button'].height}px` : '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -853,8 +853,8 @@ function App() {
         </div>
       )}
 
-      <main className={`app-main ${isLayoutMode ? 'layout-mode' : ''}`}>
-        <div className="main-grid">
+      <main className={`app-main ${isLayoutMode ? 'layout-mode' : ''} ${Object.keys(panelPositions).length > 0 ? 'custom-layout' : ''}`}>
+        <div className={`main-grid ${Object.keys(panelPositions).length > 0 ? 'custom-layout' : ''}`}>
           {/* Upload Column - Left */}
           <div className="upload-column">
             {/* Panel 1 - Upload Files */}
@@ -865,12 +865,12 @@ function App() {
               draggable={isLayoutMode}
               onDragStart={(e) => handleDragStart(e, { id: 'upload-panel', type: 'panel' })}
               onDragEnd={handleDragEnd}
-              style={isLayoutMode && panelPositions['upload-panel'] ? {
+              style={panelPositions['upload-panel'] ? {
                 position: 'absolute',
-                left: panelPositions['upload-panel'].x,
-                top: panelPositions['upload-panel'].y,
-                width: panelPositions['upload-panel'].width || 'auto',
-                height: panelPositions['upload-panel'].height || 'auto',
+                left: `${panelPositions['upload-panel'].x}px`,
+                top: `${panelPositions['upload-panel'].y}px`,
+                width: panelPositions['upload-panel'].width ? `${panelPositions['upload-panel'].width}px` : 'auto',
+                height: panelPositions['upload-panel'].height ? `${panelPositions['upload-panel'].height}px` : 'auto',
                 zIndex: 10
               } : {}}
             >
@@ -980,12 +980,12 @@ function App() {
               draggable={isLayoutMode}
               onDragStart={(e) => handleDragStart(e, { id: 'files-summary-panel', type: 'panel' })}
               onDragEnd={handleDragEnd}
-              style={isLayoutMode && panelPositions['files-summary-panel'] ? {
+              style={panelPositions['files-summary-panel'] ? {
                 position: 'absolute',
-                left: panelPositions['files-summary-panel'].x,
-                top: panelPositions['files-summary-panel'].y,
-                width: panelPositions['files-summary-panel'].width || 'auto',
-                height: panelPositions['files-summary-panel'].height || 'auto',
+                left: `${panelPositions['files-summary-panel'].x}px`,
+                top: `${panelPositions['files-summary-panel'].y}px`,
+                width: panelPositions['files-summary-panel'].width ? `${panelPositions['files-summary-panel'].width}px` : 'auto',
+                height: panelPositions['files-summary-panel'].height ? `${panelPositions['files-summary-panel'].height}px` : 'auto',
                 zIndex: 10
               } : {}}
             >
@@ -1034,12 +1034,12 @@ function App() {
               draggable={isLayoutMode}
               onDragStart={(e) => handleDragStart(e, { id: 'header-selection-panel', type: 'panel' })}
               onDragEnd={handleDragEnd}
-              style={isLayoutMode && panelPositions['header-selection-panel'] ? {
+              style={panelPositions['header-selection-panel'] ? {
                 position: 'absolute',
-                left: panelPositions['header-selection-panel'].x,
-                top: panelPositions['header-selection-panel'].y,
-                width: panelPositions['header-selection-panel'].width || 'auto',
-                height: panelPositions['header-selection-panel'].height || 'auto',
+                left: `${panelPositions['header-selection-panel'].x}px`,
+                top: `${panelPositions['header-selection-panel'].y}px`,
+                width: panelPositions['header-selection-panel'].width ? `${panelPositions['header-selection-panel'].width}px` : 'auto',
+                height: panelPositions['header-selection-panel'].height ? `${panelPositions['header-selection-panel'].height}px` : 'auto',
                 zIndex: 10
               } : {}}
             >
@@ -1106,12 +1106,12 @@ function App() {
               draggable={isLayoutMode}
               onDragStart={(e) => handleDragStart(e, { id: 'date-columns-panel', type: 'panel' })}
               onDragEnd={handleDragEnd}
-              style={isLayoutMode && panelPositions['date-columns-panel'] ? {
+              style={panelPositions['date-columns-panel'] ? {
                 position: 'absolute',
-                left: panelPositions['date-columns-panel'].x,
-                top: panelPositions['date-columns-panel'].y,
-                width: panelPositions['date-columns-panel'].width || 'auto',
-                height: panelPositions['date-columns-panel'].height || 'auto',
+                left: `${panelPositions['date-columns-panel'].x}px`,
+                top: `${panelPositions['date-columns-panel'].y}px`,
+                width: panelPositions['date-columns-panel'].width ? `${panelPositions['date-columns-panel'].width}px` : 'auto',
+                height: panelPositions['date-columns-panel'].height ? `${panelPositions['date-columns-panel'].height}px` : 'auto',
                 zIndex: 10
               } : {}}
             >
@@ -1189,12 +1189,12 @@ function App() {
             draggable={isLayoutMode}
             onDragStart={(e) => handleDragStart(e, { id: 'merge-button', type: 'button' })}
             onDragEnd={handleDragEnd}
-            style={isLayoutMode && panelPositions['merge-button'] ? {
+            style={panelPositions['merge-button'] ? {
               position: 'absolute',
-              left: panelPositions['merge-button'].x,
-              top: panelPositions['merge-button'].y,
-              width: panelPositions['merge-button'].width || 'auto',
-              height: panelPositions['merge-button'].height || 'auto',
+              left: `${panelPositions['merge-button'].x}px`,
+              top: `${panelPositions['merge-button'].y}px`,
+              width: panelPositions['merge-button'].width ? `${panelPositions['merge-button'].width}px` : 'auto',
+              height: panelPositions['merge-button'].height ? `${panelPositions['merge-button'].height}px` : 'auto',
               zIndex: 10,
               minWidth: '60px',
               minHeight: '60px',
@@ -1235,12 +1235,12 @@ function App() {
             draggable={isLayoutMode}
             onDragStart={(e) => handleDragStart(e, { id: 'merged-summary-panel', type: 'panel' })}
             onDragEnd={handleDragEnd}
-            style={isLayoutMode && panelPositions['merged-summary-panel'] ? {
+            style={panelPositions['merged-summary-panel'] ? {
               position: 'absolute',
-              left: panelPositions['merged-summary-panel'].x,
-              top: panelPositions['merged-summary-panel'].y,
-              width: panelPositions['merged-summary-panel'].width || 'auto',
-              height: panelPositions['merged-summary-panel'].height || 'auto',
+              left: `${panelPositions['merged-summary-panel'].x}px`,
+              top: `${panelPositions['merged-summary-panel'].y}px`,
+              width: panelPositions['merged-summary-panel'].width ? `${panelPositions['merged-summary-panel'].width}px` : 'auto',
+              height: panelPositions['merged-summary-panel'].height ? `${panelPositions['merged-summary-panel'].height}px` : 'auto',
               zIndex: 10
             } : {}}
           >
@@ -1443,7 +1443,13 @@ function App() {
               <div className="layout-dropdown">
                 <div className="dropdown-header">
                   <h3>Element Library</h3>
-                  <button className="close-layout-btn" onClick={toggleLayoutMode}>Exit Layout Mode</button>
+                  <div style={{display: 'flex', gap: '8px'}}>
+                    <button className="close-layout-btn" onClick={async () => {
+                      setPanelPositions({});
+                      await saveLayoutSettings();
+                    }}>Reset Layout</button>
+                    <button className="close-layout-btn" onClick={toggleLayoutMode}>Exit Layout Mode</button>
+                  </div>
                 </div>
                 
                 <div className="dropdown-content">

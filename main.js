@@ -17,9 +17,19 @@ function loadSettings() {
   }
   return {
     theme: 'professional',
+    language: 'en',
     commonLines: 1,
     columnNamesRow: 1,
     selectedDateColumns: [],
+    windowSettings: {
+      isFirstLaunch: true,
+      width: 1200,
+      height: 800,
+      x: undefined,
+      y: undefined,
+      isMaximized: false,
+      isFullScreen: false
+    },
     menuStates: {
       headerSettings: true,
       columnSettings: true,
@@ -46,9 +56,25 @@ function saveSettings(settings) {
 let mainWindow;
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  const settings = loadSettings();
+  
+  // Ensure windowSettings exists with default values
+  const windowSettings = settings.windowSettings || {
+    isFirstLaunch: true,
     width: 1200,
     height: 800,
+    x: undefined,
+    y: undefined,
+    isMaximized: false,
+    isFullScreen: false
+  };
+
+  // Create window with settings-based dimensions
+  mainWindow = new BrowserWindow({
+    width: windowSettings.width || 1200,
+    height: windowSettings.height || 800,
+    x: windowSettings.x,
+    y: windowSettings.y,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -56,8 +82,14 @@ function createWindow() {
     },
     titleBarStyle: 'default',
     show: false,
-    icon: path.join(__dirname, 'public', 'logo.png')
+    icon: path.join(__dirname, 'public', 'logo.png'),
+    // Disable the menu bar (File, Edit, View, Window, Help)
+    autoHideMenuBar: true,
+    menuBarVisible: false
   });
+
+  // Set menu to null to completely remove it
+  mainWindow.setMenu(null);
 
   const isDev = process.argv.includes('--dev');
   
@@ -70,8 +102,66 @@ function createWindow() {
   }
 
   mainWindow.once('ready-to-show', () => {
+    // If it's the first launch, open fullscreen
+    if (windowSettings.isFirstLaunch !== false) {
+      mainWindow.maximize();
+      // Mark as no longer first launch and save settings
+      settings.windowSettings = {
+        ...windowSettings,
+        isFirstLaunch: false
+      };
+      saveSettings(settings);
+    } else {
+      // Restore previous window state
+      if (windowSettings.isMaximized) {
+        mainWindow.maximize();
+      } else if (windowSettings.isFullScreen) {
+        mainWindow.setFullScreen(true);
+      }
+    }
+    
     mainWindow.show();
   });
+
+  // Save window state when it changes
+  mainWindow.on('resize', saveWindowState);
+  mainWindow.on('move', saveWindowState);
+  mainWindow.on('maximize', saveWindowState);
+  mainWindow.on('unmaximize', saveWindowState);
+  mainWindow.on('enter-full-screen', saveWindowState);
+  mainWindow.on('leave-full-screen', saveWindowState);
+
+  // Save window state before closing
+  mainWindow.on('close', saveWindowState);
+}
+
+function saveWindowState() {
+  if (!mainWindow) return;
+  
+  try {
+    const settings = loadSettings();
+    const bounds = mainWindow.getBounds();
+    
+    // Ensure windowSettings exists
+    if (!settings.windowSettings) {
+      settings.windowSettings = {};
+    }
+    
+    settings.windowSettings = {
+      ...settings.windowSettings,
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      isMaximized: mainWindow.isMaximized(),
+      isFullScreen: mainWindow.isFullScreen(),
+      isFirstLaunch: false
+    };
+    
+    saveSettings(settings);
+  } catch (error) {
+    console.error('Error saving window state:', error);
+  }
 }
 
 app.whenReady().then(createWindow);
@@ -418,6 +508,30 @@ ipcMain.handle('merge-and-save-excel', async (event, { filesData, commonLines, o
       fileDetails[index].fileName = displayName;
       fileDetails[index].dataRows = fileDataRows;
     });
+    
+    // Set column widths, especially for date columns to prevent ########## display
+    const maxColumns = Math.max(...filesData.map(file => 
+      Math.max(...file.data.map(row => row ? row.length : 0))
+    ));
+    
+    for (let colIndex = 1; colIndex <= maxColumns + 1; colIndex++) { // +1 for Source File column
+      const column = worksheet.getColumn(colIndex);
+      
+      if (colIndex === 1) {
+        // Source File column
+        column.width = 20;
+      } else {
+        const dataColIndex = colIndex - 2; // Adjust for Source File column
+        if (dateColumnIndices.includes(dataColIndex)) {
+          // Date columns need more width to display dates properly
+          const hasTime = dateColumnsWithTime.includes(dataColIndex);
+          column.width = hasTime ? 20 : 12; // 20 for datetime, 12 for date only
+        } else {
+          // Regular columns
+          column.width = 15;
+        }
+      }
+    }
     
     // Save the file
     await workbook.xlsx.writeFile(outputPath);
