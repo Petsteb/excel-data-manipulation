@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
 import dashboardIcon from './dashboard.png';
+
+const GRID_SIZE = 20;
+const DEFAULT_PANEL_WIDTH = 240;
+const DEFAULT_PANEL_HEIGHT = 180;
+const DEFAULT_BUTTON_SIZE = 80;
 
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -23,30 +28,28 @@ function App() {
   const [selectedDateColumns, setSelectedDateColumns] = useState([]);
   const [autoDetectedDateColumns, setAutoDetectedDateColumns] = useState([]);
   const [dateColumnsWithTime, setDateColumnsWithTime] = useState([]);
-  const [showFileDetails, setShowFileDetails] = useState(false);
-  const [showUploadedFiles, setShowUploadedFiles] = useState(false);
-  const [showOtherColumns, setShowOtherColumns] = useState(false);
-  const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
-  const [showColumnSelectionPopup, setShowColumnSelectionPopup] = useState(false);
-  const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
-  const [isLayoutMode, setIsLayoutMode] = useState(false);
-  const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
+  const [isLayoutMode, setIsLayoutMode] = useState(true);
   const [draggedElement, setDraggedElement] = useState(null);
-  const [panelPositions, setPanelPositions] = useState({});
+  const [panelPositions, setPanelPositions] = useState({
+    'upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'files-summary-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'header-selection-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'date-columns-panel': { x: 20, y: 220, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'merged-summary-panel': { x: 280, y: 220, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'merge-button': { x: 540, y: 220, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE }
+  });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [snapLines, setSnapLines] = useState([]);
-  const [availablePanels, setAvailablePanels] = useState([
+  const boardRef = useRef(null);
+  const [availablePanels] = useState([
     { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
     { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
     { id: 'header-selection-panel', name: 'Header Selection Panel', type: 'panel', active: true },
     { id: 'date-columns-panel', name: 'Date Columns Panel', type: 'panel', active: true },
     { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
   ]);
-  const [availableButtons, setAvailableButtons] = useState([
-    { id: 'theme-button', name: 'Theme Button', type: 'button', active: true, required: false },
-    { id: 'language-button', name: 'Language Button', type: 'button', active: true, required: false },
-    { id: 'layout-button', name: 'Layout Button', type: 'button', active: true, required: true },
-    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true, required: false }
+  const [availableButtons] = useState([
+    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
 
   // Load settings on app start
@@ -54,7 +57,6 @@ function App() {
     const loadAppSettings = async () => {
       try {
         const settings = await window.electronAPI.loadSettings();
-        console.log('Loaded settings:', settings);
         
         const commonLinesValue = Number.isInteger(settings.commonLines) ? settings.commonLines : (parseInt(settings.commonLines) || 1);
         let columnNamesRowValue = Number.isInteger(settings.columnNamesRow) ? settings.columnNamesRow : (parseInt(settings.columnNamesRow) || 1);
@@ -63,31 +65,17 @@ function App() {
           columnNamesRowValue = commonLinesValue;
         }
         
-        console.log('Parsed values - commonLines:', commonLinesValue, 'columnNamesRow:', columnNamesRowValue);
-        
         setCurrentTheme(settings.theme || 'professional');
         setCurrentLanguage(settings.language || 'en');
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
         setSelectedDateColumns(settings.selectedDateColumns || []);
         
-        // Load saved layout positions
+        // Load saved layout positions or use defaults
         if (settings.panelPositions) {
-          setPanelPositions(settings.panelPositions);
-        }
-        if (settings.availablePanels) {
-          setAvailablePanels(settings.availablePanels);
-        }
-        if (settings.availableButtons) {
-          // Force all buttons to be active when loading settings
-          const restoredButtons = settings.availableButtons.map(button => ({
-            ...button,
-            active: true
-          }));
-          setAvailableButtons(restoredButtons);
+          setPanelPositions(prev => ({ ...prev, ...settings.panelPositions }));
         }
         
-        // Apply theme after a short delay to ensure DOM is ready
         setTimeout(() => {
           applyTheme(settings.theme || 'professional');
         }, 100);
@@ -498,17 +486,97 @@ function App() {
     setIsProcessing(false);
   };
 
+  // Grid snapping function
+  const snapToGrid = (value) => {
+    return Math.round(value / GRID_SIZE) * GRID_SIZE;
+  };
+
+  // Calculate minimum size based on content
+  const getMinimumSize = (elementId, elementType) => {
+    if (elementType === 'button') {
+      return { width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE };
+    }
+    
+    // Base minimum for panels
+    let minWidth = DEFAULT_PANEL_WIDTH;
+    let minHeight = DEFAULT_PANEL_HEIGHT;
+    
+    // Adjust based on content
+    if (elementId === 'upload-panel') {
+      minWidth = Math.max(minWidth, 280);
+      minHeight = Math.max(minHeight, 200);
+    } else if (elementId === 'merged-summary-panel') {
+      minWidth = Math.max(minWidth, 300);
+      minHeight = Math.max(minHeight, 220);
+    }
+    
+    return { width: minWidth, height: minHeight };
+  };
+
+  // Check collision between panels
+  const checkCollision = (elementId, x, y, width, height) => {
+    const buffer = GRID_SIZE; // 1 dot spacing
+    
+    for (const [otherId, otherPos] of Object.entries(panelPositions)) {
+      if (otherId === elementId) continue;
+      
+      const otherX = otherPos.x;
+      const otherY = otherPos.y;
+      const otherWidth = otherPos.width;
+      const otherHeight = otherPos.height;
+      
+      // Check if rectangles overlap with buffer
+      if (x < otherX + otherWidth + buffer &&
+          x + width + buffer > otherX &&
+          y < otherY + otherHeight + buffer &&
+          y + height + buffer > otherY) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Find valid position without collision
+  const findValidPosition = (elementId, preferredX, preferredY, width, height) => {
+    const boardWidth = boardRef.current ? boardRef.current.clientWidth : 1200;
+    const boardHeight = boardRef.current ? boardRef.current.clientHeight : 800;
+    
+    // Try preferred position first
+    let x = snapToGrid(Math.max(0, Math.min(preferredX, boardWidth - width)));
+    let y = snapToGrid(Math.max(0, Math.min(preferredY, boardHeight - height)));
+    
+    if (!checkCollision(elementId, x, y, width, height)) {
+      return { x, y };
+    }
+    
+    // Search for valid position in a spiral pattern
+    for (let radius = GRID_SIZE; radius < 400; radius += GRID_SIZE) {
+      for (let angle = 0; angle < 360; angle += 45) {
+        const testX = snapToGrid(x + Math.cos(angle * Math.PI / 180) * radius);
+        const testY = snapToGrid(y + Math.sin(angle * Math.PI / 180) * radius);
+        
+        if (testX >= 0 && testY >= 0 && 
+            testX + width <= boardWidth && 
+            testY + height <= boardHeight &&
+            !checkCollision(elementId, testX, testY, width, height)) {
+          return { x: testX, y: testY };
+        }
+      }
+    }
+    
+    // Fallback to top-left
+    return { x: 0, y: 0 };
+  };
+
   // Save layout settings
   const saveLayoutSettings = async () => {
     try {
       const settings = await window.electronAPI.loadSettings();
       await window.electronAPI.saveSettings({
         ...settings,
-        panelPositions,
-        availablePanels,
-        availableButtons
+        panelPositions
       });
-      console.log('Layout settings saved');
     } catch (error) {
       console.error('Failed to save layout settings:', error);
     }
@@ -519,522 +587,181 @@ function App() {
     const newLayoutMode = !isLayoutMode;
     setIsLayoutMode(newLayoutMode);
     
-    if (newLayoutMode) {
-      setIsLayoutMenuOpen(false); // Close menu when entering layout mode
-      // Initialize panel positions when entering layout mode
-      setTimeout(() => {
-        initializePanelPositions();
-      }, 100); // Small delay to ensure DOM is updated
-    } else {
-      // Save layout when exiting layout mode
+    if (!newLayoutMode) {
       await saveLayoutSettings();
     }
   };
 
-  // Toggle layout menu
-  const toggleLayoutMenu = () => {
-    setIsLayoutMenuOpen(!isLayoutMenuOpen);
-  };
-
-  // Show snap lines - now shows complete panel outline
-  const showSnapLines = (x, y, width, height, wouldCollide = false) => {
-    const lines = [];
-    
-    // Always show the outline at the snapped position (coordinates are already snapped)
-    lines.push({
-      id: 'panel-outline',
+  // Show snap preview
+  const showSnapPreview = (x, y, width, height, hasCollision = false) => {
+    setSnapLines([{
+      id: 'preview',
       type: 'outline',
-      x: x,
-      y: y,
-      width: width || 240,
-      height: height || 180,
-      collision: wouldCollide
-    });
-    
-    setSnapLines(lines);
+      x: snapToGrid(x),
+      y: snapToGrid(y),
+      width,
+      height,
+      collision: hasCollision
+    }]);
   };
   
-  // Hide snap lines
-  const hideSnapLines = () => {
+  // Hide snap preview
+  const hideSnapPreview = () => {
     setSnapLines([]);
   };
 
+
   // Handle drag start for panels and buttons
   const handleDragStart = (e, element) => {
+    if (!isLayoutMode) return;
+    
     setDraggedElement(element);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
     
-    // Create a transparent drag image to prevent browser's default ghost image
+    // Create transparent drag image
     const dragImage = new Image();
     dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     
-    // Calculate the offset between the mouse cursor and the element's top-left corner
+    // Calculate offset
     const rect = e.target.getBoundingClientRect();
+    const boardRect = boardRef.current.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     setDragOffset({ x: offsetX, y: offsetY });
     
-    console.log(`Drag start - offset: (${offsetX}, ${offsetY}), element: ${element.id}`);
-    
-    // Add dragging class for visual feedback
     e.target.classList.add('dragging');
-    document.querySelector('.app-main').classList.add('drag-active');
   };
 
   // Handle drag over
   const handleDragOver = (e) => {
-    if (isLayoutMode && draggedElement) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      
-      // Show panel outline during drag - use same calculation as drop
-      const rect = e.currentTarget.getBoundingClientRect();
-      const elementX = (e.clientX - rect.left) - dragOffset.x;
-      const elementY = (e.clientY - rect.top) - dragOffset.y;
-      
-      // Get actual element dimensions from the DOM
-      let elementWidth = 240;
-      let elementHeight = 180;
-      
-      // Find the dragging element by class
-      const draggingElement = document.querySelector('.dragging');
-      if (draggingElement) {
-        const elementRect = draggingElement.getBoundingClientRect();
-        elementWidth = elementRect.width;
-        elementHeight = elementRect.height;
-      } else {
-        // Fallback to stored positions or defaults
-        const currentPos = panelPositions[draggedElement.id] || {};
-        elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
-        elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
-      }
-      
-      // First snap to grid
-      const gridSize = 20;
-      const snappedX = Math.max(0, Math.round(elementX / gridSize) * gridSize);
-      const snappedY = Math.max(0, Math.round(elementY / gridSize) * gridSize);
-      
-      // Check collision and show appropriate visual feedback
-      const tempPositions = { ...panelPositions };
-      delete tempPositions[draggedElement.id];
-      const wouldCollide = checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight, tempPositions);
-      
-      // Show snap lines with collision indicator
-      showSnapLines(snappedX, snappedY, elementWidth, elementHeight, wouldCollide);
-    }
+    if (!isLayoutMode || !draggedElement) return;
+    
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const boardRect = boardRef.current.getBoundingClientRect();
+    const elementX = (e.clientX - boardRect.left) - dragOffset.x;
+    const elementY = (e.clientY - boardRect.top) - dragOffset.y;
+    
+    const currentPos = panelPositions[draggedElement.id] || {};
+    const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+    const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+    
+    const snappedX = snapToGrid(elementX);
+    const snappedY = snapToGrid(elementY);
+    
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
+    showSnapPreview(snappedX, snappedY, width, height, hasCollision);
   };
 
-  // Get actual element position and dimensions from DOM
-  const getElementBounds = (elementId) => {
-    // Try multiple selectors to find the element
-    const selectors = [
-      `[data-panel="${elementId}"]`,
-      `#${elementId}`,
-      `#${elementId}-container`,
-      `#panel-1[data-panel="${elementId}"]`,
-      `#panel-2[data-panel="${elementId}"]`,
-      `#panel-3[data-panel="${elementId}"]`,
-      `#panel-4[data-panel="${elementId}"]`,
-      `#panel-5[data-panel="${elementId}"]`,
-      `.upload-section[data-panel="${elementId}"]`,
-      `.uploaded-files-summary[data-panel="${elementId}"]`,
-      `.xy-selection-section[data-panel="${elementId}"]`,
-      `.date-columns-section[data-panel="${elementId}"]`,
-      `.merged-files-section[data-panel="${elementId}"]`
-    ];
-    
-    let domElement = null;
-    for (const selector of selectors) {
-      domElement = document.querySelector(selector);
-      if (domElement) {
-        console.log(`Found element ${elementId} with selector: ${selector}`);
-        break;
-      }
-    }
-    
-    if (domElement && !domElement.classList.contains('dragging')) {
-      const rect = domElement.getBoundingClientRect();
-      const appRect = document.querySelector('.app-main')?.getBoundingClientRect();
-      
-      if (appRect) {
-        const bounds = {
-          x: rect.left - appRect.left,
-          y: rect.top - appRect.top,
-          width: rect.width,
-          height: rect.height
-        };
-        console.log(`Element ${elementId} bounds:`, bounds);
-        return bounds;
-      }
-    }
-    console.log(`Could not find bounds for element: ${elementId}`);
-    return null;
-  };
 
-  // Debug function to log all panel positions
-  const logAllPanelPositions = () => {
-    console.log('=== ALL PANEL POSITIONS ===');
-    for (const [id, pos] of Object.entries(panelPositions)) {
-      console.log(`${id}: (${pos.x}, ${pos.y}) size (${pos.width || 240}, ${pos.height || 180})`);
-    }
-    console.log('=== END POSITIONS ===');
-  };
-
-  // Initialize panel positions from DOM when entering layout mode
-  const initializePanelPositions = () => {
-    const newPositions = { ...panelPositions };
-    
-    const allElements = [
-      ...availablePanels.filter(p => p.active),
-      ...availableButtons.filter(b => b.active && b.id !== 'theme-button' && b.id !== 'language-button' && b.id !== 'layout-button')
-    ];
-    
-    allElements.forEach(element => {
-      if (!newPositions[element.id]) {
-        const domElement = document.getElementById(element.id);
-        if (domElement) {
-          const rect = domElement.getBoundingClientRect();
-          const containerRect = document.querySelector('.app-main').getBoundingClientRect();
-          
-          newPositions[element.id] = {
-            x: Math.round((rect.left - containerRect.left) / 20) * 20, // Snap to grid
-            y: Math.round((rect.top - containerRect.top) / 20) * 20,   // Snap to grid
-            width: rect.width,
-            height: rect.height
-          };
-        }
-      }
-    });
-    
-    setPanelPositions(newPositions);
-  };
-
-  // Check for collisions with other elements - strict 1 dot (20px) minimum spacing
-  const checkCollision = (elementId, x, y, width, height, currentPositions = null) => {
-    const elementWidth = width || 240;
-    const elementHeight = height || 180;
-    const minSpacing = 20; // Exactly 1 dot spacing as requested
-    
-    // Use provided positions or current state
-    const positions = currentPositions || panelPositions;
-    
-    // Get all active panels and buttons from DOM to ensure we have real positions
-    const allElements = [
-      ...availablePanels.filter(p => p.active),
-      ...availableButtons.filter(b => b.active && b.id !== 'theme-button' && b.id !== 'language-button' && b.id !== 'layout-button')
-    ];
-    
-    for (const element of allElements) {
-      if (element.id === elementId) continue; // Skip self
-      
-      let otherX, otherY, otherWidth, otherHeight;
-      
-      // First try to get position from stored positions
-      if (positions[element.id]) {
-        const pos = positions[element.id];
-        otherX = pos.x || 0;
-        otherY = pos.y || 0;
-        otherWidth = pos.width || 240;
-        otherHeight = pos.height || 180;
-      } else {
-        // Fallback: get position from DOM element
-        const domElement = document.getElementById(element.id);
-        if (domElement) {
-          const rect = domElement.getBoundingClientRect();
-          const containerRect = document.querySelector('.app-main').getBoundingClientRect();
-          otherX = rect.left - containerRect.left;
-          otherY = rect.top - containerRect.top;
-          otherWidth = rect.width;
-          otherHeight = rect.height;
-        } else {
-          continue; // Skip if can't find element
-        }
-      }
-      
-      // AABB collision detection with minimum spacing
-      // Calculate edges of both rectangles
-      const left1 = x;
-      const right1 = x + elementWidth;
-      const top1 = y;
-      const bottom1 = y + elementHeight;
-      
-      const left2 = otherX;
-      const right2 = otherX + otherWidth;
-      const top2 = otherY;
-      const bottom2 = otherY + otherHeight;
-      
-      // Check if rectangles are overlapping or too close
-      const horizontalOverlap = (left1 < right2 + minSpacing) && (right1 > left2 - minSpacing);
-      const verticalOverlap = (top1 < bottom2 + minSpacing) && (bottom1 > top2 - minSpacing);
-      
-      if (horizontalOverlap && verticalOverlap) {
-        return true;
-      }
-    }
-    
-    return false; // No collision
-  };
-  
-  // Find nearest non-colliding position
-  const findNonCollidingPosition = (elementId, targetX, targetY, width, height) => {
-    const gridSize = 20;
-    let x = Math.max(0, Math.round(targetX / gridSize) * gridSize);
-    let y = Math.max(0, Math.round(targetY / gridSize) * gridSize);
-    
-    // If no collision at target position, use it
-    if (!checkCollision(elementId, x, y, width, height)) {
-      return { x, y };
-    }
-    
-    // Simple grid search from top-left
-    for (let testY = 0; testY < 800; testY += gridSize) {
-      for (let testX = 0; testX < 1200; testX += gridSize) {
-        if (!checkCollision(elementId, testX, testY, width, height)) {
-          return { x: testX, y: testY };
-        }
-      }
-    }
-    
-    // Fallback to origin
-    return { x: 0, y: 0 };
-  };
 
   // Handle drop
   const handleDrop = async (e) => {
-    if (isLayoutMode && draggedElement) {
-      e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      
-      // Calculate where the element should be placed (cursor position minus offset)
-      const elementX = (e.clientX - rect.left) - dragOffset.x;
-      const elementY = (e.clientY - rect.top) - dragOffset.y;
-      
-      // Get element dimensions
-      const currentPos = panelPositions[draggedElement.id] || {};
-      const elementWidth = currentPos.width || (draggedElement.type === 'button' ? 80 : 240);
-      const elementHeight = currentPos.height || (draggedElement.type === 'button' ? 80 : 180);
-      
-      // Snap to grid
-      const gridSize = 20;
-      const snappedX = Math.max(0, Math.round(elementX / gridSize) * gridSize);
-      const snappedY = Math.max(0, Math.round(elementY / gridSize) * gridSize);
-      
-      // Create temporary positions without current element for collision check
-      const tempPositions = { ...panelPositions };
-      delete tempPositions[draggedElement.id];
-      
-      // Check if the snapped position would collide
-      if (checkCollision(draggedElement.id, snappedX, snappedY, elementWidth, elementHeight, tempPositions)) {
-        // Collision detected - reject the drop and keep element at original position
-        // Do nothing - panel stays where it was
-      } else {
-        // No collision - allow the move
-        const newPositions = {
-          ...panelPositions,
-          [draggedElement.id]: { 
-            ...panelPositions[draggedElement.id],
-            x: snappedX, 
-            y: snappedY,
-            width: elementWidth,
-            height: elementHeight
-          }
-        };
-        setPanelPositions(newPositions);
+    if (!isLayoutMode || !draggedElement) return;
+    
+    e.preventDefault();
+    
+    const boardRect = boardRef.current.getBoundingClientRect();
+    const elementX = (e.clientX - boardRect.left) - dragOffset.x;
+    const elementY = (e.clientY - boardRect.top) - dragOffset.y;
+    
+    const currentPos = panelPositions[draggedElement.id] || {};
+    const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+    const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+    
+    const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
+    const finalWidth = Math.max(width, minWidth);
+    const finalHeight = Math.max(height, minHeight);
+    
+    const { x: finalX, y: finalY } = findValidPosition(draggedElement.id, elementX, elementY, finalWidth, finalHeight);
+    
+    setPanelPositions(prev => ({
+      ...prev,
+      [draggedElement.id]: {
+        x: finalX,
+        y: finalY,
+        width: finalWidth,
+        height: finalHeight
       }
-      
-      // Clean up
-      setDraggedElement(null);
-      setDragOffset({ x: 0, y: 0 });
-      hideSnapLines();
-      document.querySelector('.app-main').classList.remove('drag-active');
-      
-      // Remove dragging class from all elements
-      document.querySelectorAll('.dragging').forEach(el => {
-        el.classList.remove('dragging');
-      });
-    }
+    }));
+    
+    // Cleanup
+    setDraggedElement(null);
+    setDragOffset({ x: 0, y: 0 });
+    hideSnapPreview();
+    
+    document.querySelectorAll('.dragging').forEach(el => {
+      el.classList.remove('dragging');
+    });
+    
+    await saveLayoutSettings();
   };
 
   // Handle drag end
   const handleDragEnd = (e) => {
     e.target.classList.remove('dragging');
-    const appMain = document.querySelector('.app-main');
-    if (appMain) {
-      appMain.classList.remove('drag-active');
-    }
     setDraggedElement(null);
-    hideSnapLines();
+    hideSnapPreview();
   };
 
-  // Add panel or button
-  const addElement = async (element) => {
-    if (element.type === 'panel') {
-      setAvailablePanels(prev => 
-        prev.map(p => p.id === element.id ? { ...p, active: true } : p)
-      );
-    } else {
-      setAvailableButtons(prev => 
-        prev.map(b => b.id === element.id ? { ...b, active: true } : b)
-      );
-    }
-    // Auto-save layout changes
-    setTimeout(saveLayoutSettings, 100);
-  };
-
-  // Remove panel or button
-  const removeElement = async (element) => {
-    // Protect required buttons from deletion
-    if (element.type === 'button') {
-      const button = availableButtons.find(b => b.id === element.id);
-      if (button?.required) {
-        console.log(`Cannot remove ${element.id} - it is required`);
-        return;
-      }
-    }
-    
-    if (element.type === 'panel') {
-      setAvailablePanels(prev => 
-        prev.map(p => p.id === element.id ? { ...p, active: false } : p)
-      );
-      // Remove position data when removing panel
-      setPanelPositions(prev => {
-        const newPositions = { ...prev };
-        delete newPositions[element.id];
-        return newPositions;
-      });
-    } else {
-      setAvailableButtons(prev => 
-        prev.map(b => b.id === element.id ? { ...b, active: false } : b)
-      );
-      // Remove position data when removing button
-      setPanelPositions(prev => {
-        const newPositions = { ...prev };
-        delete newPositions[element.id];
-        return newPositions;
-      });
-    }
-    // Auto-save layout changes
-    setTimeout(saveLayoutSettings, 100);
-  };
-
-  // Get panel or button visibility
-  const isPanelVisible = (elementId) => {
-    // In normal mode, always show all elements
-    if (!isLayoutMode) return true;
-    
-    // In layout mode, show based on active state
-    // Check panels first
-    const panel = availablePanels.find(p => p.id === elementId);
-    if (panel) {
-      return panel.active;
-    }
-    
-    // Check buttons
-    const button = availableButtons.find(b => b.id === elementId);
-    if (button) {
-      return button.active;
-    }
-    
-    // Default to visible if not found
-    return true;
-  };
 
   // Handle resize start
   const handleResizeStart = (e, elementId) => {
+    if (!isLayoutMode) return;
+    
     e.preventDefault();
     e.stopPropagation();
+    
     const startX = e.clientX;
     const startY = e.clientY;
-    const element = document.getElementById(elementId);
-    const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
-    const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+    const currentPos = panelPositions[elementId] || {};
+    const startWidth = currentPos.width || DEFAULT_PANEL_WIDTH;
+    const startHeight = currentPos.height || DEFAULT_PANEL_HEIGHT;
     
-    // Determine minimum sizes based on element type
-    const isButton = element.classList.contains('individual-button');
-    const minWidth = isButton ? 80 : 240;
-    const minHeight = isButton ? 80 : 180;
+    const elementType = availableButtons.find(b => b.id === elementId) ? 'button' : 'panel';
+    const { width: minWidth, height: minHeight } = getMinimumSize(elementId, elementType);
 
     const handleMouseMove = (e) => {
-      // Calculate new dimensions
       let newWidth = startWidth + (e.clientX - startX);
       let newHeight = startHeight + (e.clientY - startY);
       
-      // Snap to 20px grid increments with proper minimums
-      newWidth = Math.max(minWidth, Math.round(newWidth / 20) * 20);
-      newHeight = Math.max(minHeight, Math.round(newHeight / 20) * 20);
+      // Snap to grid and enforce minimums
+      newWidth = Math.max(minWidth, snapToGrid(newWidth));
+      newHeight = Math.max(minHeight, snapToGrid(newHeight));
       
-      element.style.width = newWidth + 'px';
-      element.style.height = newHeight + 'px';
-      
-      // Show snap lines for resize operation
-      const elementRect = element.getBoundingClientRect();
-      const appRect = document.querySelector('.app-main').getBoundingClientRect();
-      const relativeRight = elementRect.right - appRect.left;
-      const relativeBottom = elementRect.bottom - appRect.top;
-      
-      // Show snap lines for right and bottom edges
-      const lines = [];
-      if (relativeRight % 20 === 0) {
-        lines.push({ id: 'resize-v', type: 'vertical', position: relativeRight });
-      }
-      if (relativeBottom % 20 === 0) {
-        lines.push({ id: 'resize-h', type: 'horizontal', position: relativeBottom });
-      }
-      setSnapLines(lines);
+      // Update position state
+      setPanelPositions(prev => ({
+        ...prev,
+        [elementId]: {
+          ...prev[elementId],
+          width: newWidth,
+          height: newHeight
+        }
+      }));
     };
 
     const handleMouseUp = async () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      // Hide snap lines
-      hideSnapLines();
-      
-      // Get final dimensions and ensure they're snapped to grid
-      const finalWidth = parseInt(element.style.width, 10);
-      const finalHeight = parseInt(element.style.height, 10);
-      const snappedWidth = Math.max(minWidth, Math.round(finalWidth / 20) * 20);
-      const snappedHeight = Math.max(minHeight, Math.round(finalHeight / 20) * 20);
-      
-      // Apply snapped dimensions
-      element.style.width = snappedWidth + 'px';
-      element.style.height = snappedHeight + 'px';
-      
-      // Check for collisions with new size and adjust position if needed
-      const elementKey = element.getAttribute('data-panel') || elementId.replace('panel-', '').replace('-container', '');
-      const currentPos = panelPositions[elementKey] || { x: 0, y: 0 };
-      
-      // If collision detected, find new position
-      if (checkCollision(elementKey, currentPos.x, currentPos.y, snappedWidth, snappedHeight)) {
-        const { x, y } = findNonCollidingPosition(elementKey, currentPos.x, currentPos.y, snappedWidth, snappedHeight);
-        
-        // Update position if it had to move
+      // Check for collisions and adjust position if needed
+      const currentPos = panelPositions[elementId];
+      if (checkCollision(elementId, currentPos.x, currentPos.y, currentPos.width, currentPos.height)) {
+        const { x, y } = findValidPosition(elementId, currentPos.x, currentPos.y, currentPos.width, currentPos.height);
         setPanelPositions(prev => ({
           ...prev,
-          [elementKey]: {
-            ...prev[elementKey],
+          [elementId]: {
+            ...prev[elementId],
             x,
-            y,
-            width: snappedWidth,
-            height: snappedHeight
-          }
-        }));
-      } else {
-        // No collision, just update size
-        setPanelPositions(prev => ({
-          ...prev,
-          [elementKey]: {
-            ...prev[elementKey],
-            width: snappedWidth,
-            height: snappedHeight
+            y
           }
         }));
       }
       
-      // Auto-save layout after resize
-      setTimeout(saveLayoutSettings, 100);
+      await saveLayoutSettings();
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -1053,11 +780,7 @@ function App() {
   }
 
   return (
-    <div 
-      className={`App ${isLayoutMode ? 'layout-mode' : ''}`}
-      onDragOver={isLayoutMode ? handleDragOver : undefined}
-      onDrop={isLayoutMode ? handleDrop : undefined}
-    >
+    <div className="App layout-mode">
       <div className="top-menu-bar">
         <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
         <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
@@ -1070,7 +793,6 @@ function App() {
         </button>
       </div>
       
-      {/* Header removed - no title needed */}
       {(processingSummary || filesData.length > 0) && (
         <div className="remake-button-container">
           <button className="btn btn-secondary" onClick={resetApp}>
@@ -1079,467 +801,294 @@ function App() {
         </div>
       )}
 
-      <main className={`app-main ${isLayoutMode ? 'layout-mode' : ''} ${Object.keys(panelPositions).length > 0 ? 'custom-layout' : ''}`}>
-        <div className={`main-grid ${Object.keys(panelPositions).length > 0 ? 'custom-layout' : ''}`}>
-          {/* Upload Column - Left */}
-          <div className="upload-column">
-            {/* Panel 1 - Upload Files */}
+      <main 
+        ref={boardRef}
+        className="app-main board"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Grid Board - all panels positioned absolutely */}
+        {/* Panel 1 - Upload Files */}
+        <div 
+          className="upload-section panel"
+          data-panel="upload-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'upload-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['upload-panel']?.x || 20}px`,
+            top: `${panelPositions['upload-panel']?.y || 20}px`,
+            width: `${panelPositions['upload-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
+            height: `${panelPositions['upload-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
             <div 
-              className={`upload-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('upload-panel') ? 'panel-hidden' : ''}`} 
-              id="panel-1" 
-              data-panel="upload-panel"
-              draggable={isLayoutMode}
-              onDragStart={(e) => handleDragStart(e, { id: 'upload-panel', type: 'panel' })}
-              onDragEnd={handleDragEnd}
-              style={panelPositions['upload-panel'] ? {
-                position: 'absolute',
-                left: `${panelPositions['upload-panel'].x}px`,
-                top: `${panelPositions['upload-panel'].y}px`,
-                width: panelPositions['upload-panel'].width ? `${panelPositions['upload-panel'].width}px` : 'auto',
-                height: panelPositions['upload-panel'].height ? `${panelPositions['upload-panel'].height}px` : 'auto',
-                zIndex: 10
-              } : {}}
-            >
-              {isLayoutMode && (
-                <>
-                  <button 
-                    className="panel-remove-btn"
-                    onClick={() => removeElement({id: 'upload-panel', type: 'panel'})}
-                    title="Remove Panel"
-                  >
-                    ×
-                  </button>
-                  <div 
-                    className="resize-handle"
-                    onMouseDown={(e) => handleResizeStart(e, 'panel-1')}
-                  />
-                </>
-              )}
-              <div 
-                className="upload-area"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.add('drag-over');
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.remove('drag-over');
-                }}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.remove('drag-over');
-                  
-                  const files = Array.from(e.dataTransfer.files);
-                  const excelFiles = files.filter(file => 
-                    file.name.toLowerCase().endsWith('.xlsx') || 
-                    file.name.toLowerCase().endsWith('.xls')
-                  );
-                  
-                  if (excelFiles.length > 0) {
-                    try {
-                      const filePaths = excelFiles.map(file => file.path);
-                      let newFilePaths = filePaths;
-                      let newData = [];
-                      
-                      if (selectedFiles.length > 0) {
-                        // Filter out files that are already selected
-                        const existingPaths = selectedFiles.map(path => path.toLowerCase());
-                        newFilePaths = filePaths.filter(path => !existingPaths.includes(path.toLowerCase()));
-                        
-                        if (newFilePaths.length === 0) {
-                          setStatus('All dropped files are already uploaded');
-                          return;
-                        }
-                        
-                        setStatus(`Adding ${newFilePaths.length} dropped files...`);
-                        newData = await window.electronAPI.readExcelFiles(newFilePaths);
-                        
-                        // Combine with existing data
-                        setSelectedFiles([...selectedFiles, ...newFilePaths]);
-                        setFilesData([...filesData, ...newData]);
-                        setSelectedFileIndices(new Set());
-                        setStatus(`${filesData.length + newData.length} Excel files loaded successfully (${newData.length} added)`);
-                      } else {
-                        // No existing files, just load the dropped ones
-                        setSelectedFiles(newFilePaths);
-                        setSelectedFileIndices(new Set());
-                        setStatus('Dropped files selected. Reading data...');
-                        
-                        newData = await window.electronAPI.readExcelFiles(newFilePaths);
-                        setFilesData(newData);
-                        setStatus(`${newData.length} Excel files loaded successfully`);
-                        setProcessingSummary(null);
-                      }
-                      
-                      await extractColumnNames();
-                    } catch (error) {
-                      setStatus(`Error processing dropped files: ${error.message}`);
-                    }
-                  } else {
-                    setStatus('Please drop Excel files (.xlsx or .xls)');
-                  }
-                }}
-              >
-                <h3>{t('uploadTitle')}</h3>
-                <p>{t('uploadDescription')}</p>
-                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
-                  <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
-                    {t('selectExcelFiles')}
-                  </button>
-                  {filesData.length > 0 && (
-                    <button className="btn btn-secondary" onClick={() => handleSelectFiles(true)} disabled={isProcessing}>
-                      {t('addMoreFiles')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Panel 2 - Uploaded Files Summary */}
-            <div 
-              className={`uploaded-files-summary ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('files-summary-panel') ? 'panel-hidden' : ''}`} 
-              id="panel-2" 
-              data-panel="files-summary-panel"
-              draggable={isLayoutMode}
-              onDragStart={(e) => handleDragStart(e, { id: 'files-summary-panel', type: 'panel' })}
-              onDragEnd={handleDragEnd}
-              style={panelPositions['files-summary-panel'] ? {
-                position: 'absolute',
-                left: `${panelPositions['files-summary-panel'].x}px`,
-                top: `${panelPositions['files-summary-panel'].y}px`,
-                width: panelPositions['files-summary-panel'].width ? `${panelPositions['files-summary-panel'].width}px` : 'auto',
-                height: panelPositions['files-summary-panel'].height ? `${panelPositions['files-summary-panel'].height}px` : 'auto',
-                zIndex: 10
-              } : {}}
-            >
-              {isLayoutMode && (
-                <>
-                  <button 
-                    className="panel-remove-btn"
-                    onClick={() => removeElement({id: 'files-summary-panel', type: 'panel'})}
-                    title="Remove Panel"
-                  >
-                    ×
-                  </button>
-                  <div 
-                    className="resize-handle"
-                    onMouseDown={(e) => handleResizeStart(e, 'panel-2')}
-                  />
-                </>
-              )}
-              <h3 className="section-title">{t('uploadedFilesSummary')}</h3>
-              {filesData.length > 0 ? (
-                <div className="file-summary">
-                  <div className="summary-item">📁 {filesData.length} {t('files')}</div>
-                  <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} {t('totalRows')}</div>
-                  <button 
-                    className="btn btn-small btn-primary summary-view-btn" 
-                    onClick={() => setShowUploadedFilesPopup(true)}
-                  >
-                    {t('viewUploadedFiles')}
-                  </button>
-                </div>
-              ) : (
-                <div className="no-files">
-                  <p>{t('noFilesUploaded')}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column - Header and Date Panels */}
-          <div className="right-column">
-            {/* Panel 3 - Header and Columns Selection */}
-            <div 
-              className={`xy-selection-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('header-selection-panel') ? 'panel-hidden' : ''}`} 
-              id="panel-3" 
-              data-panel="header-selection-panel"
-              draggable={isLayoutMode}
-              onDragStart={(e) => handleDragStart(e, { id: 'header-selection-panel', type: 'panel' })}
-              onDragEnd={handleDragEnd}
-              style={panelPositions['header-selection-panel'] ? {
-                position: 'absolute',
-                left: `${panelPositions['header-selection-panel'].x}px`,
-                top: `${panelPositions['header-selection-panel'].y}px`,
-                width: panelPositions['header-selection-panel'].width ? `${panelPositions['header-selection-panel'].width}px` : 'auto',
-                height: panelPositions['header-selection-panel'].height ? `${panelPositions['header-selection-panel'].height}px` : 'auto',
-                zIndex: 10
-              } : {}}
-            >
-              {isLayoutMode && (
-                <>
-                  <button 
-                    className="panel-remove-btn"
-                    onClick={() => removeElement({id: 'header-selection-panel', type: 'panel'})}
-                    title="Remove Panel"
-                  >
-                    ×
-                  </button>
-                  <div 
-                    className="resize-handle"
-                    onMouseDown={(e) => handleResizeStart(e, 'panel-3')}
-                  />
-                </>
-              )}
-              <h3 className="section-title">{t('headerColumnsSelection')}</h3>
-              <div className="section-content">
-                {filesData.length > 0 ? (
-                  <div>
-                    <div className="input-group-horizontal">
-                      <div className="input-group">
-                        <label htmlFor="commonLines">{t('headerNumberOfRows')} <span className="tooltip-trigger" title={t('headerNumberTooltip')}></span></label>
-                        <input
-                          id="commonLines"
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={commonLines}
-                          onChange={(e) => handleCommonLinesChange(e.target.value)}
-                          disabled={isProcessing}
-                        />
-                      </div>
-                      
-                      <div className="input-group">
-                        <label htmlFor="columnNamesRow">{t('columnsRow')} <span className="tooltip-trigger" title={t('columnsRowTooltip')}></span></label>
-                        <input
-                          id="columnNamesRow"
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={columnNamesRow}
-                          onChange={(e) => handleColumnNamesRowChange(e.target.value)}
-                          disabled={isProcessing}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="no-preview">
-                    <p>{t('uploadFilesToSeePreview')}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Panel 4 - Columns that will be Formatted as Date */}
-            <div 
-              className={`date-columns-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('date-columns-panel') ? 'panel-hidden' : ''}`} 
-              id="panel-4" 
-              data-panel="date-columns-panel"
-              draggable={isLayoutMode}
-              onDragStart={(e) => handleDragStart(e, { id: 'date-columns-panel', type: 'panel' })}
-              onDragEnd={handleDragEnd}
-              style={panelPositions['date-columns-panel'] ? {
-                position: 'absolute',
-                left: `${panelPositions['date-columns-panel'].x}px`,
-                top: `${panelPositions['date-columns-panel'].y}px`,
-                width: panelPositions['date-columns-panel'].width ? `${panelPositions['date-columns-panel'].width}px` : 'auto',
-                height: panelPositions['date-columns-panel'].height ? `${panelPositions['date-columns-panel'].height}px` : 'auto',
-                zIndex: 10
-              } : {}}
-            >
-              {isLayoutMode && (
-                <>
-                  <button 
-                    className="panel-remove-btn"
-                    onClick={() => removeElement({id: 'date-columns-panel', type: 'panel'})}
-                    title="Remove Panel"
-                  >
-                    ×
-                  </button>
-                  <div 
-                    className="resize-handle"
-                    onMouseDown={(e) => handleResizeStart(e, 'panel-4')}
-                  />
-                </>
-              )}
-              <h3 className="section-title">{t('dateColumnsTitle')}</h3>
-              <div className="section-content">
-                {filesData.length > 0 ? (
-                  <div>
-                    {columnNames.length > 0 && autoDetectedDateColumns.length > 0 ? (
-                      <div className="date-columns-preview">
-                        <h4>{t('dateColumnsFound')} {autoDetectedDateColumns.length} <span className="tooltip-trigger" title={t('dateColumnsTooltip')}></span></h4>
-                        <div className="date-columns-horizontal">
-                          {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
-                            const col = columnNames[colIndex];
-                            const hasTime = dateColumnsWithTime.includes(colIndex);
-                            
-                            return (
-                              <span key={colIndex} className="date-column-badge">
-                                {col?.name || `Column ${colIndex + 1}`} {hasTime ? '⏰' : ''}
-                              </span>
-                            );
-                          })}
-                          {autoDetectedDateColumns.length > 3 && (
-                            <span className="more-columns">{t('andMore')} {autoDetectedDateColumns.length - 3} {t('more')}</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : columnNames.length > 0 ? (
-                      <div className="no-preview">
-                        <p>{t('noDateColumnsDetected')}</p>
-                      </div>
-                    ) : (
-                      <div className="no-preview">
-                        <p>{t('uploadFilesToDetectDate')}</p>
-                      </div>
-                    )}
-
-                    <button 
-                      className="btn btn-small btn-primary" 
-                      onClick={() => setShowColumnSelectionPopup(true)}
-                      style={{marginTop: '10px'}}
-                      disabled={columnNames.length === 0}
-                    >
-                      {t('viewColumns')}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="no-preview">
-                    <p>{t('uploadFilesToDetectDate')}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Merge Section - Center */}
-          <div 
-            className={`merge-section individual-button ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('merge-button') ? 'panel-hidden' : ''}`}
-            id="merge-section"
-            data-panel="merge-button"
-            draggable={isLayoutMode}
-            onDragStart={(e) => handleDragStart(e, { id: 'merge-button', type: 'button' })}
-            onDragEnd={handleDragEnd}
-            style={panelPositions['merge-button'] ? {
-              position: 'absolute',
-              left: `${panelPositions['merge-button'].x}px`,
-              top: `${panelPositions['merge-button'].y}px`,
-              width: panelPositions['merge-button'].width ? `${panelPositions['merge-button'].width}px` : 'auto',
-              height: panelPositions['merge-button'].height ? `${panelPositions['merge-button'].height}px` : 'auto',
-              zIndex: 10,
-              minWidth: '60px',
-              minHeight: '60px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            } : {}}
-          >
-            {isLayoutMode && (
-              <>
-                <button 
-                  className="panel-remove-btn"
-                  onClick={() => removeElement({id: 'merge-button', type: 'button'})}
-                  title="Remove Button"
-                >
-                  ×
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'upload-panel')}
+            />
+          )}
+          <div className="panel-content">
+            <h3>{t('uploadTitle')}</h3>
+            <div className="panel-controls">
+              <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
+                {t('selectExcelFiles')}
+              </button>
+              {filesData.length > 0 && (
+                <button className="btn btn-secondary" onClick={() => handleSelectFiles(true)} disabled={isProcessing}>
+                  {t('addMoreFiles')}
                 </button>
-                <div 
-                  className="resize-handle"
-                  onMouseDown={(e) => handleResizeStart(e, 'merge-section')}
-                />
-              </>
-            )}
-            <button 
-              className="merge-button" 
-              onClick={handleMergeFiles}
-              disabled={isProcessing || filesData.length === 0}
-            >
-              {isProcessing ? t('processing') : t('mergeFiles')}
-            </button>
-          </div>
-
-          {/* Panel 5 - Summary of Merged Files */}
-          <div 
-            className={`merged-files-section ${isLayoutMode ? 'layout-draggable' : ''} ${!isPanelVisible('merged-summary-panel') ? 'panel-hidden' : ''}`} 
-            id="panel-5" 
-            data-panel="merged-summary-panel"
-            draggable={isLayoutMode}
-            onDragStart={(e) => handleDragStart(e, { id: 'merged-summary-panel', type: 'panel' })}
-            onDragEnd={handleDragEnd}
-            style={panelPositions['merged-summary-panel'] ? {
-              position: 'absolute',
-              left: `${panelPositions['merged-summary-panel'].x}px`,
-              top: `${panelPositions['merged-summary-panel'].y}px`,
-              width: panelPositions['merged-summary-panel'].width ? `${panelPositions['merged-summary-panel'].width}px` : 'auto',
-              height: panelPositions['merged-summary-panel'].height ? `${panelPositions['merged-summary-panel'].height}px` : 'auto',
-              zIndex: 10
-            } : {}}
-          >
-            {isLayoutMode && (
-              <>
-                <button 
-                  className="panel-remove-btn"
-                  onClick={() => removeElement({id: 'merged-summary-panel', type: 'panel'})}
-                  title="Remove Panel"
-                >
-                  ×
-                </button>
-                <div 
-                  className="resize-handle"
-                  onMouseDown={(e) => handleResizeStart(e, 'panel-5')}
-                />
-              </>
-            )}
-            <h3 className="section-title">{t('mergedFilesSummary')}</h3>
-            <div className="section-content">
-              {processingSummary ? (
-                <div className="merged-summary">
-                  <div className="summary-stats">
-                    <div className="stat-item">
-                      <strong>✅ {t('filesMerged')}</strong> <span className="stat-number">{processingSummary.filesProcessed}</span>
-                    </div>
-                    <div className="stat-item">
-                      <strong>📊 {t('totalDataRows')}</strong> <span className="stat-number">{processingSummary.totalDataRows}</span>
-                    </div>
-                    <div className="stat-item">
-                      <strong>📄 {t('commonHeaderRows')}</strong> <span className="stat-number">{processingSummary.commonHeaderRows}</span>
-                    </div>
-                    <div className="stat-item">
-                      <strong>🔍 {t('columnHeadersMatch')}</strong> 
-                      <span className={`status-badge ${processingSummary.matchingFiles === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
-                        {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="merged-actions">
-                    <div className="view-action">
-                      <button className="btn btn-small btn-primary" onClick={() => setShowMergedFilesPopup(true)}>
-                        {t('viewMergedFiles')}
-                      </button>
-                    </div>
-                    <div className="primary-actions">
-                      <button className="download-button" onClick={handleDownloadFile}>
-                        {t('download')}
-                      </button>
-                      <button className="btn btn-accent" onClick={handleOpenFile}>
-                        {t('open')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="no-merged-files">
-                  <p>{t('mergedFileSummaryWillAppear')}</p>
-                </div>
               )}
             </div>
           </div>
         </div>
-
+        
+        {/* Panel 2 - Files Summary */}
+        <div 
+          className="uploaded-files-summary panel"
+          data-panel="files-summary-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'files-summary-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['files-summary-panel']?.x || 280}px`,
+            top: `${panelPositions['files-summary-panel']?.y || 20}px`,
+            width: `${panelPositions['files-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
+            height: `${panelPositions['files-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'files-summary-panel')}
+            />
+          )}
+          <div className="panel-content">
+            <h3>{t('uploadedFilesSummary')}</h3>
+            {filesData.length > 0 ? (
+              <div className="file-summary">
+                <div className="summary-item">📁 {filesData.length} files</div>
+                <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+              </div>
+            ) : (
+              <p>No files uploaded</p>
+            )}
+          </div>
+        </div>
+        {/* Panel 3 - Header Selection */}
+        <div 
+          className="xy-selection-section panel"
+          data-panel="header-selection-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'header-selection-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['header-selection-panel']?.x || 540}px`,
+            top: `${panelPositions['header-selection-panel']?.y || 20}px`,
+            width: `${panelPositions['header-selection-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
+            height: `${panelPositions['header-selection-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'header-selection-panel')}
+            />
+          )}
+          <div className="panel-content">
+            <h3>{t('headerColumnsSelection')}</h3>
+            {filesData.length > 0 ? (
+              <div className="input-controls">
+                <div className="input-group">
+                  <label>{t('headerNumberOfRows')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={commonLines}
+                    onChange={(e) => handleCommonLinesChange(e.target.value)}
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>{t('columnsRow')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={columnNamesRow}
+                    onChange={(e) => handleColumnNamesRowChange(e.target.value)}
+                    disabled={isProcessing}
+                  />
+                </div>
+              </div>
+            ) : (
+              <p>Upload files to configure headers</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Panel 4 - Date Columns */}
+        <div 
+          className="date-columns-section panel"
+          data-panel="date-columns-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'date-columns-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['date-columns-panel']?.x || 20}px`,
+            top: `${panelPositions['date-columns-panel']?.y || 220}px`,
+            width: `${panelPositions['date-columns-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
+            height: `${panelPositions['date-columns-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'date-columns-panel')}
+            />
+          )}
+          <div className="panel-content">
+            <h3>{t('dateColumnsTitle')}</h3>
+            {columnNames.length > 0 && autoDetectedDateColumns.length > 0 ? (
+              <div>
+                <p>Found {autoDetectedDateColumns.length} date columns</p>
+                <div className="date-column-list">
+                  {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
+                    const col = columnNames[colIndex];
+                    return (
+                      <span key={colIndex} className="date-column-badge">
+                        {col?.name || `Column ${colIndex + 1}`}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p>No date columns detected</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Merge Button */}
+        <div 
+          className="merge-section panel button-panel"
+          data-panel="merge-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'merge-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['merge-button']?.x || 540}px`,
+            top: `${panelPositions['merge-button']?.y || 220}px`,
+            width: `${panelPositions['merge-button']?.width || DEFAULT_BUTTON_SIZE}px`,
+            height: `${panelPositions['merge-button']?.height || DEFAULT_BUTTON_SIZE}px`,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'merge-button')}
+            />
+          )}
+          <button 
+            className="merge-button" 
+            onClick={handleMergeFiles}
+            disabled={isProcessing || filesData.length === 0}
+          >
+            {isProcessing ? 'Processing...' : 'Merge'}
+          </button>
+        </div>
+        
+        {/* Panel 5 - Merged Summary */}
+        <div 
+          className="merged-files-section panel"
+          data-panel="merged-summary-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'merged-summary-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${panelPositions['merged-summary-panel']?.x || 280}px`,
+            top: `${panelPositions['merged-summary-panel']?.y || 220}px`,
+            width: `${panelPositions['merged-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
+            height: `${panelPositions['merged-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'merged-summary-panel')}
+            />
+          )}
+          <div className="panel-content">
+            <h3>{t('mergedFilesSummary')}</h3>
+            {processingSummary ? (
+              <div className="merged-summary">
+                <div className="summary-stats">
+                  <div>Files: {processingSummary.filesProcessed}</div>
+                  <div>Rows: {processingSummary.totalDataRows}</div>
+                </div>
+                <div className="merged-actions">
+                  <button className="btn btn-primary" onClick={handleDownloadFile}>
+                    Download
+                  </button>
+                  <button className="btn btn-secondary" onClick={handleOpenFile}>
+                    Open
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p>Merge results will appear here</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Status Message */}
         {status && (
-          <div className="status-message">
+          <div className="status-message" style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000
+          }}>
             <p>{status}</p>
           </div>
         )}
-
-        {/* Popup Modals */}
-        {showUploadedFilesPopup && (
+        
+        {/* Snap Preview Lines */}
+        {snapLines.map(line => (
+          <div 
+            key={line.id}
+            className={`snap-line ${line.type} ${line.collision ? 'collision' : ''}`}
+            style={{
+              position: 'absolute',
+              left: `${line.x}px`,
+              top: `${line.y}px`,
+              width: `${line.width}px`,
+              height: `${line.height}px`,
+              pointerEvents: 'none',
+              zIndex: 9999
+            }}
+          />
+        ))}
+        
+        {/* Remove popups for clean interface */}
+        {false && (
           <div className="popup-overlay" onClick={() => setShowUploadedFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
@@ -1574,7 +1123,8 @@ function App() {
           </div>
         )}
 
-        {showColumnSelectionPopup && (
+        
+        {false && (
           <div className="popup-overlay" onClick={() => setShowColumnSelectionPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
@@ -1610,7 +1160,8 @@ function App() {
           </div>
         )}
 
-        {showMergedFilesPopup && processingSummary && (
+        
+        {false && (
           <div className="popup-overlay" onClick={() => setShowMergedFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
@@ -1650,99 +1201,7 @@ function App() {
               </div>
             </div>
           </div>
-        )}
-        
-        {/* Snap Lines */}
-        {snapLines.map(line => (
-          <div 
-            key={line.id}
-            className={`snap-line ${line.type} ${line.collision ? 'collision' : ''}`}
-            style={
-              line.type === 'outline' ? {
-                left: `${line.x}px`,
-                top: `${line.y}px`,
-                width: `${line.width}px`,
-                height: `${line.height}px`
-              } : {
-                [line.type === 'horizontal' ? 'top' : 'left']: `${line.position}px`
-              }
-            }
-          />
         ))}
-        
-        {/* Layout Mode Dropdown Menu */}
-        {isLayoutMode && (
-          <div className="layout-controls">
-            <button 
-              className="layout-menu-toggle"
-              onClick={toggleLayoutMenu}
-              title={isLayoutMenuOpen ? "Collapse Menu" : "Show Element Menu"}
-            >
-              <span className={`arrow ${isLayoutMenuOpen ? 'up' : 'down'}`}>
-                {isLayoutMenuOpen ? '▲' : '▼'}
-              </span>
-            </button>
-            
-            {isLayoutMenuOpen && (
-              <div className="layout-dropdown">
-                <div className="dropdown-header">
-                  <h3>Element Library</h3>
-                  <div style={{display: 'flex', gap: '8px'}}>
-                    <button className="close-layout-btn" onClick={async () => {
-                      setPanelPositions({});
-                      await saveLayoutSettings();
-                    }}>Reset Layout</button>
-                    <button className="close-layout-btn" onClick={toggleLayoutMode}>Exit Layout Mode</button>
-                  </div>
-                </div>
-                
-                <div className="dropdown-content">
-                  <div className="dropdown-section">
-                    <h4>Panels</h4>
-                    <div className="dropdown-items">
-                      {availablePanels.filter(panel => !panel.active).map(panel => (
-                        <div key={panel.id} className="dropdown-item">
-                          <span className="item-name">{panel.name}</span>
-                          <button 
-                            className="btn-add" 
-                            onClick={() => addElement(panel)}
-                            title="Add Panel"
-                          >
-                            +
-                          </button>
-                        </div>
-                      ))}
-                      {availablePanels.filter(panel => !panel.active).length === 0 && (
-                        <div className="no-items">All panels are currently visible</div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="dropdown-section">
-                    <h4>Buttons</h4>
-                    <div className="dropdown-items">
-                      {availableButtons.filter(button => !button.active).map(button => (
-                        <div key={button.id} className="dropdown-item">
-                          <span className="item-name">{button.name}</span>
-                          <button 
-                            className="btn-add" 
-                            onClick={() => addElement(button)}
-                            title="Add Button"
-                          >
-                            +
-                          </button>
-                        </div>
-                      ))}
-                      {availableButtons.filter(button => !button.active).length === 0 && (
-                        <div className="no-items">All buttons are currently visible</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </main>
     </div>
   );
