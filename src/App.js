@@ -671,16 +671,19 @@ function App() {
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Store initial mouse position relative to board content area
-    // Account for current pan offset since the panel is visually offset
-    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
-    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
+    // Store initial mouse position in board coordinates
+    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
     setInitialDragPosition({ x: initialMouseX, y: initialMouseY });
     
-    // Calculate mouse position relative to the element (for offset calculation)
-    const rect = e.target.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
+    // Calculate offset from mouse to element's current visual position
+    // The element's visual position = stored position + panOffset
+    const currentPos = panelPositions[element.id] || {};
+    const elementVisualX = (currentPos.x || 0) + panOffset.x;
+    const elementVisualY = (currentPos.y || 0) + panOffset.y;
+    
+    const offsetX = initialMouseX - elementVisualX;
+    const offsetY = initialMouseY - elementVisualY;
     setDragOffset({ x: offsetX, y: offsetY });
     
     e.target.classList.add('dragging');
@@ -699,24 +702,19 @@ function App() {
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Calculate current mouse position relative to board content area
-    // Account for current pan offset to match coordinate system used in drag start
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
+    // Calculate current mouse position in board coordinates
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
     
-    // Calculate the mouse movement delta from initial position
-    const deltaX = currentMouseX - initialDragPosition.x;
-    const deltaY = currentMouseY - initialDragPosition.y;
+    // Calculate new element position by subtracting the drag offset
+    const elementVisualX = currentMouseX - dragOffset.x;
+    const elementVisualY = currentMouseY - dragOffset.y;
     
-    // Get current element position and calculate new position based on delta
+    // Convert visual position back to stored position (subtract panOffset)
+    const elementX = elementVisualX - panOffset.x;
+    const elementY = elementVisualY - panOffset.y;
+    
     const currentPos = panelPositions[draggedElement.id] || {};
-    const originalX = currentPos.x || 0;
-    const originalY = currentPos.y || 0;
-    
-    // Calculate new element position by adding delta to original position
-    const elementX = originalX + deltaX;
-    const elementY = originalY + deltaY;
-    
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
@@ -748,23 +746,19 @@ function App() {
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Calculate current mouse position relative to board content area
-    // Account for current pan offset to match coordinate system used in drag start
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
+    // Calculate current mouse position in board coordinates
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
     
-    // Calculate the mouse movement delta from initial position
-    const deltaX = currentMouseX - initialDragPosition.x;
-    const deltaY = currentMouseY - initialDragPosition.y;
+    // Calculate new element position by subtracting the drag offset
+    const elementVisualX = currentMouseX - dragOffset.x;
+    const elementVisualY = currentMouseY - dragOffset.y;
     
-    // Get current element position and calculate new position based on delta
+    // Convert visual position back to stored position (subtract panOffset)
+    const elementX = elementVisualX - panOffset.x;
+    const elementY = elementVisualY - panOffset.y;
+    
     const currentPos = panelPositions[draggedElement.id] || {};
-    const originalX = currentPos.x || 0;
-    const originalY = currentPos.y || 0;
-    
-    // Calculate new element position by adding delta to original position
-    const elementX = originalX + deltaX;
-    const elementY = originalY + deltaY;
     
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
