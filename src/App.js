@@ -671,11 +671,15 @@ function App() {
     const snappedX = snapToGrid(Math.max(0, elementX));
     const snappedY = snapToGrid(Math.max(0, elementY));
     
-    // Check bounds to prevent moving outside board
-    const boardWidth = boardRect.width - 40; // Account for padding
-    const boardHeight = boardRect.height - 80; // Account for padding
-    const boundedX = Math.min(snappedX, boardWidth - width);
-    const boundedY = Math.min(snappedY, boardHeight - height);
+    // Calculate available space within the board's content area
+    // boardRect gives us the full element size, but we position relative to content area
+    // CSS padding is: 60px 20px 20px 20px (top right bottom left)
+    const availableWidth = boardRect.width - 40; // subtract left(20) + right(20) padding
+    const availableHeight = boardRect.height - 80; // subtract top(60) + bottom(20) padding
+    const maxX = Math.max(0, availableWidth - width);
+    const maxY = Math.max(0, availableHeight - height);
+    const boundedX = Math.min(Math.max(0, snappedX), maxX);
+    const boundedY = Math.min(Math.max(0, snappedY), maxY);
     
     // Check for collisions at the snapped position
     const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
@@ -704,10 +708,15 @@ function App() {
     const snappedX = snapToGrid(Math.max(0, elementX));
     const snappedY = snapToGrid(Math.max(0, elementY));
     
-    const boardWidth = boardRect.width - 40;
-    const boardHeight = boardRect.height - 80;
-    const boundedX = Math.min(snappedX, boardWidth - width);
-    const boundedY = Math.min(snappedY, boardHeight - height);
+    // Calculate available space within the board's content area
+    // boardRect gives us the full element size, but we position relative to content area
+    // CSS padding is: 60px 20px 20px 20px (top right bottom left)
+    const availableWidth = boardRect.width - 40; // subtract left(20) + right(20) padding
+    const availableHeight = boardRect.height - 80; // subtract top(60) + bottom(20) padding
+    const maxX = Math.max(0, availableWidth - width);
+    const maxY = Math.max(0, availableHeight - height);
+    const boundedX = Math.min(Math.max(0, snappedX), maxX);
+    const boundedY = Math.min(Math.max(0, snappedY), maxY);
     
     // Only move if there's no collision
     const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
