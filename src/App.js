@@ -672,8 +672,9 @@ function App() {
     const BOARD_PADDING_TOP = 60;
     
     // Store initial mouse position relative to board content area
-    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    // Account for current pan offset since the panel is visually offset
+    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
+    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
     setInitialDragPosition({ x: initialMouseX, y: initialMouseY });
     
     // Calculate mouse position relative to the element (for offset calculation)
@@ -699,8 +700,9 @@ function App() {
     const BOARD_PADDING_TOP = 60;
     
     // Calculate current mouse position relative to board content area
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    // Account for current pan offset to match coordinate system used in drag start
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
     
     // Calculate the mouse movement delta from initial position
     const deltaX = currentMouseX - initialDragPosition.x;
@@ -747,8 +749,9 @@ function App() {
     const BOARD_PADDING_TOP = 60;
     
     // Calculate current mouse position relative to board content area
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    // Account for current pan offset to match coordinate system used in drag start
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT - panOffset.x;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP - panOffset.y;
     
     // Calculate the mouse movement delta from initial position
     const deltaX = currentMouseX - initialDragPosition.x;
