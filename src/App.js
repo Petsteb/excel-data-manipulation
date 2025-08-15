@@ -517,10 +517,9 @@ function App() {
     return { width: minWidth, height: minHeight };
   };
 
-  // Check collision between panels - strict no overlap with minimum spacing
+  // Modern AABB collision detection with separation check (best practice 2025)
   const checkCollision = (elementId, x, y, width, height) => {
-    const buffer = GRID_SIZE; // Minimum 1 dot (20px) spacing
-    
+    // No buffer - check for actual overlap only
     for (const [otherId, otherPos] of Object.entries(panelPositions)) {
       if (otherId === elementId) continue;
       
@@ -529,48 +528,71 @@ function App() {
       const otherWidth = otherPos.width || DEFAULT_PANEL_WIDTH;
       const otherHeight = otherPos.height || DEFAULT_PANEL_HEIGHT;
       
-      // AABB collision detection with buffer for minimum spacing
-      const left1 = x;
-      const right1 = x + width;
-      const top1 = y;
-      const bottom1 = y + height;
+      // Modern separation-based AABB collision detection
+      // Returns true if rectangles are NOT separated (i.e., they overlap)
+      const separated = (
+        x >= otherX + otherWidth ||  // element is to the right of other
+        x + width <= otherX ||       // element is to the left of other
+        y >= otherY + otherHeight || // element is below other
+        y + height <= otherY         // element is above other
+      );
       
-      const left2 = otherX;
-      const right2 = otherX + otherWidth;
-      const top2 = otherY;
-      const bottom2 = otherY + otherHeight;
-      
-      // Check if rectangles would overlap or be too close (within buffer)
-      const horizontalOverlap = (left1 < right2 + buffer) && (right1 + buffer > left2);
-      const verticalOverlap = (top1 < bottom2 + buffer) && (bottom1 + buffer > top2);
-      
-      if (horizontalOverlap && verticalOverlap) {
-        return true; // Collision detected
+      if (!separated) {
+        return true; // Collision detected (rectangles overlap)
       }
     }
     
     return false; // No collision
   };
 
-  // Find valid position without collision
-  const findValidPosition = (elementId, preferredX, preferredY, width, height) => {
-    const boardWidth = boardRef.current ? boardRef.current.clientWidth : 1200;
-    const boardHeight = boardRef.current ? boardRef.current.clientHeight : 800;
+  // Get board boundaries accounting for CSS padding
+  const getBoardBoundaries = () => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) {
+      return { width: 1200, height: 800 }; // fallback
+    }
     
-    // Try preferred position first
-    let x = snapToGrid(Math.max(0, Math.min(preferredX, boardWidth - width)));
-    let y = snapToGrid(Math.max(0, Math.min(preferredY, boardHeight - height)));
+    // Account for CSS padding: 60px 20px 20px 20px (top right bottom left)
+    const availableWidth = boardRect.width - 40; // left(20) + right(20) padding
+    const availableHeight = boardRect.height - 80; // top(60) + bottom(20) padding
+    
+    return { 
+      width: Math.max(0, availableWidth), 
+      height: Math.max(0, availableHeight) 
+    };
+  };
+
+  // Boundary clamping - keeps element within board boundaries
+  const clampToBoundaries = (x, y, width, height) => {
+    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
+    
+    // Clamp position to boundaries
+    const clampedX = Math.max(0, Math.min(x, boardWidth - width));
+    const clampedY = Math.max(0, Math.min(y, boardHeight - height));
+    
+    return { x: clampedX, y: clampedY };
+  };
+
+  // Find valid position without collision using spiral search
+  const findValidPosition = (elementId, preferredX, preferredY, width, height) => {
+    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
+    
+    // Try preferred position first (clamped to boundaries)
+    const { x: clampedX, y: clampedY } = clampToBoundaries(preferredX, preferredY, width, height);
+    let x = snapToGrid(clampedX);
+    let y = snapToGrid(clampedY);
     
     if (!checkCollision(elementId, x, y, width, height)) {
       return { x, y };
     }
     
     // Search for valid position in a spiral pattern
-    for (let radius = GRID_SIZE; radius < 400; radius += GRID_SIZE) {
+    for (let radius = GRID_SIZE; radius < Math.min(boardWidth, boardHeight); radius += GRID_SIZE) {
       for (let angle = 0; angle < 360; angle += 45) {
         const testX = snapToGrid(x + Math.cos(angle * Math.PI / 180) * radius);
         const testY = snapToGrid(y + Math.sin(angle * Math.PI / 180) * radius);
         
+        // Check if position is within boundaries
         if (testX >= 0 && testY >= 0 && 
             testX + width <= boardWidth && 
             testY + height <= boardHeight &&
@@ -580,7 +602,7 @@ function App() {
       }
     }
     
-    // Fallback to top-left
+    // Fallback to top-left if no position found
     return { x: 0, y: 0 };
   };
 
@@ -652,7 +674,7 @@ function App() {
     e.target.classList.add('dragging');
   };
 
-  // Handle drag over with improved collision detection
+  // Handle drag over with modern boundary clamping and collision detection
   const handleDragOver = (e) => {
     if (!isLayoutMode || !draggedElement) return;
     
@@ -660,28 +682,25 @@ function App() {
     e.dataTransfer.dropEffect = 'move';
     
     const boardRect = boardRef.current.getBoundingClientRect();
-    const elementX = (e.clientX - boardRect.left) - dragOffset.x;
-    const elementY = (e.clientY - boardRect.top) - dragOffset.y;
+    const mouseX = e.clientX - boardRect.left;
+    const mouseY = e.clientY - boardRect.top;
+    
+    // Calculate element position (mouse position minus drag offset)
+    const elementX = mouseX - dragOffset.x;
+    const elementY = mouseY - dragOffset.y;
     
     const currentPos = panelPositions[draggedElement.id] || {};
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    // Always snap to grid
-    const snappedX = snapToGrid(Math.max(0, elementX));
-    const snappedY = snapToGrid(Math.max(0, elementY));
+    // Snap to grid first
+    const snappedX = snapToGrid(elementX);
+    const snappedY = snapToGrid(elementY);
     
-    // Calculate available space within the board's content area
-    // boardRect gives us the full element size, but we position relative to content area
-    // CSS padding is: 60px 20px 20px 20px (top right bottom left)
-    const availableWidth = boardRect.width - 40; // subtract left(20) + right(20) padding
-    const availableHeight = boardRect.height - 80; // subtract top(60) + bottom(20) padding
-    const maxX = Math.max(0, availableWidth - width);
-    const maxY = Math.max(0, availableHeight - height);
-    const boundedX = Math.min(Math.max(0, snappedX), maxX);
-    const boundedY = Math.min(Math.max(0, snappedY), maxY);
+    // Clamp to board boundaries
+    const { x: boundedX, y: boundedY } = clampToBoundaries(snappedX, snappedY, width, height);
     
-    // Check for collisions at the snapped position
+    // Check for collisions at the final position
     const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
     
     // Show preview at the bounded, snapped position
@@ -690,37 +709,35 @@ function App() {
 
 
 
-  // Handle drop with collision prevention
+  // Handle drop with modern collision prevention and boundary clamping
   const handleDrop = async (e) => {
     if (!isLayoutMode || !draggedElement) return;
     
     e.preventDefault();
     
     const boardRect = boardRef.current.getBoundingClientRect();
-    const elementX = (e.clientX - boardRect.left) - dragOffset.x;
-    const elementY = (e.clientY - boardRect.top) - dragOffset.y;
+    const mouseX = e.clientX - boardRect.left;
+    const mouseY = e.clientY - boardRect.top;
+    
+    // Calculate element position (mouse position minus drag offset)
+    const elementX = mouseX - dragOffset.x;
+    const elementY = mouseY - dragOffset.y;
     
     const currentPos = panelPositions[draggedElement.id] || {};
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    // Snap to grid and check bounds
-    const snappedX = snapToGrid(Math.max(0, elementX));
-    const snappedY = snapToGrid(Math.max(0, elementY));
+    // Snap to grid first
+    const snappedX = snapToGrid(elementX);
+    const snappedY = snapToGrid(elementY);
     
-    // Calculate available space within the board's content area
-    // boardRect gives us the full element size, but we position relative to content area
-    // CSS padding is: 60px 20px 20px 20px (top right bottom left)
-    const availableWidth = boardRect.width - 40; // subtract left(20) + right(20) padding
-    const availableHeight = boardRect.height - 80; // subtract top(60) + bottom(20) padding
-    const maxX = Math.max(0, availableWidth - width);
-    const maxY = Math.max(0, availableHeight - height);
-    const boundedX = Math.min(Math.max(0, snappedX), maxX);
-    const boundedY = Math.min(Math.max(0, snappedY), maxY);
+    // Clamp to board boundaries
+    const { x: boundedX, y: boundedY } = clampToBoundaries(snappedX, snappedY, width, height);
     
-    // Only move if there's no collision
+    // Check for collisions at the final position
     const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
     
+    // If no collision, place the element at the desired position
     if (!hasCollision) {
       const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
       const finalWidth = Math.max(width, minWidth);
@@ -737,8 +754,21 @@ function App() {
       }));
       
       await saveLayoutSettings();
+    } else {
+      // If collision, try to find a nearby valid position
+      const validPosition = findValidPosition(draggedElement.id, boundedX, boundedY, width, height);
+      
+      setPanelPositions(prev => ({
+        ...prev,
+        [draggedElement.id]: {
+          ...prev[draggedElement.id],
+          x: validPosition.x,
+          y: validPosition.y
+        }
+      }));
+      
+      await saveLayoutSettings();
     }
-    // If collision, panel stays in original position
     
     // Cleanup
     setDraggedElement(null);
@@ -853,11 +883,12 @@ function App() {
       newWidth = Math.max(minWidth, Math.round(newWidth / GRID_SIZE) * GRID_SIZE);
       newHeight = Math.max(minHeight, Math.round(newHeight / GRID_SIZE) * GRID_SIZE);
       
-      // Check if new size would cause collision
-      const wouldCollide = checkCollision(elementId, currentX, currentY, newWidth, newHeight);
+      // Check if new size would fit within boundaries and not cause collision
+      const { x: clampedX, y: clampedY } = clampToBoundaries(currentX, currentY, newWidth, newHeight);
+      const wouldCollide = checkCollision(elementId, clampedX, clampedY, newWidth, newHeight);
       
-      // Only resize if no collision
-      if (!wouldCollide) {
+      // Only resize if it fits within boundaries and doesn't cause collision
+      if (!wouldCollide && clampedX === currentX && clampedY === currentY) {
         setPanelPositions(prev => ({
           ...prev,
           [elementId]: {
