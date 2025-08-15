@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
@@ -44,6 +44,7 @@ function App() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
     { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
     { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
@@ -747,30 +748,46 @@ function App() {
     hideSnapPreview();
   };
 
-  // Panning functionality
+  // Panning functionality with improved performance
   const handlePanStart = (e) => {
-    if (isLayoutMode || draggedElement) return;
+    if (draggedElement) return;
     
-    if (e.button === 0 && !e.target.closest('.panel')) { // Left mouse button and not on a panel
+    // Allow panning on empty space (not on panels) or when right-clicking in layout mode
+    const isRightClick = e.button === 2;
+    const isOnPanel = e.target.closest('.panel');
+    const isOnResizeHandle = e.target.closest('.resize-handle');
+    
+    if ((e.button === 0 && !isOnPanel) || (isRightClick && isLayoutMode)) {
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
     }
   };
 
-  const handlePanMove = (e) => {
+  const handlePanMove = useCallback((e) => {
     if (!isPanning) return;
+    
+    e.preventDefault();
     
     const deltaX = e.clientX - panStart.x;
     const deltaY = e.clientY - panStart.y;
     
-    setPanOffset(prev => ({
-      x: prev.x + deltaX,
-      y: prev.y + deltaY
-    }));
+    // Cancel previous animation frame to prevent queuing
+    if (panAnimationFrame.current) {
+      cancelAnimationFrame(panAnimationFrame.current);
+    }
+    
+    // Use requestAnimationFrame for smoother updates
+    panAnimationFrame.current = requestAnimationFrame(() => {
+      setPanOffset(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      panAnimationFrame.current = null;
+    });
     
     setPanStart({ x: e.clientX, y: e.clientY });
-  };
+  }, [isPanning, panStart.x, panStart.y]);
 
   const handlePanEnd = () => {
     setIsPanning(false);
@@ -778,20 +795,25 @@ function App() {
 
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
-    if (!isLayoutMode) {
-      handlePanStart(e);
-    }
+    handlePanStart(e);
   };
 
   const handleMouseMove = (e) => {
-    if (!isLayoutMode && isPanning) {
+    if (isPanning) {
       handlePanMove(e);
     }
   };
 
   const handleMouseUp = () => {
-    if (!isLayoutMode && isPanning) {
+    if (isPanning) {
       handlePanEnd();
+    }
+  };
+
+  // Prevent context menu when right-clicking for panning
+  const handleContextMenu = (e) => {
+    if (isLayoutMode) {
+      e.preventDefault();
     }
   };
 
@@ -895,6 +917,7 @@ function App() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onContextMenu={handleContextMenu}
       >
         {/* Grid Board - all panels positioned absolutely */}
         {/* Panel 1 - Upload Files */}
@@ -906,10 +929,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['upload-panel']?.x || 20) + panOffset.x}px`,
-            top: `${(panelPositions['upload-panel']?.y || 20) + panOffset.y}px`,
+            left: `${panelPositions['upload-panel']?.x || 20}px`,
+            top: `${panelPositions['upload-panel']?.y || 20}px`,
             width: `${panelPositions['upload-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['upload-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
         >
@@ -945,10 +969,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['files-summary-panel']?.x || 280) + panOffset.x}px`,
-            top: `${(panelPositions['files-summary-panel']?.y || 20) + panOffset.y}px`,
+            left: `${panelPositions['files-summary-panel']?.x || 280}px`,
+            top: `${panelPositions['files-summary-panel']?.y || 20}px`,
             width: `${panelPositions['files-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['files-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
         >
@@ -979,10 +1004,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['header-selection-panel']?.x || 540) + panOffset.x}px`,
-            top: `${(panelPositions['header-selection-panel']?.y || 20) + panOffset.y}px`,
+            left: `${panelPositions['header-selection-panel']?.x || 540}px`,
+            top: `${panelPositions['header-selection-panel']?.y || 20}px`,
             width: `${panelPositions['header-selection-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['header-selection-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
         >
@@ -1034,10 +1060,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['date-columns-panel']?.x || 20) + panOffset.x}px`,
-            top: `${(panelPositions['date-columns-panel']?.y || 220) + panOffset.y}px`,
+            left: `${panelPositions['date-columns-panel']?.x || 20}px`,
+            top: `${panelPositions['date-columns-panel']?.y || 220}px`,
             width: `${panelPositions['date-columns-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['date-columns-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
         >
@@ -1078,10 +1105,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['merge-button']?.x || 540) + panOffset.x}px`,
-            top: `${(panelPositions['merge-button']?.y || 220) + panOffset.y}px`,
+            left: `${panelPositions['merge-button']?.x || 540}px`,
+            top: `${panelPositions['merge-button']?.y || 220}px`,
             width: `${panelPositions['merge-button']?.width || DEFAULT_BUTTON_SIZE}px`,
             height: `${panelPositions['merge-button']?.height || DEFAULT_BUTTON_SIZE}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10,
             display: 'flex',
             alignItems: 'center',
@@ -1112,10 +1140,11 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${(panelPositions['merged-summary-panel']?.x || 280) + panOffset.x}px`,
-            top: `${(panelPositions['merged-summary-panel']?.y || 220) + panOffset.y}px`,
+            left: `${panelPositions['merged-summary-panel']?.x || 280}px`,
+            top: `${panelPositions['merged-summary-panel']?.y || 220}px`,
             width: `${panelPositions['merged-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['merged-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
         >

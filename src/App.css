@@ -629,21 +629,33 @@
   color: #6b7280;
 }
 
-/* Panning cursor */
+/* Panning cursor and performance improvements */
+.board.panning {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.board {
+  cursor: grab;
+}
+
 .board.panning {
   cursor: grabbing !important;
 }
 
-.App:not(.layout-mode) .board {
-  cursor: grab;
-}
-
-.App:not(.layout-mode) .board.panning {
-  cursor: grabbing !important;
-}
-
-.App:not(.layout-mode) .panel {
+.panel {
   pointer-events: auto;
+  /* Enable hardware acceleration for smooth panning */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Smooth transitions when not panning */
+.panel:not(.dragging) {
+  transition: transform 0.1s ease-out;
 }
 
 .file-list {
