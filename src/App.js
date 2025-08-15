@@ -41,6 +41,9 @@ function App() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [snapLines, setSnapLines] = useState([]);
   const boardRef = useRef(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [availablePanels] = useState([
     { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
     { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
@@ -744,6 +747,54 @@ function App() {
     hideSnapPreview();
   };
 
+  // Panning functionality
+  const handlePanStart = (e) => {
+    if (isLayoutMode || draggedElement) return;
+    
+    if (e.button === 0 && !e.target.closest('.panel')) { // Left mouse button and not on a panel
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    }
+  };
+
+  const handlePanMove = (e) => {
+    if (!isPanning) return;
+    
+    const deltaX = e.clientX - panStart.x;
+    const deltaY = e.clientY - panStart.y;
+    
+    setPanOffset(prev => ({
+      x: prev.x + deltaX,
+      y: prev.y + deltaY
+    }));
+    
+    setPanStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePanEnd = () => {
+    setIsPanning(false);
+  };
+
+  // Mouse event handlers for the board
+  const handleMouseDown = (e) => {
+    if (!isLayoutMode) {
+      handlePanStart(e);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isLayoutMode && isPanning) {
+      handlePanMove(e);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isLayoutMode && isPanning) {
+      handlePanEnd();
+    }
+  };
+
 
   // Handle resize start with grid snapping and collision prevention
   const handleResizeStart = (e, elementId) => {
@@ -837,9 +888,13 @@ function App() {
 
       <main 
         ref={boardRef}
-        className="app-main board"
+        className={`app-main board ${isPanning ? 'panning' : ''}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         {/* Grid Board - all panels positioned absolutely */}
         {/* Panel 1 - Upload Files */}
@@ -851,8 +906,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['upload-panel']?.x || 20}px`,
-            top: `${panelPositions['upload-panel']?.y || 20}px`,
+            left: `${(panelPositions['upload-panel']?.x || 20) + panOffset.x}px`,
+            top: `${(panelPositions['upload-panel']?.y || 20) + panOffset.y}px`,
             width: `${panelPositions['upload-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['upload-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
             zIndex: 10
@@ -870,11 +925,13 @@ function App() {
               <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
                 {t('selectExcelFiles')}
               </button>
-              {filesData.length > 0 && (
-                <button className="btn btn-secondary" onClick={() => handleSelectFiles(true)} disabled={isProcessing}>
-                  {t('addMoreFiles')}
-                </button>
-              )}
+              <button 
+                className={`btn btn-secondary ${filesData.length === 0 ? 'disabled-grey' : ''}`}
+                onClick={() => handleSelectFiles(true)} 
+                disabled={isProcessing || filesData.length === 0}
+              >
+                {t('addMoreFiles')}
+              </button>
             </div>
           </div>
         </div>
@@ -888,8 +945,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['files-summary-panel']?.x || 280}px`,
-            top: `${panelPositions['files-summary-panel']?.y || 20}px`,
+            left: `${(panelPositions['files-summary-panel']?.x || 280) + panOffset.x}px`,
+            top: `${(panelPositions['files-summary-panel']?.y || 20) + panOffset.y}px`,
             width: `${panelPositions['files-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['files-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
             zIndex: 10
@@ -922,8 +979,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['header-selection-panel']?.x || 540}px`,
-            top: `${panelPositions['header-selection-panel']?.y || 20}px`,
+            left: `${(panelPositions['header-selection-panel']?.x || 540) + panOffset.x}px`,
+            top: `${(panelPositions['header-selection-panel']?.y || 20) + panOffset.y}px`,
             width: `${panelPositions['header-selection-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['header-selection-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
             zIndex: 10
@@ -977,8 +1034,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['date-columns-panel']?.x || 20}px`,
-            top: `${panelPositions['date-columns-panel']?.y || 220}px`,
+            left: `${(panelPositions['date-columns-panel']?.x || 20) + panOffset.x}px`,
+            top: `${(panelPositions['date-columns-panel']?.y || 220) + panOffset.y}px`,
             width: `${panelPositions['date-columns-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['date-columns-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
             zIndex: 10
@@ -1021,8 +1078,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['merge-button']?.x || 540}px`,
-            top: `${panelPositions['merge-button']?.y || 220}px`,
+            left: `${(panelPositions['merge-button']?.x || 540) + panOffset.x}px`,
+            top: `${(panelPositions['merge-button']?.y || 220) + panOffset.y}px`,
             width: `${panelPositions['merge-button']?.width || DEFAULT_BUTTON_SIZE}px`,
             height: `${panelPositions['merge-button']?.height || DEFAULT_BUTTON_SIZE}px`,
             zIndex: 10,
@@ -1055,8 +1112,8 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['merged-summary-panel']?.x || 280}px`,
-            top: `${panelPositions['merged-summary-panel']?.y || 220}px`,
+            left: `${(panelPositions['merged-summary-panel']?.x || 280) + panOffset.x}px`,
+            top: `${(panelPositions['merged-summary-panel']?.y || 220) + panOffset.y}px`,
             width: `${panelPositions['merged-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
             height: `${panelPositions['merged-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
             zIndex: 10

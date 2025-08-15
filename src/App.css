@@ -618,6 +618,34 @@
   background: #4b5563;
 }
 
+.btn-secondary.disabled-grey {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.App.dark-theme .btn-secondary.disabled-grey {
+  background: #4b5563;
+  color: #6b7280;
+}
+
+/* Panning cursor */
+.board.panning {
+  cursor: grabbing !important;
+}
+
+.App:not(.layout-mode) .board {
+  cursor: grab;
+}
+
+.App:not(.layout-mode) .board.panning {
+  cursor: grabbing !important;
+}
+
+.App:not(.layout-mode) .panel {
+  pointer-events: auto;
+}
+
 .file-list {
   margin-top: 20px;
   padding: 20px;
