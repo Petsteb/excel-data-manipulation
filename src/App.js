@@ -513,28 +513,39 @@ function App() {
     return { width: minWidth, height: minHeight };
   };
 
-  // Check collision between panels
+  // Check collision between panels - strict no overlap with minimum spacing
   const checkCollision = (elementId, x, y, width, height) => {
-    const buffer = GRID_SIZE; // 1 dot spacing
+    const buffer = GRID_SIZE; // Minimum 1 dot (20px) spacing
     
     for (const [otherId, otherPos] of Object.entries(panelPositions)) {
       if (otherId === elementId) continue;
       
-      const otherX = otherPos.x;
-      const otherY = otherPos.y;
-      const otherWidth = otherPos.width;
-      const otherHeight = otherPos.height;
+      const otherX = otherPos.x || 0;
+      const otherY = otherPos.y || 0;
+      const otherWidth = otherPos.width || DEFAULT_PANEL_WIDTH;
+      const otherHeight = otherPos.height || DEFAULT_PANEL_HEIGHT;
       
-      // Check if rectangles overlap with buffer
-      if (x < otherX + otherWidth + buffer &&
-          x + width + buffer > otherX &&
-          y < otherY + otherHeight + buffer &&
-          y + height + buffer > otherY) {
-        return true;
+      // AABB collision detection with buffer for minimum spacing
+      const left1 = x;
+      const right1 = x + width;
+      const top1 = y;
+      const bottom1 = y + height;
+      
+      const left2 = otherX;
+      const right2 = otherX + otherWidth;
+      const top2 = otherY;
+      const bottom2 = otherY + otherHeight;
+      
+      // Check if rectangles would overlap or be too close (within buffer)
+      const horizontalOverlap = (left1 < right2 + buffer) && (right1 + buffer > left2);
+      const verticalOverlap = (top1 < bottom2 + buffer) && (bottom1 + buffer > top2);
+      
+      if (horizontalOverlap && verticalOverlap) {
+        return true; // Collision detected
       }
     }
     
-    return false;
+    return false; // No collision
   };
 
   // Find valid position without collision
@@ -592,13 +603,16 @@ function App() {
     }
   };
 
-  // Show snap preview
+  // Show snap preview with clear visual feedback
   const showSnapPreview = (x, y, width, height, hasCollision = false) => {
+    const snappedX = snapToGrid(x);
+    const snappedY = snapToGrid(y);
+    
     setSnapLines([{
-      id: 'preview',
+      id: 'preview-outline',
       type: 'outline',
-      x: snapToGrid(x),
-      y: snapToGrid(y),
+      x: snappedX,
+      y: snappedY,
       width,
       height,
       collision: hasCollision
@@ -634,7 +648,7 @@ function App() {
     e.target.classList.add('dragging');
   };
 
-  // Handle drag over
+  // Handle drag over with improved collision detection
   const handleDragOver = (e) => {
     if (!isLayoutMode || !draggedElement) return;
     
@@ -649,16 +663,26 @@ function App() {
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    const snappedX = snapToGrid(elementX);
-    const snappedY = snapToGrid(elementY);
+    // Always snap to grid
+    const snappedX = snapToGrid(Math.max(0, elementX));
+    const snappedY = snapToGrid(Math.max(0, elementY));
     
-    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
-    showSnapPreview(snappedX, snappedY, width, height, hasCollision);
+    // Check bounds to prevent moving outside board
+    const boardWidth = boardRect.width - 40; // Account for padding
+    const boardHeight = boardRect.height - 80; // Account for padding
+    const boundedX = Math.min(snappedX, boardWidth - width);
+    const boundedY = Math.min(snappedY, boardHeight - height);
+    
+    // Check for collisions at the snapped position
+    const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
+    
+    // Show preview at the bounded, snapped position
+    showSnapPreview(boundedX, boundedY, width, height, hasCollision);
   };
 
 
 
-  // Handle drop
+  // Handle drop with collision prevention
   const handleDrop = async (e) => {
     if (!isLayoutMode || !draggedElement) return;
     
@@ -672,21 +696,36 @@ function App() {
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
-    const finalWidth = Math.max(width, minWidth);
-    const finalHeight = Math.max(height, minHeight);
+    // Snap to grid and check bounds
+    const snappedX = snapToGrid(Math.max(0, elementX));
+    const snappedY = snapToGrid(Math.max(0, elementY));
     
-    const { x: finalX, y: finalY } = findValidPosition(draggedElement.id, elementX, elementY, finalWidth, finalHeight);
+    const boardWidth = boardRect.width - 40;
+    const boardHeight = boardRect.height - 80;
+    const boundedX = Math.min(snappedX, boardWidth - width);
+    const boundedY = Math.min(snappedY, boardHeight - height);
     
-    setPanelPositions(prev => ({
-      ...prev,
-      [draggedElement.id]: {
-        x: finalX,
-        y: finalY,
-        width: finalWidth,
-        height: finalHeight
-      }
-    }));
+    // Only move if there's no collision
+    const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
+    
+    if (!hasCollision) {
+      const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
+      const finalWidth = Math.max(width, minWidth);
+      const finalHeight = Math.max(height, minHeight);
+      
+      setPanelPositions(prev => ({
+        ...prev,
+        [draggedElement.id]: {
+          x: boundedX,
+          y: boundedY,
+          width: finalWidth,
+          height: finalHeight
+        }
+      }));
+      
+      await saveLayoutSettings();
+    }
+    // If collision, panel stays in original position
     
     // Cleanup
     setDraggedElement(null);
@@ -696,8 +735,6 @@ function App() {
     document.querySelectorAll('.dragging').forEach(el => {
       el.classList.remove('dragging');
     });
-    
-    await saveLayoutSettings();
   };
 
   // Handle drag end
@@ -708,7 +745,7 @@ function App() {
   };
 
 
-  // Handle resize start
+  // Handle resize start with grid snapping and collision prevention
   const handleResizeStart = (e, elementId) => {
     if (!isLayoutMode) return;
     
@@ -720,6 +757,8 @@ function App() {
     const currentPos = panelPositions[elementId] || {};
     const startWidth = currentPos.width || DEFAULT_PANEL_WIDTH;
     const startHeight = currentPos.height || DEFAULT_PANEL_HEIGHT;
+    const currentX = currentPos.x || 0;
+    const currentY = currentPos.y || 0;
     
     const elementType = availableButtons.find(b => b.id === elementId) ? 'button' : 'panel';
     const { width: minWidth, height: minHeight } = getMinimumSize(elementId, elementType);
@@ -728,39 +767,34 @@ function App() {
       let newWidth = startWidth + (e.clientX - startX);
       let newHeight = startHeight + (e.clientY - startY);
       
-      // Snap to grid and enforce minimums
-      newWidth = Math.max(minWidth, snapToGrid(newWidth));
-      newHeight = Math.max(minHeight, snapToGrid(newHeight));
+      // Snap to grid increments (20px) and enforce minimums
+      newWidth = Math.max(minWidth, Math.round(newWidth / GRID_SIZE) * GRID_SIZE);
+      newHeight = Math.max(minHeight, Math.round(newHeight / GRID_SIZE) * GRID_SIZE);
       
-      // Update position state
-      setPanelPositions(prev => ({
-        ...prev,
-        [elementId]: {
-          ...prev[elementId],
-          width: newWidth,
-          height: newHeight
-        }
-      }));
+      // Check if new size would cause collision
+      const wouldCollide = checkCollision(elementId, currentX, currentY, newWidth, newHeight);
+      
+      // Only resize if no collision
+      if (!wouldCollide) {
+        setPanelPositions(prev => ({
+          ...prev,
+          [elementId]: {
+            ...prev[elementId],
+            width: newWidth,
+            height: newHeight
+          }
+        }));
+        
+        // Show visual feedback during resize
+        showSnapPreview(currentX, currentY, newWidth, newHeight, false);
+      }
     };
 
     const handleMouseUp = async () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      // Check for collisions and adjust position if needed
-      const currentPos = panelPositions[elementId];
-      if (checkCollision(elementId, currentPos.x, currentPos.y, currentPos.width, currentPos.height)) {
-        const { x, y } = findValidPosition(elementId, currentPos.x, currentPos.y, currentPos.width, currentPos.height);
-        setPanelPositions(prev => ({
-          ...prev,
-          [elementId]: {
-            ...prev[elementId],
-            x,
-            y
-          }
-        }));
-      }
-      
+      hideSnapPreview();
       await saveLayoutSettings();
     };
 
@@ -1201,7 +1235,7 @@ function App() {
               </div>
             </div>
           </div>
-        ))}
+        )}
       </main>
     </div>
   );

@@ -112,14 +112,30 @@
 }
 
 .snap-line.outline {
-  border: 2px dashed var(--theme-primary);
-  background: rgba(var(--theme-primary-rgb, 79, 70, 229), 0.1);
+  border: 2px solid var(--theme-primary);
+  background: rgba(var(--theme-primary-rgb, 79, 70, 229), 0.15);
   border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(var(--theme-primary-rgb, 79, 70, 229), 0.25);
+  animation: pulse-preview 1s infinite;
 }
 
 .snap-line.outline.collision {
-  border: 2px dashed #dc2626;
-  background: rgba(220, 38, 38, 0.1);
+  border: 2px solid #dc2626;
+  background: rgba(220, 38, 38, 0.15);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  animation: pulse-collision 1s infinite;
+}
+
+@keyframes pulse-preview {
+  0% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.01); }
+  100% { opacity: 0.8; transform: scale(1); }
+}
+
+@keyframes pulse-collision {
+  0% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.02); }
+  100% { opacity: 0.7; transform: scale(1); }
 }
 
 /* Enhanced grid dots for better snapping visibility */
@@ -281,6 +297,11 @@
   position: relative;
   overflow: auto;
   display: block;
+  cursor: default;
+}
+
+.app-main.board.dragging {
+  user-select: none;
 }
 
 
@@ -293,18 +314,28 @@
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--theme-shadow);
-  border: 1px solid var(--theme-border-color);
-  transition: all 0.3s ease;
+  border: 2px solid var(--theme-border-color);
+  transition: all 0.2s ease;
   cursor: move;
   user-select: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .panel:hover {
   border-color: var(--theme-primary);
-  box-shadow: 0 4px 20px rgba(var(--theme-primary-rgb), 0.15);
+  box-shadow: 0 6px 24px rgba(var(--theme-primary-rgb), 0.2);
+  transform: translateY(-1px);
+}
+
+.panel.dragging {
+  border-color: var(--theme-primary);
+  box-shadow: 0 8px 32px rgba(var(--theme-primary-rgb), 0.3);
+  transform: scale(1.02);
+  opacity: 0.9;
+  z-index: 1000;
 }
 
 .panel-content {
@@ -2053,25 +2084,41 @@
 /* Resize handles */
 .resize-handle {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 16px;
-  height: 16px;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
   background: var(--theme-primary);
   cursor: se-resize;
-  border-radius: 4px 0 4px 0;
+  border-radius: 50% 0 50% 0;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
   z-index: 20;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50% 0 50% 0;
 }
 
 .panel:hover .resize-handle {
-  opacity: 0.8;
+  opacity: 0.9;
+  transform: scale(1.1);
 }
 
 .resize-handle:hover {
   opacity: 1;
   background: var(--theme-primary-hover);
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 
