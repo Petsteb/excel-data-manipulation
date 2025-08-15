@@ -651,6 +651,46 @@ function App() {
     setSnapLines([]);
   };
 
+  // Convert screen coordinates to board coordinates
+  const screenToBoardCoords = (screenX, screenY) => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) return { x: screenX, y: screenY };
+    
+    // Account for board padding: 60px top, 20px left (from CSS)
+    const BOARD_PADDING_LEFT = 20;
+    const BOARD_PADDING_TOP = 60;
+    
+    // Convert screen coordinates to board viewport coordinates
+    const viewportX = screenX - boardRect.left - BOARD_PADDING_LEFT;
+    const viewportY = screenY - boardRect.top - BOARD_PADDING_TOP;
+    
+    // Convert viewport coordinates to absolute board coordinates
+    const boardX = viewportX - panOffset.x;
+    const boardY = viewportY - panOffset.y;
+    
+    return { x: boardX, y: boardY };
+  };
+
+  // Convert board coordinates to screen coordinates
+  const boardToScreenCoords = (boardX, boardY) => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) return { x: boardX, y: boardY };
+    
+    // Account for board padding: 60px top, 20px left (from CSS)
+    const BOARD_PADDING_LEFT = 20;
+    const BOARD_PADDING_TOP = 60;
+    
+    // Convert board coordinates to viewport coordinates
+    const viewportX = boardX + panOffset.x;
+    const viewportY = boardY + panOffset.y;
+    
+    // Convert viewport coordinates to screen coordinates
+    const screenX = viewportX + boardRect.left + BOARD_PADDING_LEFT;
+    const screenY = viewportY + boardRect.top + BOARD_PADDING_TOP;
+    
+    return { x: screenX, y: screenY };
+  };
+
 
   // Handle drag start for panels and buttons
   const handleDragStart = (e, element) => {
@@ -665,25 +705,18 @@ function App() {
     dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     
-    const boardRect = boardRef.current.getBoundingClientRect();
+    // Convert mouse position to board coordinates
+    const mouseBoard = screenToBoardCoords(e.clientX, e.clientY);
+    setInitialDragPosition(mouseBoard);
     
-    // Account for board padding: 60px top, 20px left (from CSS)
-    const BOARD_PADDING_LEFT = 20;
-    const BOARD_PADDING_TOP = 60;
-    
-    // Store initial mouse position in board coordinates
-    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
-    setInitialDragPosition({ x: initialMouseX, y: initialMouseY });
-    
-    // Calculate offset from mouse to element's current visual position
-    // The element's visual position = stored position + panOffset
+    // Get element's position in board coordinates (this is what's stored in panelPositions)
     const currentPos = panelPositions[element.id] || {};
-    const elementVisualX = (currentPos.x || 0) + panOffset.x;
-    const elementVisualY = (currentPos.y || 0) + panOffset.y;
+    const elementBoardX = currentPos.x || 0;
+    const elementBoardY = currentPos.y || 0;
     
-    const offsetX = initialMouseX - elementVisualX;
-    const offsetY = initialMouseY - elementVisualY;
+    // Calculate offset from mouse to element in board coordinates
+    const offsetX = mouseBoard.x - elementBoardX;
+    const offsetY = mouseBoard.y - elementBoardY;
     setDragOffset({ x: offsetX, y: offsetY });
     
     e.target.classList.add('dragging');
@@ -696,23 +729,12 @@ function App() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
-    const boardRect = boardRef.current.getBoundingClientRect();
+    // Convert current mouse position to board coordinates
+    const mouseBoard = screenToBoardCoords(e.clientX, e.clientY);
     
-    // Account for board padding: 60px top, 20px left (from CSS)
-    const BOARD_PADDING_LEFT = 20;
-    const BOARD_PADDING_TOP = 60;
-    
-    // Calculate current mouse position in board coordinates
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
-    
-    // Calculate new element position by subtracting the drag offset
-    const elementVisualX = currentMouseX - dragOffset.x;
-    const elementVisualY = currentMouseY - dragOffset.y;
-    
-    // Convert visual position back to stored position (subtract panOffset)
-    const elementX = elementVisualX - panOffset.x;
-    const elementY = elementVisualY - panOffset.y;
+    // Calculate new element position by subtracting the drag offset (all in board coordinates)
+    const elementX = mouseBoard.x - dragOffset.x;
+    const elementY = mouseBoard.y - dragOffset.y;
     
     const currentPos = panelPositions[draggedElement.id] || {};
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
@@ -740,23 +762,12 @@ function App() {
     
     e.preventDefault();
     
-    const boardRect = boardRef.current.getBoundingClientRect();
+    // Convert current mouse position to board coordinates
+    const mouseBoard = screenToBoardCoords(e.clientX, e.clientY);
     
-    // Account for board padding: 60px top, 20px left (from CSS)
-    const BOARD_PADDING_LEFT = 20;
-    const BOARD_PADDING_TOP = 60;
-    
-    // Calculate current mouse position in board coordinates
-    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
-    
-    // Calculate new element position by subtracting the drag offset
-    const elementVisualX = currentMouseX - dragOffset.x;
-    const elementVisualY = currentMouseY - dragOffset.y;
-    
-    // Convert visual position back to stored position (subtract panOffset)
-    const elementX = elementVisualX - panOffset.x;
-    const elementY = elementVisualY - panOffset.y;
+    // Calculate new element position by subtracting the drag offset (all in board coordinates)
+    const elementX = mouseBoard.x - dragOffset.x;
+    const elementY = mouseBoard.y - dragOffset.y;
     
     const currentPos = panelPositions[draggedElement.id] || {};
     
