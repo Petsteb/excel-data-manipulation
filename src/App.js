@@ -39,6 +39,7 @@ function App() {
     'merge-button': { x: 540, y: 220, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE }
   });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
   const [snapLines, setSnapLines] = useState([]);
   const boardRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -664,18 +665,21 @@ function App() {
     dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     
-    // Calculate offset accounting for board padding
-    const rect = e.target.getBoundingClientRect();
     const boardRect = boardRef.current.getBoundingClientRect();
     
     // Account for board padding: 60px top, 20px left (from CSS)
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Calculate mouse position relative to the element
+    // Store initial mouse position relative to board content area
+    const initialMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const initialMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    setInitialDragPosition({ x: initialMouseX, y: initialMouseY });
+    
+    // Calculate mouse position relative to the element (for offset calculation)
+    const rect = e.target.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
-    
     setDragOffset({ x: offsetX, y: offsetY });
     
     e.target.classList.add('dragging');
@@ -694,15 +698,23 @@ function App() {
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Calculate mouse position relative to board content area (inside padding)
-    const mouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const mouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    // Calculate current mouse position relative to board content area
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
     
-    // Calculate element position (mouse position minus drag offset)
-    const elementX = mouseX - dragOffset.x;
-    const elementY = mouseY - dragOffset.y;
+    // Calculate the mouse movement delta from initial position
+    const deltaX = currentMouseX - initialDragPosition.x;
+    const deltaY = currentMouseY - initialDragPosition.y;
     
+    // Get current element position and calculate new position based on delta
     const currentPos = panelPositions[draggedElement.id] || {};
+    const originalX = currentPos.x || 0;
+    const originalY = currentPos.y || 0;
+    
+    // Calculate new element position by adding delta to original position
+    const elementX = originalX + deltaX;
+    const elementY = originalY + deltaY;
+    
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
@@ -734,15 +746,23 @@ function App() {
     const BOARD_PADDING_LEFT = 20;
     const BOARD_PADDING_TOP = 60;
     
-    // Calculate mouse position relative to board content area (inside padding)
-    const mouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
-    const mouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
+    // Calculate current mouse position relative to board content area
+    const currentMouseX = e.clientX - boardRect.left - BOARD_PADDING_LEFT;
+    const currentMouseY = e.clientY - boardRect.top - BOARD_PADDING_TOP;
     
-    // Calculate element position (mouse position minus drag offset)
-    const elementX = mouseX - dragOffset.x;
-    const elementY = mouseY - dragOffset.y;
+    // Calculate the mouse movement delta from initial position
+    const deltaX = currentMouseX - initialDragPosition.x;
+    const deltaY = currentMouseY - initialDragPosition.y;
     
+    // Get current element position and calculate new position based on delta
     const currentPos = panelPositions[draggedElement.id] || {};
+    const originalX = currentPos.x || 0;
+    const originalY = currentPos.y || 0;
+    
+    // Calculate new element position by adding delta to original position
+    const elementX = originalX + deltaX;
+    const elementY = originalY + deltaY;
+    
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
@@ -792,6 +812,7 @@ function App() {
     // Cleanup
     setDraggedElement(null);
     setDragOffset({ x: 0, y: 0 });
+    setInitialDragPosition({ x: 0, y: 0 });
     hideSnapPreview();
     
     document.querySelectorAll('.dragging').forEach(el => {
@@ -803,6 +824,7 @@ function App() {
   const handleDragEnd = (e) => {
     e.target.classList.remove('dragging');
     setDraggedElement(null);
+    setInitialDragPosition({ x: 0, y: 0 });
     hideSnapPreview();
   };
 
