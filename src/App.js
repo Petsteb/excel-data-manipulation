@@ -1540,7 +1540,8 @@ function App() {
         onWheel={handleWheel}
         style={{
           transform: isZoomEnabled ? `scale(${zoomLevel})` : 'none',
-          transformOrigin: '0 0'
+          transformOrigin: '0 0',
+          backgroundPosition: `${panOffset.x}px ${panOffset.y}px, ${panOffset.x}px ${panOffset.y}px`
         }}
       >
         {/* Grid Board - all panels positioned absolutely */}
