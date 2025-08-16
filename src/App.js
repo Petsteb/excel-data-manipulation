@@ -10,6 +10,121 @@ const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
 const DEFAULT_BUTTON_SIZE = 80;
 
+// Collision Detection Matrix Class
+class CollisionMatrix {
+  constructor(width, height, cellSize = GRID_SIZE) {
+    this.cellSize = cellSize;
+    this.cols = Math.ceil(width / cellSize);
+    this.rows = Math.ceil(height / cellSize);
+    this.matrix = Array(this.rows).fill(null).map(() => Array(this.cols).fill(0));
+    this.width = width;
+    this.height = height;
+  }
+
+  // Expand matrix to accommodate new boundaries
+  expandMatrix(newWidth, newHeight) {
+    const newCols = Math.ceil(newWidth / this.cellSize);
+    const newRows = Math.ceil(newHeight / this.cellSize);
+    
+    if (newCols > this.cols || newRows > this.rows) {
+      const oldMatrix = this.matrix;
+      this.matrix = Array(newRows).fill(null).map(() => Array(newCols).fill(0));
+      
+      // Copy old matrix data
+      for (let row = 0; row < Math.min(this.rows, newRows); row++) {
+        for (let col = 0; col < Math.min(this.cols, newCols); col++) {
+          this.matrix[row][col] = oldMatrix[row][col];
+        }
+      }
+      
+      this.cols = newCols;
+      this.rows = newRows;
+      this.width = newWidth;
+      this.height = newHeight;
+    }
+  }
+
+  // Convert world coordinates to matrix indices
+  worldToMatrix(x, y) {
+    const col = Math.floor(x / this.cellSize);
+    const row = Math.floor(y / this.cellSize);
+    return { row: Math.max(0, row), col: Math.max(0, col) };
+  }
+
+  // Get cells occupied by a rectangle
+  getOccupiedCells(x, y, width, height) {
+    const startCell = this.worldToMatrix(x, y);
+    const endCell = this.worldToMatrix(x + width - 1, y + height - 1);
+    
+    const cells = [];
+    for (let row = startCell.row; row <= Math.min(endCell.row, this.rows - 1); row++) {
+      for (let col = startCell.col; col <= Math.min(endCell.col, this.cols - 1); col++) {
+        cells.push({ row, col });
+      }
+    }
+    return cells;
+  }
+
+  // Mark cells as occupied (1) or free (0)
+  setCells(x, y, width, height, value) {
+    const cells = this.getOccupiedCells(x, y, width, height);
+    cells.forEach(({ row, col }) => {
+      if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+        this.matrix[row][col] = value;
+      }
+    });
+  }
+
+  // Check if all cells in area are free
+  areAllCellsFree(x, y, width, height) {
+    const cells = this.getOccupiedCells(x, y, width, height);
+    return cells.every(({ row, col }) => {
+      if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+        return this.matrix[row][col] === 0;
+      }
+      return false; // Out of bounds = not free
+    });
+  }
+
+  // Temporarily expand matrix for checking positions outside current bounds
+  checkPositionWithExpansion(x, y, width, height) {
+    const requiredWidth = Math.max(this.width, x + width);
+    const requiredHeight = Math.max(this.height, y + height);
+    
+    if (requiredWidth > this.width || requiredHeight > this.height) {
+      // Create temporary expanded matrix for checking
+      const tempMatrix = new CollisionMatrix(requiredWidth, requiredHeight, this.cellSize);
+      
+      // Copy current matrix data
+      for (let row = 0; row < this.rows; row++) {
+        for (let col = 0; col < this.cols; col++) {
+          if (row < tempMatrix.rows && col < tempMatrix.cols) {
+            tempMatrix.matrix[row][col] = this.matrix[row][col];
+          }
+        }
+      }
+      
+      return tempMatrix.areAllCellsFree(x, y, width, height);
+    }
+    
+    return this.areAllCellsFree(x, y, width, height);
+  }
+
+  // Get furthest boundaries of occupied cells
+  getBoundaries() {
+    let maxX = 0, maxY = 0;
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        if (this.matrix[row][col] === 1) {
+          maxX = Math.max(maxX, (col + 1) * this.cellSize);
+          maxY = Math.max(maxY, (row + 1) * this.cellSize);
+        }
+      }
+    }
+    return { maxX, maxY };
+  }
+}
+
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -56,6 +171,7 @@ function App() {
   const [availableButtons] = useState([
     { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
+  const [collisionMatrix, setCollisionMatrix] = useState(null);
 
   // Load settings on app start
   useEffect(() => {
@@ -518,9 +634,42 @@ function App() {
     return { width: minWidth, height: minHeight };
   };
 
-  // Modern AABB collision detection with separation check (best practice 2025)
+  // Matrix-based collision detection
+  const checkCollisionMatrix = (elementId, x, y, width, height) => {
+    if (!collisionMatrix) {
+      return false; // No matrix available, allow movement
+    }
+    
+    // Create temporary matrix copy to test the move
+    const tempMatrix = new CollisionMatrix(collisionMatrix.width, collisionMatrix.height);
+    
+    // Copy current matrix state
+    for (let row = 0; row < collisionMatrix.rows; row++) {
+      for (let col = 0; col < collisionMatrix.cols; col++) {
+        tempMatrix.matrix[row][col] = collisionMatrix.matrix[row][col];
+      }
+    }
+    
+    // Clear the current element from the matrix
+    const currentPos = panelPositions[elementId];
+    if (currentPos) {
+      const currentWidth = currentPos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+      const currentHeight = currentPos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+      tempMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+    }
+    
+    // Check if the new position would be valid
+    return !tempMatrix.checkPositionWithExpansion(x, y, width, height);
+  };
+
+  // Legacy AABB collision detection (fallback)
   const checkCollision = (elementId, x, y, width, height) => {
-    // No buffer - check for actual overlap only
+    // Use matrix-based collision detection if available
+    if (collisionMatrix) {
+      return checkCollisionMatrix(elementId, x, y, width, height);
+    }
+    
+    // Fallback to AABB collision detection
     for (const [otherId, otherPos] of Object.entries(panelPositions)) {
       if (otherId === elementId) continue;
       
@@ -529,21 +678,19 @@ function App() {
       const otherWidth = otherPos.width || DEFAULT_PANEL_WIDTH;
       const otherHeight = otherPos.height || DEFAULT_PANEL_HEIGHT;
       
-      // Modern separation-based AABB collision detection
-      // Returns true if rectangles are NOT separated (i.e., they overlap)
       const separated = (
-        x >= otherX + otherWidth ||  // element is to the right of other
-        x + width <= otherX ||       // element is to the left of other
-        y >= otherY + otherHeight || // element is below other
-        y + height <= otherY         // element is above other
+        x >= otherX + otherWidth ||
+        x + width <= otherX ||
+        y >= otherY + otherHeight ||
+        y + height <= otherY
       );
       
       if (!separated) {
-        return true; // Collision detected (rectangles overlap)
+        return true;
       }
     }
     
-    return false; // No collision
+    return false;
   };
 
   // Get board boundaries accounting for CSS padding
@@ -574,7 +721,7 @@ function App() {
     return { x: clampedX, y: clampedY };
   };
 
-  // Find valid position without collision using spiral search
+  // Find valid position without collision using spiral search with matrix expansion
   const findValidPosition = (elementId, preferredX, preferredY, width, height) => {
     const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
     
@@ -587,23 +734,37 @@ function App() {
       return { x, y };
     }
     
-    // Search for valid position in a spiral pattern
-    for (let radius = GRID_SIZE; radius < Math.min(boardWidth, boardHeight); radius += GRID_SIZE) {
+    // Search for valid position in a spiral pattern, expanding beyond board if needed
+    const maxSearchRadius = Math.max(boardWidth, boardHeight) * 2; // Allow expansion beyond board
+    
+    for (let radius = GRID_SIZE; radius < maxSearchRadius; radius += GRID_SIZE) {
       for (let angle = 0; angle < 360; angle += 45) {
         const testX = snapToGrid(x + Math.cos(angle * Math.PI / 180) * radius);
         const testY = snapToGrid(y + Math.sin(angle * Math.PI / 180) * radius);
         
-        // Check if position is within boundaries
-        if (testX >= 0 && testY >= 0 && 
-            testX + width <= boardWidth && 
-            testY + height <= boardHeight &&
-            !checkCollision(elementId, testX, testY, width, height)) {
+        // Check if position is valid (can be outside current board boundaries)
+        if (testX >= 0 && testY >= 0 && !checkCollision(elementId, testX, testY, width, height)) {
+          // If position is outside current boundaries but valid, it will trigger matrix expansion
           return { x: testX, y: testY };
         }
       }
     }
     
-    // Fallback to top-left if no position found
+    // Fallback: find next available grid position by scanning
+    if (collisionMatrix) {
+      for (let row = 0; row < collisionMatrix.rows + 10; row++) { // Allow expansion
+        for (let col = 0; col < collisionMatrix.cols + 10; col++) {
+          const testX = col * GRID_SIZE;
+          const testY = row * GRID_SIZE;
+          
+          if (!checkCollision(elementId, testX, testY, width, height)) {
+            return { x: testX, y: testY };
+          }
+        }
+      }
+    }
+    
+    // Final fallback to top-left if no position found
     return { x: 0, y: 0 };
   };
 
@@ -620,13 +781,52 @@ function App() {
     }
   };
 
+  // Initialize collision matrix with current panel positions
+  const initializeCollisionMatrix = () => {
+    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
+    
+    // Find furthest panel positions to determine matrix size
+    let maxX = boardWidth;
+    let maxY = boardHeight;
+    
+    Object.values(panelPositions).forEach(pos => {
+      const elementMaxX = (pos.x || 0) + (pos.width || DEFAULT_PANEL_WIDTH);
+      const elementMaxY = (pos.y || 0) + (pos.height || DEFAULT_PANEL_HEIGHT);
+      maxX = Math.max(maxX, elementMaxX);
+      maxY = Math.max(maxY, elementMaxY);
+    });
+    
+    // Add some buffer for expansion
+    const matrixWidth = Math.max(boardWidth, maxX + GRID_SIZE * 10);
+    const matrixHeight = Math.max(boardHeight, maxY + GRID_SIZE * 10);
+    
+    const matrix = new CollisionMatrix(matrixWidth, matrixHeight);
+    
+    // Populate matrix with existing panels and buttons
+    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+      const x = pos.x || 0;
+      const y = pos.y || 0;
+      const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+      const height = pos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+      
+      matrix.setCells(x, y, width, height, 1);
+    });
+    
+    setCollisionMatrix(matrix);
+    return matrix;
+  };
+
   // Toggle layout mode
   const toggleLayoutMode = async () => {
     const newLayoutMode = !isLayoutMode;
     setIsLayoutMode(newLayoutMode);
     
-    if (!newLayoutMode) {
+    if (newLayoutMode) {
+      // Initialize collision matrix when entering layout mode
+      initializeCollisionMatrix();
+    } else {
       await saveLayoutSettings();
+      setCollisionMatrix(null);
     }
   };
 
@@ -790,6 +990,27 @@ function App() {
       const finalWidth = Math.max(width, minWidth);
       const finalHeight = Math.max(height, minHeight);
       
+      // Update collision matrix
+      if (collisionMatrix) {
+        // Clear old position
+        const currentPos = panelPositions[draggedElement.id];
+        if (currentPos) {
+          const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+          const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+          collisionMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+        }
+        
+        // Expand matrix if needed for positions outside current bounds
+        const requiredWidth = boundedX + finalWidth;
+        const requiredHeight = boundedY + finalHeight;
+        if (requiredWidth > collisionMatrix.width || requiredHeight > collisionMatrix.height) {
+          collisionMatrix.expandMatrix(requiredWidth + GRID_SIZE * 5, requiredHeight + GRID_SIZE * 5);
+        }
+        
+        // Set new position
+        collisionMatrix.setCells(boundedX, boundedY, finalWidth, finalHeight, 1);
+      }
+      
       setPanelPositions(prev => ({
         ...prev,
         [draggedElement.id]: {
@@ -804,6 +1025,20 @@ function App() {
     } else {
       // If collision, try to find a nearby valid position
       const validPosition = findValidPosition(draggedElement.id, boundedX, boundedY, width, height);
+      
+      // Update collision matrix for valid position
+      if (collisionMatrix) {
+        // Clear old position
+        const currentPos = panelPositions[draggedElement.id];
+        if (currentPos) {
+          const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+          const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+          collisionMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+        }
+        
+        // Set new position
+        collisionMatrix.setCells(validPosition.x, validPosition.y, width, height, 1);
+      }
       
       setPanelPositions(prev => ({
         ...prev,
@@ -934,10 +1169,48 @@ function App() {
       
       // Check if new size would fit within boundaries and not cause collision
       const { x: clampedX, y: clampedY } = clampToBoundaries(currentX, currentY, newWidth, newHeight);
-      const wouldCollide = checkCollision(elementId, clampedX, clampedY, newWidth, newHeight);
+      
+      // Use matrix-based collision detection for resize
+      let wouldCollide = false;
+      if (collisionMatrix) {
+        // Create temporary matrix copy to test the resize
+        const tempMatrix = new CollisionMatrix(collisionMatrix.width, collisionMatrix.height);
+        
+        // Copy current matrix state
+        for (let row = 0; row < collisionMatrix.rows; row++) {
+          for (let col = 0; col < collisionMatrix.cols; col++) {
+            tempMatrix.matrix[row][col] = collisionMatrix.matrix[row][col];
+          }
+        }
+        
+        // Clear the current element from the matrix
+        tempMatrix.setCells(currentX, currentY, startWidth, startHeight, 0);
+        
+        // Check if the new size would be valid
+        wouldCollide = !tempMatrix.checkPositionWithExpansion(clampedX, clampedY, newWidth, newHeight);
+      } else {
+        // Fallback to legacy collision detection
+        wouldCollide = checkCollision(elementId, clampedX, clampedY, newWidth, newHeight);
+      }
       
       // Only resize if it fits within boundaries and doesn't cause collision
       if (!wouldCollide && clampedX === currentX && clampedY === currentY) {
+        // Update collision matrix
+        if (collisionMatrix) {
+          // Clear old size
+          collisionMatrix.setCells(currentX, currentY, startWidth, startHeight, 0);
+          
+          // Expand matrix if needed for larger size
+          const requiredWidth = currentX + newWidth;
+          const requiredHeight = currentY + newHeight;
+          if (requiredWidth > collisionMatrix.width || requiredHeight > collisionMatrix.height) {
+            collisionMatrix.expandMatrix(requiredWidth + GRID_SIZE * 5, requiredHeight + GRID_SIZE * 5);
+          }
+          
+          // Set new size
+          collisionMatrix.setCells(currentX, currentY, newWidth, newHeight, 1);
+        }
+        
         setPanelPositions(prev => ({
           ...prev,
           [elementId]: {
