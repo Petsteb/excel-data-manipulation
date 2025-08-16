@@ -172,6 +172,12 @@ function App() {
     { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
+  const [workspaceBounds, setWorkspaceBounds] = useState({
+    minX: 0,
+    maxX: 1200, // Initial viewport width
+    minY: 0,
+    maxY: 800   // Initial viewport height
+  });
 
   // Load settings on app start
   useEffect(() => {
@@ -195,6 +201,11 @@ function App() {
         // Load saved layout positions or use defaults
         if (settings.panelPositions) {
           setPanelPositions(prev => ({ ...prev, ...settings.panelPositions }));
+        }
+        
+        // Load saved workspace bounds or use defaults
+        if (settings.workspaceBounds) {
+          setWorkspaceBounds(settings.workspaceBounds);
         }
         
         setTimeout(() => {
@@ -635,10 +646,14 @@ function App() {
   };
 
   // Matrix-based collision detection
-  const checkCollisionMatrix = (elementId, x, y, width, height) => {
+  const checkCollisionMatrix = (elementId, worldX, worldY, width, height) => {
     if (!collisionMatrix) {
       return false; // No matrix available, allow movement
     }
+    
+    // Convert world coordinates to matrix coordinates
+    const matrixX = worldX - workspaceBounds.minX;
+    const matrixY = worldY - workspaceBounds.minY;
     
     // Create temporary matrix copy to test the move
     const tempMatrix = new CollisionMatrix(collisionMatrix.width, collisionMatrix.height);
@@ -653,13 +668,18 @@ function App() {
     // Clear the current element from the matrix
     const currentPos = panelPositions[elementId];
     if (currentPos) {
+      const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
+      const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
       const currentWidth = currentPos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
       const currentHeight = currentPos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
-      tempMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+      
+      if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+        tempMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
+      }
     }
     
     // Check if the new position would be valid
-    return !tempMatrix.checkPositionWithExpansion(x, y, width, height);
+    return !tempMatrix.checkPositionWithExpansion(matrixX, matrixY, width, height);
   };
 
   // Legacy AABB collision detection (fallback)
@@ -710,53 +730,43 @@ function App() {
     };
   };
 
-  // Boundary clamping - keeps element within board boundaries
-  const clampToBoundaries = (x, y, width, height) => {
-    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
-    
-    // Clamp position to boundaries
-    const clampedX = Math.max(0, Math.min(x, boardWidth - width));
-    const clampedY = Math.max(0, Math.min(y, boardHeight - height));
-    
-    return { x: clampedX, y: clampedY };
-  };
+  // No boundary clamping - allow placement anywhere in workspace
+  // Objects can be placed outside initial viewport via dynamic boundaries
 
   // Find valid position without collision using spiral search with matrix expansion
   const findValidPosition = (elementId, preferredX, preferredY, width, height) => {
-    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
-    
-    // Try preferred position first (clamped to boundaries)
-    const { x: clampedX, y: clampedY } = clampToBoundaries(preferredX, preferredY, width, height);
-    let x = snapToGrid(clampedX);
-    let y = snapToGrid(clampedY);
+    // Try preferred position first
+    let x = snapToGrid(preferredX);
+    let y = snapToGrid(preferredY);
     
     if (!checkCollision(elementId, x, y, width, height)) {
       return { x, y };
     }
     
-    // Search for valid position in a spiral pattern, expanding beyond board if needed
-    const maxSearchRadius = Math.max(boardWidth, boardHeight) * 2; // Allow expansion beyond board
+    // Search for valid position in a spiral pattern, allowing unlimited expansion
+    const maxSearchRadius = Math.max(workspaceBounds.maxX - workspaceBounds.minX, workspaceBounds.maxY - workspaceBounds.minY) * 2;
     
     for (let radius = GRID_SIZE; radius < maxSearchRadius; radius += GRID_SIZE) {
       for (let angle = 0; angle < 360; angle += 45) {
         const testX = snapToGrid(x + Math.cos(angle * Math.PI / 180) * radius);
         const testY = snapToGrid(y + Math.sin(angle * Math.PI / 180) * radius);
         
-        // Check if position is valid (can be outside current board boundaries)
-        if (testX >= 0 && testY >= 0 && !checkCollision(elementId, testX, testY, width, height)) {
-          // If position is outside current boundaries but valid, it will trigger matrix expansion
+        // Allow any position - no boundary restrictions
+        if (!checkCollision(elementId, testX, testY, width, height)) {
           return { x: testX, y: testY };
         }
       }
     }
     
-    // Fallback: find next available grid position by scanning
+    // Fallback: find next available grid position by scanning workspace + expansion area
     if (collisionMatrix) {
-      for (let row = 0; row < collisionMatrix.rows + 10; row++) { // Allow expansion
-        for (let col = 0; col < collisionMatrix.cols + 10; col++) {
-          const testX = col * GRID_SIZE;
-          const testY = row * GRID_SIZE;
-          
+      const startX = Math.min(0, workspaceBounds.minX - GRID_SIZE * 10);
+      const startY = Math.min(0, workspaceBounds.minY - GRID_SIZE * 10);
+      const endX = workspaceBounds.maxX + GRID_SIZE * 10;
+      const endY = workspaceBounds.maxY + GRID_SIZE * 10;
+      
+      for (let testY = startY; testY < endY; testY += GRID_SIZE) {
+        for (let testX = startX; testX < endX; testX += GRID_SIZE) {
           if (!checkCollision(elementId, testX, testY, width, height)) {
             return { x: testX, y: testY };
           }
@@ -764,8 +774,49 @@ function App() {
       }
     }
     
-    // Final fallback to top-left if no position found
-    return { x: 0, y: 0 };
+    // Final fallback - place in workspace center
+    const centerX = (workspaceBounds.minX + workspaceBounds.maxX) / 2;
+    const centerY = (workspaceBounds.minY + workspaceBounds.maxY) / 2;
+    return { x: snapToGrid(centerX), y: snapToGrid(centerY) };
+  };
+
+  // Calculate workspace boundaries based on all object positions
+  const calculateWorkspaceBounds = () => {
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    
+    let minX = 0;
+    let maxX = viewportWidth;
+    let minY = 0;
+    let maxY = viewportHeight;
+    
+    // Calculate bounds from all panels and buttons
+    Object.values(panelPositions).forEach(pos => {
+      const x = pos.x || 0;
+      const y = pos.y || 0;
+      const width = pos.width || DEFAULT_PANEL_WIDTH;
+      const height = pos.height || DEFAULT_PANEL_HEIGHT;
+      
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
+    });
+    
+    // Add buffer around objects
+    const buffer = GRID_SIZE * 5;
+    minX -= buffer;
+    minY -= buffer;
+    maxX += buffer;
+    maxY += buffer;
+    
+    return { minX, maxX, minY, maxY };
+  };
+
+  // Update workspace boundaries
+  const updateWorkspaceBounds = () => {
+    const newBounds = calculateWorkspaceBounds();
+    setWorkspaceBounds(newBounds);
+    return newBounds;
   };
 
   // Save layout settings
@@ -774,7 +825,8 @@ function App() {
       const settings = await window.electronAPI.loadSettings();
       await window.electronAPI.saveSettings({
         ...settings,
-        panelPositions
+        panelPositions,
+        workspaceBounds
       });
     } catch (error) {
       console.error('Failed to save layout settings:', error);
@@ -783,33 +835,27 @@ function App() {
 
   // Initialize collision matrix with current panel positions
   const initializeCollisionMatrix = () => {
-    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
+    // Calculate initial workspace bounds
+    const bounds = calculateWorkspaceBounds();
+    setWorkspaceBounds(bounds);
     
-    // Find furthest panel positions to determine matrix size
-    let maxX = boardWidth;
-    let maxY = boardHeight;
-    
-    Object.values(panelPositions).forEach(pos => {
-      const elementMaxX = (pos.x || 0) + (pos.width || DEFAULT_PANEL_WIDTH);
-      const elementMaxY = (pos.y || 0) + (pos.height || DEFAULT_PANEL_HEIGHT);
-      maxX = Math.max(maxX, elementMaxX);
-      maxY = Math.max(maxY, elementMaxY);
-    });
-    
-    // Add some buffer for expansion
-    const matrixWidth = Math.max(boardWidth, maxX + GRID_SIZE * 10);
-    const matrixHeight = Math.max(boardHeight, maxY + GRID_SIZE * 10);
+    // Create matrix large enough to cover workspace + expansion buffer
+    const matrixWidth = bounds.maxX - bounds.minX + GRID_SIZE * 20;
+    const matrixHeight = bounds.maxY - bounds.minY + GRID_SIZE * 20;
     
     const matrix = new CollisionMatrix(matrixWidth, matrixHeight);
     
     // Populate matrix with existing panels and buttons
+    // Adjust coordinates to matrix space (subtract minX, minY offset)
     Object.entries(panelPositions).forEach(([elementId, pos]) => {
-      const x = pos.x || 0;
-      const y = pos.y || 0;
+      const x = (pos.x || 0) - bounds.minX;
+      const y = (pos.y || 0) - bounds.minY;
       const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
       const height = pos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
       
-      matrix.setCells(x, y, width, height, 1);
+      if (x >= 0 && y >= 0) {
+        matrix.setCells(x, y, width, height, 1);
+      }
     });
     
     setCollisionMatrix(matrix);
@@ -940,18 +986,15 @@ function App() {
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    // Snap to grid first
+    // Snap to grid - no boundary clamping needed
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Clamp to board boundaries
-    const { x: boundedX, y: boundedY } = clampToBoundaries(snappedX, snappedY, width, height);
+    // Check for collisions at the snapped position
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
-    // Check for collisions at the final position
-    const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
-    
-    // Show preview at the bounded, snapped position
-    showSnapPreview(boundedX, boundedY, width, height, hasCollision);
+    // Show preview at the snapped position
+    showSnapPreview(snappedX, snappedY, width, height, hasCollision);
   };
 
 
@@ -974,15 +1017,12 @@ function App() {
     const width = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
     const height = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
     
-    // Snap to grid first
+    // Snap to grid - no boundary clamping needed
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Clamp to board boundaries
-    const { x: boundedX, y: boundedY } = clampToBoundaries(snappedX, snappedY, width, height);
-    
-    // Check for collisions at the final position
-    const hasCollision = checkCollision(draggedElement.id, boundedX, boundedY, width, height);
+    // Check for collisions at the snapped position
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
     // If no collision, place the element at the desired position
     if (!hasCollision) {
@@ -992,52 +1032,74 @@ function App() {
       
       // Update collision matrix
       if (collisionMatrix) {
-        // Clear old position
+        // Clear old position from matrix
         const currentPos = panelPositions[draggedElement.id];
         if (currentPos) {
+          const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
+          const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
           const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
           const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
-          collisionMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+          
+          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+            collisionMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
+          }
         }
+        
+        // Convert new position to matrix coordinates
+        const newMatrixX = snappedX - workspaceBounds.minX;
+        const newMatrixY = snappedY - workspaceBounds.minY;
         
         // Expand matrix if needed for positions outside current bounds
-        const requiredWidth = boundedX + finalWidth;
-        const requiredHeight = boundedY + finalHeight;
-        if (requiredWidth > collisionMatrix.width || requiredHeight > collisionMatrix.height) {
-          collisionMatrix.expandMatrix(requiredWidth + GRID_SIZE * 5, requiredHeight + GRID_SIZE * 5);
+        const requiredMatrixWidth = newMatrixX + finalWidth + GRID_SIZE * 5;
+        const requiredMatrixHeight = newMatrixY + finalHeight + GRID_SIZE * 5;
+        if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
+          collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
         }
         
-        // Set new position
-        collisionMatrix.setCells(boundedX, boundedY, finalWidth, finalHeight, 1);
+        // Set new position in matrix
+        if (newMatrixX >= 0 && newMatrixY >= 0) {
+          collisionMatrix.setCells(newMatrixX, newMatrixY, finalWidth, finalHeight, 1);
+        }
       }
       
       setPanelPositions(prev => ({
         ...prev,
         [draggedElement.id]: {
-          x: boundedX,
-          y: boundedY,
+          x: snappedX,
+          y: snappedY,
           width: finalWidth,
           height: finalHeight
         }
       }));
       
+      // Update workspace boundaries after positioning
+      updateWorkspaceBounds();
       await saveLayoutSettings();
     } else {
       // If collision, try to find a nearby valid position
-      const validPosition = findValidPosition(draggedElement.id, boundedX, boundedY, width, height);
+      const validPosition = findValidPosition(draggedElement.id, snappedX, snappedY, width, height);
       
       // Update collision matrix for valid position
       if (collisionMatrix) {
-        // Clear old position
+        // Clear old position from matrix
         const currentPos = panelPositions[draggedElement.id];
         if (currentPos) {
+          const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
+          const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
           const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
           const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
-          collisionMatrix.setCells(currentPos.x || 0, currentPos.y || 0, currentWidth, currentHeight, 0);
+          
+          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+            collisionMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
+          }
         }
         
-        // Set new position
-        collisionMatrix.setCells(validPosition.x, validPosition.y, width, height, 1);
+        // Set new position in matrix
+        const validMatrixX = validPosition.x - workspaceBounds.minX;
+        const validMatrixY = validPosition.y - workspaceBounds.minY;
+        if (validMatrixX >= 0 && validMatrixY >= 0) {
+          collisionMatrix.setCells(validMatrixX, validMatrixY, width, height, 1);
+        }
       }
       
       setPanelPositions(prev => ({
@@ -1049,6 +1111,8 @@ function App() {
         }
       }));
       
+      // Update workspace boundaries after positioning
+      updateWorkspaceBounds();
       await saveLayoutSettings();
     }
     
@@ -1167,10 +1231,7 @@ function App() {
       newWidth = Math.max(minWidth, Math.round(newWidth / GRID_SIZE) * GRID_SIZE);
       newHeight = Math.max(minHeight, Math.round(newHeight / GRID_SIZE) * GRID_SIZE);
       
-      // Check if new size would fit within boundaries and not cause collision
-      const { x: clampedX, y: clampedY } = clampToBoundaries(currentX, currentY, newWidth, newHeight);
-      
-      // Use matrix-based collision detection for resize
+      // Use matrix-based collision detection for resize (no boundary clamping)
       let wouldCollide = false;
       if (collisionMatrix) {
         // Create temporary matrix copy to test the resize
@@ -1183,32 +1244,46 @@ function App() {
           }
         }
         
-        // Clear the current element from the matrix
-        tempMatrix.setCells(currentX, currentY, startWidth, startHeight, 0);
+        // Clear the current element from the matrix (convert to matrix coordinates)
+        const currentMatrixX = currentX - workspaceBounds.minX;
+        const currentMatrixY = currentY - workspaceBounds.minY;
+        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+          tempMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
+        }
         
-        // Check if the new size would be valid
-        wouldCollide = !tempMatrix.checkPositionWithExpansion(clampedX, clampedY, newWidth, newHeight);
+        // Check if the new size would be valid (convert to matrix coordinates)
+        const newMatrixX = currentX - workspaceBounds.minX;
+        const newMatrixY = currentY - workspaceBounds.minY;
+        wouldCollide = !tempMatrix.checkPositionWithExpansion(newMatrixX, newMatrixY, newWidth, newHeight);
       } else {
         // Fallback to legacy collision detection
-        wouldCollide = checkCollision(elementId, clampedX, clampedY, newWidth, newHeight);
+        wouldCollide = checkCollision(elementId, currentX, currentY, newWidth, newHeight);
       }
       
-      // Only resize if it fits within boundaries and doesn't cause collision
-      if (!wouldCollide && clampedX === currentX && clampedY === currentY) {
+      // Only resize if it doesn't cause collision
+      if (!wouldCollide) {
         // Update collision matrix
         if (collisionMatrix) {
-          // Clear old size
-          collisionMatrix.setCells(currentX, currentY, startWidth, startHeight, 0);
-          
-          // Expand matrix if needed for larger size
-          const requiredWidth = currentX + newWidth;
-          const requiredHeight = currentY + newHeight;
-          if (requiredWidth > collisionMatrix.width || requiredHeight > collisionMatrix.height) {
-            collisionMatrix.expandMatrix(requiredWidth + GRID_SIZE * 5, requiredHeight + GRID_SIZE * 5);
+          // Clear old size from matrix
+          const currentMatrixX = currentX - workspaceBounds.minX;
+          const currentMatrixY = currentY - workspaceBounds.minY;
+          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+            collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
           }
           
-          // Set new size
-          collisionMatrix.setCells(currentX, currentY, newWidth, newHeight, 1);
+          // Expand matrix if needed for larger size
+          const newMatrixX = currentX - workspaceBounds.minX;
+          const newMatrixY = currentY - workspaceBounds.minY;
+          const requiredMatrixWidth = newMatrixX + newWidth + GRID_SIZE * 5;
+          const requiredMatrixHeight = newMatrixY + newHeight + GRID_SIZE * 5;
+          if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
+            collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
+          }
+          
+          // Set new size in matrix
+          if (newMatrixX >= 0 && newMatrixY >= 0) {
+            collisionMatrix.setCells(newMatrixX, newMatrixY, newWidth, newHeight, 1);
+          }
         }
         
         setPanelPositions(prev => ({
@@ -1219,6 +1294,9 @@ function App() {
             height: newHeight
           }
         }));
+        
+        // Update workspace boundaries after resize
+        updateWorkspaceBounds();
         
         // Show visual feedback during resize
         showSnapPreview(currentX, currentY, newWidth, newHeight, false);
