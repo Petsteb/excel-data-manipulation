@@ -819,14 +819,55 @@ function App() {
     return newBounds;
   };
 
+  // Normalize workspace coordinates to center around (0,0)
+  const normalizeWorkspaceCoordinates = () => {
+    // Calculate the center of the current workspace
+    const centerX = (workspaceBounds.minX + workspaceBounds.maxX) / 2;
+    const centerY = (workspaceBounds.minY + workspaceBounds.maxY) / 2;
+    
+    // Normalize all panel positions by subtracting the center
+    const normalizedPositions = {};
+    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+      normalizedPositions[elementId] = {
+        ...pos,
+        x: (pos.x || 0) - centerX,
+        y: (pos.y || 0) - centerY
+      };
+    });
+    
+    // Normalize workspace bounds to center around (0,0)
+    const width = workspaceBounds.maxX - workspaceBounds.minX;
+    const height = workspaceBounds.maxY - workspaceBounds.minY;
+    const normalizedBounds = {
+      minX: -width / 2,
+      maxX: width / 2,
+      minY: -height / 2,
+      maxY: height / 2
+    };
+    
+    // Update pan offset to maintain visual continuity
+    // The pan offset needs to be adjusted by the center offset
+    const newPanOffset = {
+      x: panOffset.x + centerX,
+      y: panOffset.y + centerY
+    };
+    
+    return {
+      normalizedPositions,
+      normalizedBounds,
+      centerOffset: { x: centerX, y: centerY },
+      newPanOffset
+    };
+  };
+
   // Save layout settings
-  const saveLayoutSettings = async () => {
+  const saveLayoutSettings = async (customPositions = null, customBounds = null) => {
     try {
       const settings = await window.electronAPI.loadSettings();
       await window.electronAPI.saveSettings({
         ...settings,
-        panelPositions,
-        workspaceBounds
+        panelPositions: customPositions || panelPositions,
+        workspaceBounds: customBounds || workspaceBounds
       });
     } catch (error) {
       console.error('Failed to save layout settings:', error);
@@ -871,8 +912,20 @@ function App() {
       // Initialize collision matrix when entering layout mode
       initializeCollisionMatrix();
     } else {
-      await saveLayoutSettings();
+      // When exiting layout mode, normalize coordinates to center around (0,0)
+      const normalization = normalizeWorkspaceCoordinates();
+      
+      // Save the normalized layout first
+      await saveLayoutSettings(normalization.normalizedPositions, normalization.normalizedBounds);
+      
+      // Apply normalized positions and bounds to state
+      setPanelPositions(normalization.normalizedPositions);
+      setWorkspaceBounds(normalization.normalizedBounds);
+      setPanOffset(normalization.newPanOffset);
+      
       setCollisionMatrix(null);
+      
+      console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
     }
   };
 
