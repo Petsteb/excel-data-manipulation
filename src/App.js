@@ -4,6 +4,7 @@ import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
 import dashboardIcon from './dashboard.png';
+import magnifyingGlassIcon from './magnifying-glass.png';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
@@ -1498,11 +1499,11 @@ function App() {
           <img src={dashboardIcon} alt="Layout" className="layout-icon" />
         </button>
         <button 
-          className={`zoom-button ${isZoomEnabled ? 'active' : ''}`}
+          className={`layout-button ${isZoomEnabled ? 'active' : ''}`}
           onClick={toggleZoomMode}
           title="Toggle Zoom Mode"
         >
-          <span className="zoom-icon">🔍</span>
+          <img src={magnifyingGlassIcon} alt="Zoom" className="layout-icon" />
         </button>
         {isZoomEnabled && (
           <div className="zoom-controls">
