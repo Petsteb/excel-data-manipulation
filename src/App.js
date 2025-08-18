@@ -4,7 +4,6 @@ import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
 import dashboardIcon from './dashboard.png';
-import magnifyingGlassIcon from './magnifying-glass.png';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
@@ -180,9 +179,6 @@ function App() {
     minY: 0,
     maxY: 800   // Initial viewport height
   });
-  const [isZoomEnabled, setIsZoomEnabled] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [zoomOrigin, setZoomOrigin] = useState({ x: 0, y: 0 });
 
   // Load settings on app start
   useEffect(() => {
@@ -213,10 +209,6 @@ function App() {
           setWorkspaceBounds(settings.workspaceBounds);
         }
         
-        // Load saved zoom settings or use defaults
-        setIsZoomEnabled(settings.isZoomEnabled || false);
-        setZoomLevel(settings.zoomLevel || 1);
-        setZoomOrigin(settings.zoomOrigin || { x: 0, y: 0 });
         
         setTimeout(() => {
           applyTheme(settings.theme || 'professional');
@@ -877,10 +869,7 @@ function App() {
       await window.electronAPI.saveSettings({
         ...settings,
         panelPositions: customPositions || panelPositions,
-        workspaceBounds: customBounds || workspaceBounds,
-        isZoomEnabled,
-        zoomLevel,
-        zoomOrigin
+        workspaceBounds: customBounds || workspaceBounds
       });
     } catch (error) {
       console.error('Failed to save layout settings:', error);
@@ -916,29 +905,6 @@ function App() {
     return matrix;
   };
 
-  // Toggle zoom functionality
-  const toggleZoomMode = async () => {
-    const newZoomEnabled = !isZoomEnabled;
-    setIsZoomEnabled(newZoomEnabled);
-    
-    if (!newZoomEnabled) {
-      // Reset zoom when disabling
-      setZoomLevel(1);
-      setZoomOrigin({ x: 0, y: 0 });
-    }
-    
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        isZoomEnabled: newZoomEnabled,
-        zoomLevel: newZoomEnabled ? zoomLevel : 1,
-        zoomOrigin: newZoomEnabled ? zoomOrigin : { x: 0, y: 0 }
-      });
-    } catch (error) {
-      console.error('Failed to save zoom settings:', error);
-    }
-  };
 
   // Toggle layout mode
   const toggleLayoutMode = async () => {
@@ -1000,9 +966,9 @@ function App() {
     const viewportX = screenX - boardRect.left - BOARD_PADDING_LEFT;
     const viewportY = screenY - boardRect.top - BOARD_PADDING_TOP;
     
-    // Account for zoom level - divide by zoom to get actual coordinates
-    const scaledViewportX = viewportX / (isZoomEnabled ? zoomLevel : 1);
-    const scaledViewportY = viewportY / (isZoomEnabled ? zoomLevel : 1);
+    // Convert viewport coordinates directly to board coordinates
+    const scaledViewportX = viewportX;
+    const scaledViewportY = viewportY;
     
     // Convert viewport coordinates to absolute board coordinates
     const boardX = scaledViewportX - panOffset.x;
@@ -1024,9 +990,9 @@ function App() {
     const viewportX = boardX + panOffset.x;
     const viewportY = boardY + panOffset.y;
     
-    // Account for zoom level - multiply by zoom for screen coordinates
-    const scaledViewportX = viewportX * (isZoomEnabled ? zoomLevel : 1);
-    const scaledViewportY = viewportY * (isZoomEnabled ? zoomLevel : 1);
+    // Convert viewport coordinates directly to screen coordinates
+    const scaledViewportX = viewportX;
+    const scaledViewportY = viewportY;
     
     // Convert viewport coordinates to screen coordinates
     const screenX = scaledViewportX + boardRect.left + BOARD_PADDING_LEFT;
@@ -1283,68 +1249,8 @@ function App() {
     }
   };
 
-  // Handle zoom with mouse wheel
-  const handleWheel = useCallback((e) => {
-    if (!isZoomEnabled) return;
-    
-    e.preventDefault();
-    
-    const delta = e.deltaY > 0 ? -0.1 : 0.1; // Negative delta = zoom out, positive = zoom in
-    const newZoomLevel = Math.max(0.1, Math.min(5, zoomLevel + delta)); // Limit zoom between 0.1x and 5x
-    
-    if (newZoomLevel !== zoomLevel) {
-      // Get mouse position relative to board
-      const boardRect = boardRef.current?.getBoundingClientRect();
-      if (boardRect) {
-        const mouseX = e.clientX - boardRect.left;
-        const mouseY = e.clientY - boardRect.top;
-        
-        // Calculate zoom origin point (where the zoom should center)
-        const originX = (mouseX - panOffset.x) / zoomLevel;
-        const originY = (mouseY - panOffset.y) / zoomLevel;
-        
-        // Update zoom level
-        setZoomLevel(newZoomLevel);
-        
-        // Adjust pan offset to keep the zoom centered on mouse position
-        const newPanX = mouseX - originX * newZoomLevel;
-        const newPanY = mouseY - originY * newZoomLevel;
-        setPanOffset({ x: newPanX, y: newPanY });
-        
-        // Save zoom state
-        saveZoomSettings(newZoomLevel, { x: originX, y: originY });
-      }
-    }
-  }, [isZoomEnabled, zoomLevel, panOffset.x, panOffset.y]);
 
-  // Reset zoom to 100%
-  const resetZoom = async () => {
-    setZoomLevel(1);
-    setZoomOrigin({ x: 0, y: 0 });
-    
-    // Reset pan offset to center the workspace
-    const { width: boardWidth, height: boardHeight } = getBoardBoundaries();
-    setPanOffset({ 
-      x: boardWidth / 2,
-      y: boardHeight / 2
-    });
-    
-    await saveZoomSettings(1, { x: 0, y: 0 });
-  };
 
-  // Save zoom settings
-  const saveZoomSettings = async (level, origin) => {
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        zoomLevel: level,
-        zoomOrigin: origin
-      });
-    } catch (error) {
-      console.error('Failed to save zoom settings:', error);
-    }
-  };
 
   // Prevent context menu when right-clicking for panning
   const handleContextMenu = (e) => {
@@ -1481,25 +1387,6 @@ function App() {
         >
           <img src={dashboardIcon} alt="Layout" className="layout-icon" />
         </button>
-        <button 
-          className={`layout-button ${isZoomEnabled ? 'active' : ''}`}
-          onClick={toggleZoomMode}
-          title="Toggle Zoom Mode"
-        >
-          <img src={magnifyingGlassIcon} alt="Zoom" className="layout-icon" />
-        </button>
-        {isZoomEnabled && (
-          <div className="zoom-controls">
-            <span className="zoom-level">{Math.round(zoomLevel * 100)}%</span>
-            <button 
-              className="zoom-reset-btn"
-              onClick={() => resetZoom()}
-              title="Reset Zoom"
-            >
-              ↻
-            </button>
-          </div>
-        )}
       </div>
       
       {(processingSummary || filesData.length > 0) && (
@@ -1512,7 +1399,7 @@ function App() {
 
       <main 
         ref={boardRef}
-        className={`app-main board ${isPanning ? 'panning' : ''} ${isZoomEnabled ? 'zoom-enabled' : ''}`}
+        className={`app-main board ${isPanning ? 'panning' : ''}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseDown={handleMouseDown}
@@ -1520,11 +1407,6 @@ function App() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onContextMenu={handleContextMenu}
-        onWheel={handleWheel}
-        style={{
-          transform: isZoomEnabled ? `scale(${zoomLevel})` : 'none',
-          transformOrigin: '0 0'
-        }}
       >
         {/* Grid Board - all panels positioned absolutely */}
         {/* Panel 1 - Upload Files */}
