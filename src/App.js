@@ -156,6 +156,7 @@ function App() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
   const [initialPanelPosition, setInitialPanelPosition] = useState({ x: 0, y: 0 });
+  const [dragVisualPosition, setDragVisualPosition] = useState(null); // For visual feedback during drag
   const boardRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -972,6 +973,26 @@ function App() {
     };
   };
 
+  // Get visual position for a panel (drag position if dragging, otherwise normal position)
+  const getVisualPosition = (elementId) => {
+    if (dragVisualPosition && dragVisualPosition.elementId === elementId) {
+      return {
+        x: dragVisualPosition.x,
+        y: dragVisualPosition.y,
+        width: dragVisualPosition.width,
+        height: dragVisualPosition.height
+      };
+    }
+    
+    const normalPos = panelPositions[elementId] || {};
+    return {
+      x: normalPos.x || 0,
+      y: normalPos.y || 0,
+      width: normalPos.width || DEFAULT_PANEL_WIDTH,
+      height: normalPos.height || DEFAULT_PANEL_HEIGHT
+    };
+  };
+
   // Save layout settings
   const saveLayoutSettings = async (customPositions = null, customBounds = null) => {
     try {
@@ -1198,9 +1219,15 @@ function App() {
     // Check for collisions at the snapped position
     const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
-    // Don't update panel positions during drag - only visual feedback
-    // This prevents collision detection from getting confused by real-time position changes
-    // Final position will be set in handleDrop
+    // Update visual position for smooth dragging feedback (doesn't affect collision detection)
+    setDragVisualPosition({
+      elementId: draggedElement.id,
+      x: snappedX,
+      y: snappedY,
+      width,
+      height,
+      hasCollision
+    });
     
   };
 
@@ -1271,6 +1298,7 @@ function App() {
     setDragOffset({ x: 0, y: 0 });
     setInitialDragPosition({ x: 0, y: 0 });
     setInitialPanelPosition({ x: 0, y: 0 });
+    setDragVisualPosition(null);
     
     document.querySelectorAll('.dragging').forEach(el => {
       el.classList.remove('dragging');
@@ -1283,6 +1311,7 @@ function App() {
     setDraggedElement(null);
     setInitialDragPosition({ x: 0, y: 0 });
     setInitialPanelPosition({ x: 0, y: 0 });
+    setDragVisualPosition(null);
   };
 
   // Panning functionality with improved performance
@@ -1713,10 +1742,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['upload-panel']?.x || 20}px`,
-            top: `${panelPositions['upload-panel']?.y || 20}px`,
-            width: `${panelPositions['upload-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
-            height: `${panelPositions['upload-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            left: `${getVisualPosition('upload-panel').x}px`,
+            top: `${getVisualPosition('upload-panel').y}px`,
+            width: `${getVisualPosition('upload-panel').width}px`,
+            height: `${getVisualPosition('upload-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -1753,10 +1782,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['files-summary-panel']?.x || 280}px`,
-            top: `${panelPositions['files-summary-panel']?.y || 20}px`,
-            width: `${panelPositions['files-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
-            height: `${panelPositions['files-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            left: `${getVisualPosition('files-summary-panel').x}px`,
+            top: `${getVisualPosition('files-summary-panel').y}px`,
+            width: `${getVisualPosition('files-summary-panel').width}px`,
+            height: `${getVisualPosition('files-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -1788,10 +1817,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['header-selection-panel']?.x || 540}px`,
-            top: `${panelPositions['header-selection-panel']?.y || 20}px`,
-            width: `${panelPositions['header-selection-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
-            height: `${panelPositions['header-selection-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            left: `${getVisualPosition('header-selection-panel').x}px`,
+            top: `${getVisualPosition('header-selection-panel').y}px`,
+            width: `${getVisualPosition('header-selection-panel').width}px`,
+            height: `${getVisualPosition('header-selection-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -1844,10 +1873,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['date-columns-panel']?.x || 20}px`,
-            top: `${panelPositions['date-columns-panel']?.y || 220}px`,
-            width: `${panelPositions['date-columns-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
-            height: `${panelPositions['date-columns-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            left: `${getVisualPosition('date-columns-panel').x}px`,
+            top: `${getVisualPosition('date-columns-panel').y}px`,
+            width: `${getVisualPosition('date-columns-panel').width}px`,
+            height: `${getVisualPosition('date-columns-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -1889,10 +1918,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['merge-button']?.x || 540}px`,
-            top: `${panelPositions['merge-button']?.y || 220}px`,
-            width: `${panelPositions['merge-button']?.width || DEFAULT_BUTTON_SIZE}px`,
-            height: `${panelPositions['merge-button']?.height || DEFAULT_BUTTON_SIZE}px`,
+            left: `${getVisualPosition('merge-button').x}px`,
+            top: `${getVisualPosition('merge-button').y}px`,
+            width: `${getVisualPosition('merge-button').width}px`,
+            height: `${getVisualPosition('merge-button').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10,
             display: 'flex',
@@ -1924,10 +1953,10 @@ function App() {
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${panelPositions['merged-summary-panel']?.x || 280}px`,
-            top: `${panelPositions['merged-summary-panel']?.y || 220}px`,
-            width: `${panelPositions['merged-summary-panel']?.width || DEFAULT_PANEL_WIDTH}px`,
-            height: `${panelPositions['merged-summary-panel']?.height || DEFAULT_PANEL_HEIGHT}px`,
+            left: `${getVisualPosition('merged-summary-panel').x}px`,
+            top: `${getVisualPosition('merged-summary-panel').y}px`,
+            width: `${getVisualPosition('merged-summary-panel').width}px`,
+            height: `${getVisualPosition('merged-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
