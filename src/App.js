@@ -161,6 +161,7 @@ function App() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [normalModeViewPosition, setNormalModeViewPosition] = useState({ x: 0, y: 0 }); // Store last normal mode view position
   const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
     { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
@@ -209,6 +210,10 @@ function App() {
           setWorkspaceBounds(settings.workspaceBounds);
         }
         
+        // Load saved normal mode view position or use defaults
+        if (settings.normalModeViewPosition) {
+          setNormalModeViewPosition(settings.normalModeViewPosition);
+        }
         
         setTimeout(() => {
           applyTheme(settings.theme || 'professional');
@@ -245,17 +250,36 @@ function App() {
     }
   }, [columnNamesRow, filesData]);
 
-  // Center view on workspace when app finishes loading or when layout mode changes
+  // Restore view position when app finishes loading
   useEffect(() => {
     if (!isLoading) {
-      // Center the view after a short delay to ensure all state is loaded
-      const centerTimeout = setTimeout(() => {
-        centerViewOnWorkspace();
+      // Restore the view position after a short delay to ensure all state is loaded
+      const restoreTimeout = setTimeout(() => {
+        if (isLayoutMode) {
+          centerViewOnWorkspace();
+        } else {
+          // Restore saved normal mode view position
+          setPanOffset(normalModeViewPosition);
+        }
       }, 200);
       
-      return () => clearTimeout(centerTimeout);
+      return () => clearTimeout(restoreTimeout);
     }
-  }, [isLoading]);
+  }, [isLoading, normalModeViewPosition]);
+
+  // Save normal mode view position when panning in normal mode
+  useEffect(() => {
+    if (!isLoading && !isLayoutMode && !isPanning) {
+      // Debounce saving to avoid too many writes during smooth panning
+      const saveTimeout = setTimeout(() => {
+        if (panOffset.x !== normalModeViewPosition.x || panOffset.y !== normalModeViewPosition.y) {
+          saveNormalModeViewPosition();
+        }
+      }, 1000); // Save 1 second after panning stops
+      
+      return () => clearTimeout(saveTimeout);
+    }
+  }, [panOffset, isLayoutMode, isPanning, isLoading, normalModeViewPosition]);
 
   // Apply theme to CSS variables
   const applyTheme = (themeKey) => {
@@ -1000,10 +1024,26 @@ function App() {
       await window.electronAPI.saveSettings({
         ...settings,
         panelPositions: customPositions || panelPositions,
-        workspaceBounds: customBounds || workspaceBounds
+        workspaceBounds: customBounds || workspaceBounds,
+        normalModeViewPosition
       });
     } catch (error) {
       console.error('Failed to save layout settings:', error);
+    }
+  };
+
+  // Save normal mode view position
+  const saveNormalModeViewPosition = async (position = null) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      const positionToSave = position || panOffset;
+      setNormalModeViewPosition(positionToSave);
+      await window.electronAPI.saveSettings({
+        ...settings,
+        normalModeViewPosition: positionToSave
+      });
+    } catch (error) {
+      console.error('Failed to save normal mode view position:', error);
     }
   };
 
@@ -1073,9 +1113,13 @@ function App() {
   // Toggle layout mode
   const toggleLayoutMode = async () => {
     const newLayoutMode = !isLayoutMode;
-    setIsLayoutMode(newLayoutMode);
     
     if (newLayoutMode) {
+      // Save current normal mode view position before entering layout mode
+      await saveNormalModeViewPosition();
+      
+      setIsLayoutMode(newLayoutMode);
+      
       // Initialize collision matrix when entering layout mode
       const matrix = initializeCollisionMatrix();
       
@@ -1089,11 +1133,17 @@ function App() {
         centerViewOnWorkspace();
       }, 50);
     } else {
-      // When exiting layout mode, normalize coordinates and center view
+      // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Save the normalized layout first
+      // Calculate what the normal mode view position should be
+      const normalModePosition = centerViewOnWorkspace();
+      
+      // Save the normalized layout and calculated normal mode position
       await saveLayoutSettings(normalization.normalizedPositions, normalization.normalizedBounds);
+      await saveNormalModeViewPosition(normalModePosition);
+      
+      setIsLayoutMode(newLayoutMode);
       
       // Apply normalized positions and bounds to state
       setPanelPositions(normalization.normalizedPositions);
@@ -1101,13 +1151,13 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Center the view on the panels after normalization
-      // Use a longer delay to ensure state updates are fully applied
+      // Set the view to normal mode position after a delay
       setTimeout(() => {
-        centerViewOnWorkspace();
+        setPanOffset(normalModePosition);
       }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
+      console.log(`Normal mode view position calculated: (${normalModePosition.x.toFixed(1)}, ${normalModePosition.y.toFixed(1)})`);
     }
   };
 
