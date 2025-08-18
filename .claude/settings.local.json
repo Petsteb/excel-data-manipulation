@@ -47,7 +47,8 @@
       "Bash(npx electron:*)",
       "Bash(git rm:*)",
       "Bash(timeout:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
