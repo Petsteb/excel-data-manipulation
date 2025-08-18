@@ -1380,61 +1380,34 @@ function App() {
       newWidth = Math.max(minWidth, Math.round(newWidth / GRID_SIZE) * GRID_SIZE);
       newHeight = Math.max(minHeight, Math.round(newHeight / GRID_SIZE) * GRID_SIZE);
       
-      // Use matrix-based collision detection for resize (no boundary clamping)
+      // Lightweight collision check using temporary matrix (no copying entire matrix)
       let wouldCollide = false;
       if (collisionMatrix) {
-        // Create temporary matrix copy to test the resize
-        const tempMatrix = new CollisionMatrix(collisionMatrix.width, collisionMatrix.height);
-        
-        // Copy current matrix state
-        for (let row = 0; row < collisionMatrix.rows; row++) {
-          for (let col = 0; col < collisionMatrix.cols; col++) {
-            tempMatrix.matrix[row][col] = collisionMatrix.matrix[row][col];
-          }
-        }
-        
-        // Clear the current element from the matrix (convert to matrix coordinates)
-        const currentMatrixX = currentX - workspaceBounds.minX;
-        const currentMatrixY = currentY - workspaceBounds.minY;
-        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-          tempMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
-        }
-        
-        // Check if the new size would be valid (convert to matrix coordinates)
+        // Use the existing checkPositionWithExpansion method which is optimized
         const newMatrixX = currentX - workspaceBounds.minX;
         const newMatrixY = currentY - workspaceBounds.minY;
-        wouldCollide = !tempMatrix.checkPositionWithExpansion(newMatrixX, newMatrixY, newWidth, newHeight);
+        const currentMatrixX = currentX - workspaceBounds.minX;
+        const currentMatrixY = currentY - workspaceBounds.minY;
+        
+        // Temporarily clear current element from matrix for testing
+        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+          collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
+        }
+        
+        // Check if new size would be valid
+        wouldCollide = !collisionMatrix.checkPositionWithExpansion(newMatrixX, newMatrixY, newWidth, newHeight);
+        
+        // Restore current element in matrix
+        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+          collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 1);
+        }
       } else {
         // Fallback to legacy collision detection
         wouldCollide = checkCollision(elementId, currentX, currentY, newWidth, newHeight);
       }
       
-      // Only resize if it doesn't cause collision
+      // Only update state if no collision - no heavy matrix operations during drag
       if (!wouldCollide) {
-        // Update collision matrix
-        if (collisionMatrix) {
-          // Clear old size from matrix
-          const currentMatrixX = currentX - workspaceBounds.minX;
-          const currentMatrixY = currentY - workspaceBounds.minY;
-          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-            collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
-          }
-          
-          // Expand matrix if needed for larger size
-          const newMatrixX = currentX - workspaceBounds.minX;
-          const newMatrixY = currentY - workspaceBounds.minY;
-          const requiredMatrixWidth = newMatrixX + newWidth + GRID_SIZE * 5;
-          const requiredMatrixHeight = newMatrixY + newHeight + GRID_SIZE * 5;
-          if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
-            collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
-          }
-          
-          // Set new size in matrix
-          if (newMatrixX >= 0 && newMatrixY >= 0) {
-            collisionMatrix.setCells(newMatrixX, newMatrixY, newWidth, newHeight, 1);
-          }
-        }
-        
         setPanelPositions(prev => ({
           ...prev,
           [elementId]: {
@@ -1443,12 +1416,6 @@ function App() {
             height: newHeight
           }
         }));
-        
-        // Update workspace boundaries after resize
-        updateWorkspaceBounds();
-        
-        // Show visual feedback during resize
-        showSnapPreview(currentX, currentY, newWidth, newHeight, false);
       }
     };
 
@@ -1456,7 +1423,34 @@ function App() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      hideSnapPreview();
+      // Finalize collision matrix and workspace bounds after resize is complete
+      const finalPos = panelPositions[elementId];
+      if (finalPos && collisionMatrix) {
+        const currentMatrixX = currentX - workspaceBounds.minX;
+        const currentMatrixY = currentY - workspaceBounds.minY;
+        const finalWidth = finalPos.width || startWidth;
+        const finalHeight = finalPos.height || startHeight;
+        
+        // Clear old size from matrix
+        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+          collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
+        }
+        
+        // Expand matrix if needed for final size
+        const requiredMatrixWidth = currentMatrixX + finalWidth + GRID_SIZE * 5;
+        const requiredMatrixHeight = currentMatrixY + finalHeight + GRID_SIZE * 5;
+        if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
+          collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
+        }
+        
+        // Set final size in matrix
+        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
+          collisionMatrix.setCells(currentMatrixX, currentMatrixY, finalWidth, finalHeight, 1);
+        }
+      }
+      
+      // Update workspace boundaries once at the end
+      updateWorkspaceBounds();
       await saveLayoutSettings();
     };
 
