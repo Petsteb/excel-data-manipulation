@@ -1306,6 +1306,131 @@ function App() {
     }
   };
 
+  // Render minimap component
+  const renderMinimap = () => {
+    if (!isLayoutMode) return null;
+
+    // Minimap dimensions
+    const MINIMAP_WIDTH = 200;
+    const MINIMAP_HEIGHT = 150;
+    const MINIMAP_PADDING = 4;
+
+    // Calculate scale factors to fit workspace in minimap
+    const workspaceWidth = workspaceBounds.maxX - workspaceBounds.minX;
+    const workspaceHeight = workspaceBounds.maxY - workspaceBounds.minY;
+    const scaleX = (MINIMAP_WIDTH - MINIMAP_PADDING * 2) / workspaceWidth;
+    const scaleY = (MINIMAP_HEIGHT - MINIMAP_PADDING * 2) / workspaceHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Calculate viewport boundaries
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    const viewportLeft = -panOffset.x;
+    const viewportTop = -panOffset.y;
+    const viewportRight = viewportLeft + viewportWidth;
+    const viewportBottom = viewportTop + viewportHeight;
+
+    // Convert viewport to minimap coordinates
+    const minimapViewportX = (viewportLeft - workspaceBounds.minX) * scale + MINIMAP_PADDING;
+    const minimapViewportY = (viewportTop - workspaceBounds.minY) * scale + MINIMAP_PADDING;
+    const minimapViewportWidth = viewportWidth * scale;
+    const minimapViewportHeight = viewportHeight * scale;
+
+    // Handle minimap click to pan
+    const handleMinimapClick = (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left - MINIMAP_PADDING;
+      const clickY = e.clientY - rect.top - MINIMAP_PADDING;
+      
+      // Convert click position back to workspace coordinates
+      const workspaceX = (clickX / scale) + workspaceBounds.minX;
+      const workspaceY = (clickY / scale) + workspaceBounds.minY;
+      
+      // Center viewport on clicked position
+      const newPanX = -(workspaceX - viewportWidth / 2);
+      const newPanY = -(workspaceY - viewportHeight / 2);
+      
+      // Apply panning constraints
+      const maxPanX = -workspaceBounds.minX;
+      const maxPanY = -workspaceBounds.minY;
+      const minPanX = -(workspaceBounds.maxX - viewportWidth);
+      const minPanY = -(workspaceBounds.maxY - viewportHeight);
+      
+      const constrainedX = Math.max(minPanX, Math.min(maxPanX, newPanX));
+      const constrainedY = Math.max(minPanY, Math.min(maxPanY, newPanY));
+      
+      setPanOffset({ x: constrainedX, y: constrainedY });
+    };
+
+    return (
+      <div 
+        className="minimap"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: `${MINIMAP_WIDTH}px`,
+          height: `${MINIMAP_HEIGHT}px`,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          border: '2px solid var(--theme-primary)',
+          borderRadius: '8px',
+          zIndex: 1000,
+          cursor: 'pointer',
+          overflow: 'hidden'
+        }}
+        onClick={handleMinimapClick}
+      >
+        {/* Minimap panels */}
+        {Object.entries(panelPositions).map(([elementId, pos]) => {
+          const x = pos.x || 0;
+          const y = pos.y || 0;
+          const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+          const height = pos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+          
+          // Convert to minimap coordinates
+          const minimapX = (x - workspaceBounds.minX) * scale + MINIMAP_PADDING;
+          const minimapY = (y - workspaceBounds.minY) * scale + MINIMAP_PADDING;
+          const minimapWidth = width * scale;
+          const minimapHeight = height * scale;
+          
+          return (
+            <div
+              key={elementId}
+              className="minimap-panel"
+              style={{
+                position: 'absolute',
+                left: `${minimapX}px`,
+                top: `${minimapY}px`,
+                width: `${minimapWidth}px`,
+                height: `${minimapHeight}px`,
+                backgroundColor: availableButtons.find(b => b.id === elementId) 
+                  ? 'var(--theme-accent)' 
+                  : 'var(--theme-primary)',
+                borderRadius: '2px',
+                opacity: 0.8
+              }}
+            />
+          );
+        })}
+        
+        {/* Viewport indicator */}
+        <div
+          className="minimap-viewport"
+          style={{
+            position: 'absolute',
+            left: `${minimapViewportX}px`,
+            top: `${minimapViewportY}px`,
+            width: `${minimapViewportWidth}px`,
+            height: `${minimapViewportHeight}px`,
+            border: '1px solid white',
+            borderRadius: '2px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            pointerEvents: 'none'
+          }}
+        />
+      </div>
+    );
+  };
+
 
   // Handle resize start with grid snapping and collision prevention
   const handleResizeStart = (e, elementId) => {
@@ -1858,6 +1983,9 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Minimap - only shown in layout mode */}
+        {renderMinimap()}
       </main>
     </div>
   );
