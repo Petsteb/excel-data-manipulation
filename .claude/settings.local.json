@@ -44,7 +44,9 @@
       "Bash(ls:*)",
       "Bash(npm view:*)",
       "Bash(git checkout:*)",
-      "Bash(npx electron:*)"
+      "Bash(npx electron:*)",
+      "Bash(git rm:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

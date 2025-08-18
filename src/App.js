@@ -156,6 +156,7 @@ function App() {
   });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
+  const [initialPanelPosition, setInitialPanelPosition] = useState({ x: 0, y: 0 });
   const [snapLines, setSnapLines] = useState([]);
   const boardRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -1057,6 +1058,9 @@ function App() {
     const elementBoardX = currentPos.x || 0;
     const elementBoardY = currentPos.y || 0;
     
+    // Store initial panel position for collision matrix cleanup
+    setInitialPanelPosition({ x: elementBoardX, y: elementBoardY });
+    
     // Calculate offset from mouse to element in board coordinates
     const offsetX = mouseBoard.x - elementBoardX;
     const offsetY = mouseBoard.y - elementBoardY;
@@ -1090,6 +1094,21 @@ function App() {
     // Check for collisions at the snapped position
     const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
+    // Update panel position in real-time during drag
+    // If no collision, move to snapped position; otherwise keep previous position
+    if (!hasCollision) {
+      setPanelPositions(prev => ({
+        ...prev,
+        [draggedElement.id]: {
+          ...prev[draggedElement.id],
+          x: snappedX,
+          y: snappedY,
+          width,
+          height
+        }
+      }));
+    }
+    
     // Show preview at the snapped position
     showSnapPreview(snappedX, snappedY, width, height, hasCollision);
   };
@@ -1121,102 +1140,71 @@ function App() {
     // Check for collisions at the snapped position
     const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
-    // If no collision, place the element at the desired position
-    if (!hasCollision) {
-      const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
-      const finalWidth = Math.max(width, minWidth);
-      const finalHeight = Math.max(height, minHeight);
+    // Update collision matrix with final position
+    if (collisionMatrix) {
+      // Clear old position from matrix (using the initial position from the start of drag)
+      const initialMatrixX = initialPanelPosition.x - workspaceBounds.minX;
+      const initialMatrixY = initialPanelPosition.y - workspaceBounds.minY;
+      const initialWidth = width;
+      const initialHeight = height;
       
-      // Update collision matrix
-      if (collisionMatrix) {
-        // Clear old position from matrix
-        const currentPos = panelPositions[draggedElement.id];
-        if (currentPos) {
-          const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
-          const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
-          const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
-          const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
-          
-          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-            collisionMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
-          }
-        }
-        
-        // Convert new position to matrix coordinates
-        const newMatrixX = snappedX - workspaceBounds.minX;
-        const newMatrixY = snappedY - workspaceBounds.minY;
-        
-        // Expand matrix if needed for positions outside current bounds
-        const requiredMatrixWidth = newMatrixX + finalWidth + GRID_SIZE * 5;
-        const requiredMatrixHeight = newMatrixY + finalHeight + GRID_SIZE * 5;
-        if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
-          collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
-        }
-        
-        // Set new position in matrix
-        if (newMatrixX >= 0 && newMatrixY >= 0) {
-          collisionMatrix.setCells(newMatrixX, newMatrixY, finalWidth, finalHeight, 1);
-        }
+      if (initialMatrixX >= 0 && initialMatrixY >= 0) {
+        collisionMatrix.setCells(initialMatrixX, initialMatrixY, initialWidth, initialHeight, 0);
       }
-      
-      setPanelPositions(prev => ({
-        ...prev,
-        [draggedElement.id]: {
-          x: snappedX,
-          y: snappedY,
-          width: finalWidth,
-          height: finalHeight
-        }
-      }));
-      
-      // Update workspace boundaries after positioning
-      updateWorkspaceBounds();
-      await saveLayoutSettings();
-    } else {
-      // If collision, try to find a nearby valid position
-      const validPosition = findValidPosition(draggedElement.id, snappedX, snappedY, width, height);
-      
-      // Update collision matrix for valid position
-      if (collisionMatrix) {
-        // Clear old position from matrix
-        const currentPos = panelPositions[draggedElement.id];
-        if (currentPos) {
-          const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
-          const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
-          const currentWidth = currentPos.width || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
-          const currentHeight = currentPos.height || (draggedElement.type === 'button' ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
-          
-          if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-            collisionMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
-          }
-        }
-        
-        // Set new position in matrix
-        const validMatrixX = validPosition.x - workspaceBounds.minX;
-        const validMatrixY = validPosition.y - workspaceBounds.minY;
-        if (validMatrixX >= 0 && validMatrixY >= 0) {
-          collisionMatrix.setCells(validMatrixX, validMatrixY, width, height, 1);
-        }
-      }
-      
-      setPanelPositions(prev => ({
-        ...prev,
-        [draggedElement.id]: {
-          ...prev[draggedElement.id],
-          x: validPosition.x,
-          y: validPosition.y
-        }
-      }));
-      
-      // Update workspace boundaries after positioning
-      updateWorkspaceBounds();
-      await saveLayoutSettings();
     }
+    
+    // Finalize position: keep current position if no collision, otherwise find valid position
+    let finalX = snappedX;
+    let finalY = snappedY;
+    
+    if (hasCollision) {
+      const validPosition = findValidPosition(draggedElement.id, snappedX, snappedY, width, height);
+      finalX = validPosition.x;
+      finalY = validPosition.y;
+    }
+    
+    // Set final position
+    const { width: minWidth, height: minHeight } = getMinimumSize(draggedElement.id, draggedElement.type);
+    const finalWidth = Math.max(width, minWidth);
+    const finalHeight = Math.max(height, minHeight);
+    
+    setPanelPositions(prev => ({
+      ...prev,
+      [draggedElement.id]: {
+        x: finalX,
+        y: finalY,
+        width: finalWidth,
+        height: finalHeight
+      }
+    }));
+    
+    // Update collision matrix with final position
+    if (collisionMatrix) {
+      const finalMatrixX = finalX - workspaceBounds.minX;
+      const finalMatrixY = finalY - workspaceBounds.minY;
+      
+      // Expand matrix if needed for positions outside current bounds
+      const requiredMatrixWidth = finalMatrixX + finalWidth + GRID_SIZE * 5;
+      const requiredMatrixHeight = finalMatrixY + finalHeight + GRID_SIZE * 5;
+      if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
+        collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
+      }
+      
+      // Set new position in matrix
+      if (finalMatrixX >= 0 && finalMatrixY >= 0) {
+        collisionMatrix.setCells(finalMatrixX, finalMatrixY, finalWidth, finalHeight, 1);
+      }
+    }
+    
+    // Update workspace boundaries after positioning
+    updateWorkspaceBounds();
+    await saveLayoutSettings();
     
     // Cleanup
     setDraggedElement(null);
     setDragOffset({ x: 0, y: 0 });
     setInitialDragPosition({ x: 0, y: 0 });
+    setInitialPanelPosition({ x: 0, y: 0 });
     hideSnapPreview();
     
     document.querySelectorAll('.dragging').forEach(el => {
@@ -1229,6 +1217,7 @@ function App() {
     e.target.classList.remove('dragging');
     setDraggedElement(null);
     setInitialDragPosition({ x: 0, y: 0 });
+    setInitialPanelPosition({ x: 0, y: 0 });
     hideSnapPreview();
   };
 
