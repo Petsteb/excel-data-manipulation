@@ -156,7 +156,6 @@ function App() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
   const [initialPanelPosition, setInitialPanelPosition] = useState({ x: 0, y: 0 });
-  const [snapLines, setSnapLines] = useState([]);
   const boardRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -1041,26 +1040,6 @@ function App() {
     }
   };
 
-  // Show snap preview with clear visual feedback
-  const showSnapPreview = (x, y, width, height, hasCollision = false) => {
-    const snappedX = snapToGrid(x);
-    const snappedY = snapToGrid(y);
-    
-    setSnapLines([{
-      id: 'preview-outline',
-      type: 'outline',
-      x: snappedX,
-      y: snappedY,
-      width,
-      height,
-      collision: hasCollision
-    }]);
-  };
-  
-  // Hide snap preview
-  const hideSnapPreview = () => {
-    setSnapLines([]);
-  };
 
   // Convert screen coordinates to board coordinates
   const screenToBoardCoords = (screenX, screenY) => {
@@ -1184,8 +1163,6 @@ function App() {
       }));
     }
     
-    // Show preview at the snapped position
-    showSnapPreview(snappedX, snappedY, width, height, hasCollision);
   };
 
 
@@ -1280,7 +1257,6 @@ function App() {
     setDragOffset({ x: 0, y: 0 });
     setInitialDragPosition({ x: 0, y: 0 });
     setInitialPanelPosition({ x: 0, y: 0 });
-    hideSnapPreview();
     
     document.querySelectorAll('.dragging').forEach(el => {
       el.classList.remove('dragging');
@@ -1293,7 +1269,6 @@ function App() {
     setDraggedElement(null);
     setInitialDragPosition({ x: 0, y: 0 });
     setInitialPanelPosition({ x: 0, y: 0 });
-    hideSnapPreview();
   };
 
   // Panning functionality with improved performance
@@ -1985,22 +1960,6 @@ function App() {
           </div>
         )}
         
-        {/* Snap Preview Lines */}
-        {snapLines.map(line => (
-          <div 
-            key={line.id}
-            className={`snap-line ${line.type} ${line.collision ? 'collision' : ''}`}
-            style={{
-              position: 'absolute',
-              left: `${line.x}px`,
-              top: `${line.y}px`,
-              width: `${line.width}px`,
-              height: `${line.height}px`,
-              pointerEvents: 'none',
-              zIndex: 9999
-            }}
-          />
-        ))}
         
         {/* Remove popups for clean interface */}
         {false && (
