@@ -143,7 +143,7 @@ function App() {
   const [selectedDateColumns, setSelectedDateColumns] = useState([]);
   const [autoDetectedDateColumns, setAutoDetectedDateColumns] = useState([]);
   const [dateColumnsWithTime, setDateColumnsWithTime] = useState([]);
-  const [isLayoutMode, setIsLayoutMode] = useState(true);
+  const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
     'upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -247,7 +247,7 @@ function App() {
 
   // Center view on workspace when app finishes loading or when layout mode changes
   useEffect(() => {
-    if (!isLoading && !isLayoutMode) {
+    if (!isLoading) {
       // Center the view after a short delay to ensure all state is loaded
       const centerTimeout = setTimeout(() => {
         centerViewOnWorkspace();
@@ -255,7 +255,7 @@ function App() {
       
       return () => clearTimeout(centerTimeout);
     }
-  }, [isLoading, isLayoutMode]);
+  }, [isLoading]);
 
   // Apply theme to CSS variables
   const applyTheme = (themeKey) => {
