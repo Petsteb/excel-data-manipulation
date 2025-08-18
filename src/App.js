@@ -1240,15 +1240,40 @@ function App() {
     
     // Use requestAnimationFrame for smoother updates
     panAnimationFrame.current = requestAnimationFrame(() => {
-      setPanOffset(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
+      setPanOffset(prev => {
+        const newX = prev.x + deltaX;
+        const newY = prev.y + deltaY;
+        
+        // Get viewport dimensions to calculate panning limits
+        const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+        
+        // Calculate panning limits based on extended workspace boundaries
+        // Pan offset represents how much the viewport is shifted from world coordinates
+        // Positive pan offset shows content that's to the left/above the viewport origin
+        // Negative pan offset shows content that's to the right/below the viewport origin
+        
+        // Maximum positive pan: can show the leftmost/topmost content
+        const maxPanX = -workspaceBounds.minX;
+        const maxPanY = -workspaceBounds.minY;
+        
+        // Maximum negative pan: can show the rightmost/bottommost content
+        const minPanX = -(workspaceBounds.maxX - viewportWidth);
+        const minPanY = -(workspaceBounds.maxY - viewportHeight);
+        
+        // Constrain the new pan offset to stay within extended boundaries
+        const constrainedX = Math.max(minPanX, Math.min(maxPanX, newX));
+        const constrainedY = Math.max(minPanY, Math.min(maxPanY, newY));
+        
+        return {
+          x: constrainedX,
+          y: constrainedY
+        };
+      });
       panAnimationFrame.current = null;
     });
     
     setPanStart({ x: e.clientX, y: e.clientY });
-  }, [isPanning, panStart.x, panStart.y]);
+  }, [isPanning, panStart.x, panStart.y, workspaceBounds]);
 
   const handlePanEnd = () => {
     setIsPanning(false);
