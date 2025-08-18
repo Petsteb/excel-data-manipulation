@@ -1310,17 +1310,30 @@ function App() {
   const renderMinimap = () => {
     if (!isLayoutMode) return null;
 
-    // Minimap dimensions
-    const MINIMAP_WIDTH = 200;
-    const MINIMAP_HEIGHT = 150;
     const MINIMAP_PADDING = 4;
+    const MAX_MINIMAP_WIDTH = 250;
+    const MAX_MINIMAP_HEIGHT = 200;
 
-    // Calculate scale factors to fit workspace in minimap
+    // Calculate workspace dimensions
     const workspaceWidth = workspaceBounds.maxX - workspaceBounds.minX;
     const workspaceHeight = workspaceBounds.maxY - workspaceBounds.minY;
-    const scaleX = (MINIMAP_WIDTH - MINIMAP_PADDING * 2) / workspaceWidth;
-    const scaleY = (MINIMAP_HEIGHT - MINIMAP_PADDING * 2) / workspaceHeight;
-    const scale = Math.min(scaleX, scaleY);
+    const workspaceAspectRatio = workspaceWidth / workspaceHeight;
+
+    // Calculate minimap dimensions to match workspace aspect ratio
+    let minimapWidth, minimapHeight;
+    
+    if (workspaceAspectRatio > MAX_MINIMAP_WIDTH / MAX_MINIMAP_HEIGHT) {
+      // Workspace is wider than max minimap aspect ratio, constrain by width
+      minimapWidth = MAX_MINIMAP_WIDTH;
+      minimapHeight = MAX_MINIMAP_WIDTH / workspaceAspectRatio;
+    } else {
+      // Workspace is taller than max minimap aspect ratio, constrain by height
+      minimapHeight = MAX_MINIMAP_HEIGHT;
+      minimapWidth = MAX_MINIMAP_HEIGHT * workspaceAspectRatio;
+    }
+
+    // Calculate scale factor - now both dimensions should scale equally
+    const scale = (minimapWidth - MINIMAP_PADDING * 2) / workspaceWidth;
 
     // Calculate viewport boundaries
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
@@ -1368,8 +1381,8 @@ function App() {
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          width: `${MINIMAP_WIDTH}px`,
-          height: `${MINIMAP_HEIGHT}px`,
+          width: `${minimapWidth}px`,
+          height: `${minimapHeight}px`,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           border: '2px solid var(--theme-primary)',
           borderRadius: '8px',
