@@ -711,22 +711,18 @@ function App() {
     return !tempMatrix.checkPositionWithExpansion(matrixX, matrixY, width, height);
   };
 
-  // Legacy AABB collision detection (fallback)
-  const checkCollision = (elementId, x, y, width, height, useInitialPosition = false) => {
-    // Use matrix-based collision detection if available
-    if (collisionMatrix) {
-      return checkCollisionMatrix(elementId, x, y, width, height, useInitialPosition);
-    }
-    
-    // Fallback to AABB collision detection
+  // Simple and reliable AABB collision detection
+  const checkCollision = (elementId, x, y, width, height) => {
+    // Check collision against all other panels (exclude the element being checked)
     for (const [otherId, otherPos] of Object.entries(panelPositions)) {
-      if (otherId === elementId) continue;
+      if (otherId === elementId) continue; // Skip self
       
       const otherX = otherPos.x || 0;
       const otherY = otherPos.y || 0;
       const otherWidth = otherPos.width || DEFAULT_PANEL_WIDTH;
       const otherHeight = otherPos.height || DEFAULT_PANEL_HEIGHT;
       
+      // AABB collision detection
       const separated = (
         x >= otherX + otherWidth ||
         x + width <= otherX ||
@@ -735,11 +731,11 @@ function App() {
       );
       
       if (!separated) {
-        return true;
+        return true; // Collision detected
       }
     }
     
-    return false;
+    return false; // No collision
   };
 
   // Get board boundaries accounting for CSS padding
@@ -1199,23 +1195,12 @@ function App() {
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Check for collisions at the snapped position (use initial position during drag)
-    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height, true);
+    // Check for collisions at the snapped position
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
-    // Update panel position in real-time during drag
-    // If no collision, move to snapped position; otherwise keep previous position
-    if (!hasCollision) {
-      setPanelPositions(prev => ({
-        ...prev,
-        [draggedElement.id]: {
-          ...prev[draggedElement.id],
-          x: snappedX,
-          y: snappedY,
-          width,
-          height
-        }
-      }));
-    }
+    // Don't update panel positions during drag - only visual feedback
+    // This prevents collision detection from getting confused by real-time position changes
+    // Final position will be set in handleDrop
     
   };
 
@@ -1243,21 +1228,8 @@ function App() {
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Check for collisions at the snapped position (use initial position during drag)
-    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height, true);
-    
-    // Update collision matrix with final position
-    if (collisionMatrix) {
-      // Clear old position from matrix (using the initial position from the start of drag)
-      const initialMatrixX = initialPanelPosition.x - workspaceBounds.minX;
-      const initialMatrixY = initialPanelPosition.y - workspaceBounds.minY;
-      const initialWidth = width;
-      const initialHeight = height;
-      
-      if (initialMatrixX >= 0 && initialMatrixY >= 0) {
-        collisionMatrix.setCells(initialMatrixX, initialMatrixY, initialWidth, initialHeight, 0);
-      }
-    }
+    // Check for collisions at the snapped position
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
     
     // Finalize position: keep current position if no collision, otherwise find valid position
     let finalX = snappedX;
@@ -1284,26 +1256,14 @@ function App() {
       }
     }));
     
-    // Update collision matrix with final position
-    if (collisionMatrix) {
-      const finalMatrixX = finalX - workspaceBounds.minX;
-      const finalMatrixY = finalY - workspaceBounds.minY;
-      
-      // Expand matrix if needed for positions outside current bounds
-      const requiredMatrixWidth = finalMatrixX + finalWidth + GRID_SIZE * 5;
-      const requiredMatrixHeight = finalMatrixY + finalHeight + GRID_SIZE * 5;
-      if (requiredMatrixWidth > collisionMatrix.width || requiredMatrixHeight > collisionMatrix.height) {
-        collisionMatrix.expandMatrix(requiredMatrixWidth, requiredMatrixHeight);
+    // Rebuild collision matrix after position change to ensure consistency
+    setTimeout(() => {
+      if (collisionMatrix) {
+        rebuildCollisionMatrix();
       }
-      
-      // Set new position in matrix
-      if (finalMatrixX >= 0 && finalMatrixY >= 0) {
-        collisionMatrix.setCells(finalMatrixX, finalMatrixY, finalWidth, finalHeight, 1);
-      }
-    }
+      updateWorkspaceBounds();
+    }, 10);
     
-    // Update workspace boundaries after positioning
-    updateWorkspaceBounds();
     await saveLayoutSettings();
     
     // Cleanup
