@@ -52,6 +52,10 @@
   --badge-bg: rgba(75, 85, 99, 0.4);
   --badge-text: var(--text-primary);
   --merge-button-bg: var(--theme-primary);
+  --merge-button-text: #ffffff;
+  --merge-button-border: rgba(255, 255, 255, 0.2);
+  --merge-button-hover: var(--theme-primary-hover);
+  --merge-button-border-hover: rgba(255, 255, 255, 0.3);
   --stat-number-color: #ffffff;
   
   /* Status badge colors for dark mode */
@@ -1427,24 +1431,96 @@
   font-weight: 700;
   border-radius: 10px;
   background: var(--merge-button-bg);
-  color: white;
-  border: none;
+  color: var(--merge-button-text, white);
+  border: 2px solid var(--merge-button-border, transparent);
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--theme-shadow);
   letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+}
+
+.merge-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.merge-button:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .merge-button:hover:not(:disabled) {
-  background: var(--theme-primary-hover);
+  background: var(--merge-button-hover, var(--theme-primary-hover));
   transform: translateY(-1px);
   box-shadow: var(--theme-shadow-hover);
+  border-color: var(--merge-button-border-hover, var(--merge-button-border, transparent));
 }
 
 .merge-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Dark theme merge button overrides for better visibility */
+.App.dark-theme .merge-button {
+  background: var(--theme-primary);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.App.dark-theme .merge-button:hover:not(:disabled) {
+  background: var(--theme-primary-hover);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.App.dark-theme .merge-button:disabled {
+  background: rgba(75, 85, 99, 0.5);
+  color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Improve text visibility in dark theme panels */
+.App.dark-theme .panel h3,
+.App.dark-theme .panel h4,
+.App.dark-theme .section-header,
+.App.dark-theme .upload-section h3,
+.App.dark-theme .files-summary h3,
+.App.dark-theme .header-selection h3,
+.App.dark-theme .date-columns h3,
+.App.dark-theme .merged-summary h3 {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+}
+
+.App.dark-theme .panel p,
+.App.dark-theme .upload-section p,
+.App.dark-theme .files-summary p,
+.App.dark-theme .header-selection p,
+.App.dark-theme .date-columns p,
+.App.dark-theme .merged-summary p {
+  color: #e5e7eb;
+  opacity: 0.9;
+}
+
+.App.dark-theme .upload-area p,
+.App.dark-theme .empty-state {
+  color: #d1d5db;
+  font-weight: 500;
 }
 
 /* Compact File List Styles */
