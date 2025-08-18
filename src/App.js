@@ -888,14 +888,29 @@ function App() {
     const centeredPanX = -(panelsCenterX - viewportWidth / 2);
     const centeredPanY = -(panelsCenterY - viewportHeight / 2);
     
-    // Get current workspace bounds for constraints
-    const bounds = calculateWorkspaceBounds();
+    // Apply different constraints based on mode
+    let maxPanX, maxPanY, minPanX, minPanY;
     
-    // Apply panning constraints to ensure we stay within extended boundaries
-    const maxPanX = -bounds.minX;
-    const maxPanY = -bounds.minY;
-    const minPanX = -(bounds.maxX - viewportWidth);
-    const minPanY = -(bounds.maxY - viewportHeight);
+    if (isLayoutMode) {
+      // Layout mode: Use extended workspace boundaries
+      const bounds = calculateWorkspaceBounds();
+      maxPanX = -bounds.minX;
+      maxPanY = -bounds.minY;
+      minPanX = -(bounds.maxX - viewportWidth);
+      minPanY = -(bounds.maxY - viewportHeight);
+    } else {
+      // Normal mode: Use tight bounds around panels only
+      const normalModeBuffer = GRID_SIZE * 2;
+      const workspaceMinX = minX - normalModeBuffer;
+      const workspaceMinY = minY - normalModeBuffer;
+      const workspaceMaxX = maxX + normalModeBuffer;
+      const workspaceMaxY = maxY + normalModeBuffer;
+      
+      maxPanX = -workspaceMinX;
+      maxPanY = -workspaceMinY;
+      minPanX = -(workspaceMaxX - viewportWidth);
+      minPanY = -(workspaceMaxY - viewportHeight);
+    }
     
     const constrainedX = Math.max(minPanX, Math.min(maxPanX, centeredPanX));
     const constrainedY = Math.max(minPanY, Math.min(maxPanY, centeredPanY));
@@ -1319,20 +1334,54 @@ function App() {
         // Get viewport dimensions to calculate panning limits
         const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
         
-        // Calculate panning limits based on extended workspace boundaries
-        // Pan offset represents how much the viewport is shifted from world coordinates
-        // Positive pan offset shows content that's to the left/above the viewport origin
-        // Negative pan offset shows content that's to the right/below the viewport origin
+        let maxPanX, maxPanY, minPanX, minPanY;
         
-        // Maximum positive pan: can show the leftmost/topmost content
-        const maxPanX = -workspaceBounds.minX;
-        const maxPanY = -workspaceBounds.minY;
+        if (isLayoutMode) {
+          // Layout mode: Allow extended boundaries for panel arrangement
+          // Calculate panning limits based on extended workspace boundaries
+          // Pan offset represents how much the viewport is shifted from world coordinates
+          // Positive pan offset shows content that's to the left/above the viewport origin
+          // Negative pan offset shows content that's to the right/below the viewport origin
+          
+          // Maximum positive pan: can show the leftmost/topmost content
+          maxPanX = -workspaceBounds.minX;
+          maxPanY = -workspaceBounds.minY;
+          
+          // Maximum negative pan: can show the rightmost/bottommost content
+          minPanX = -(workspaceBounds.maxX - viewportWidth);
+          minPanY = -(workspaceBounds.maxY - viewportHeight);
+        } else {
+          // Normal mode: Restrict to core workspace only (panels and small buffer)
+          // Calculate the actual bounds of all panels
+          let coreMinX = Infinity, coreMaxX = -Infinity, coreMinY = Infinity, coreMaxY = -Infinity;
+          
+          Object.values(panelPositions).forEach(pos => {
+            const x = pos.x || 0;
+            const y = pos.y || 0;
+            const width = pos.width || DEFAULT_PANEL_WIDTH;
+            const height = pos.height || DEFAULT_PANEL_HEIGHT;
+            
+            coreMinX = Math.min(coreMinX, x);
+            coreMinY = Math.min(coreMinY, y);
+            coreMaxX = Math.max(coreMaxX, x + width);
+            coreMaxY = Math.max(coreMaxY, y + height);
+          });
+          
+          // Add small buffer around panels for normal mode
+          const normalModeBuffer = GRID_SIZE * 2; // Smaller buffer for normal mode
+          const workspaceMinX = coreMinX - normalModeBuffer;
+          const workspaceMinY = coreMinY - normalModeBuffer;
+          const workspaceMaxX = coreMaxX + normalModeBuffer;
+          const workspaceMaxY = coreMaxY + normalModeBuffer;
+          
+          // Calculate panning limits to stay within this restricted workspace
+          maxPanX = -workspaceMinX;
+          maxPanY = -workspaceMinY;
+          minPanX = -(workspaceMaxX - viewportWidth);
+          minPanY = -(workspaceMaxY - viewportHeight);
+        }
         
-        // Maximum negative pan: can show the rightmost/bottommost content
-        const minPanX = -(workspaceBounds.maxX - viewportWidth);
-        const minPanY = -(workspaceBounds.maxY - viewportHeight);
-        
-        // Constrain the new pan offset to stay within extended boundaries
+        // Constrain the new pan offset to stay within boundaries
         const constrainedX = Math.max(minPanX, Math.min(maxPanX, newX));
         const constrainedY = Math.max(minPanY, Math.min(maxPanY, newY));
         
@@ -1345,7 +1394,7 @@ function App() {
     });
     
     setPanStart({ x: e.clientX, y: e.clientY });
-  }, [isPanning, panStart.x, panStart.y, workspaceBounds]);
+  }, [isPanning, panStart.x, panStart.y, workspaceBounds, isLayoutMode, panelPositions]);
 
   const handlePanEnd = () => {
     setIsPanning(false);
