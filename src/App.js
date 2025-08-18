@@ -245,6 +245,18 @@ function App() {
     }
   }, [columnNamesRow, filesData]);
 
+  // Center view on workspace when app finishes loading or when layout mode changes
+  useEffect(() => {
+    if (!isLoading && !isLayoutMode) {
+      // Center the view after a short delay to ensure all state is loaded
+      const centerTimeout = setTimeout(() => {
+        centerViewOnWorkspace();
+      }, 200);
+      
+      return () => clearTimeout(centerTimeout);
+    }
+  }, [isLoading, isLayoutMode]);
+
   // Apply theme to CSS variables
   const applyTheme = (themeKey) => {
     const theme = themes[themeKey];
@@ -843,6 +855,35 @@ function App() {
     return newBounds;
   };
 
+  // Center view on the core workspace area (panels + buffer)
+  const centerViewOnWorkspace = () => {
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    const bounds = calculateWorkspaceBounds();
+    
+    // Calculate the center of the core workspace (where panels actually are)
+    const coreWidth = bounds.coreMaxX - bounds.coreMinX;
+    const coreHeight = bounds.coreMaxY - bounds.coreMinY;
+    const coreCenterX = bounds.coreMinX + (coreWidth / 2);
+    const coreCenterY = bounds.coreMinY + (coreHeight / 2);
+    
+    // Calculate pan offset to center the core workspace in the viewport
+    const centeredPanX = -(coreCenterX - viewportWidth / 2);
+    const centeredPanY = -(coreCenterY - viewportHeight / 2);
+    
+    // Apply panning constraints to ensure we stay within extended boundaries
+    const maxPanX = -bounds.minX;
+    const maxPanY = -bounds.minY;
+    const minPanX = -(bounds.maxX - viewportWidth);
+    const minPanY = -(bounds.maxY - viewportHeight);
+    
+    const constrainedX = Math.max(minPanX, Math.min(maxPanX, centeredPanX));
+    const constrainedY = Math.max(minPanY, Math.min(maxPanY, centeredPanY));
+    
+    setPanOffset({ x: constrainedX, y: constrainedY });
+    
+    return { x: constrainedX, y: constrainedY };
+  };
+
   // Normalize workspace coordinates to center around (0,0)
   const normalizeWorkspaceCoordinates = () => {
     // Calculate the center of the current workspace
@@ -936,8 +977,13 @@ function App() {
     if (newLayoutMode) {
       // Initialize collision matrix when entering layout mode
       initializeCollisionMatrix();
+      
+      // Center the view on the workspace when entering layout mode
+      setTimeout(() => {
+        centerViewOnWorkspace();
+      }, 50);
     } else {
-      // When exiting layout mode, normalize coordinates to center around (0,0)
+      // When exiting layout mode, normalize coordinates and center view
       const normalization = normalizeWorkspaceCoordinates();
       
       // Save the normalized layout first
@@ -946,9 +992,14 @@ function App() {
       // Apply normalized positions and bounds to state
       setPanelPositions(normalization.normalizedPositions);
       setWorkspaceBounds(normalization.normalizedBounds);
-      setPanOffset(normalization.newPanOffset);
       
       setCollisionMatrix(null);
+      
+      // Center the view on the core workspace after normalization
+      // Use a small delay to ensure state updates are applied
+      setTimeout(() => {
+        centerViewOnWorkspace();
+      }, 50);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
     }
