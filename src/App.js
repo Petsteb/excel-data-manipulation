@@ -855,20 +855,41 @@ function App() {
     return newBounds;
   };
 
-  // Center view on the core workspace area (panels + buffer)
+  // Center view on the actual panel positions
   const centerViewOnWorkspace = () => {
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    
+    // Calculate the actual bounds of all panels based on current positions
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    
+    Object.values(panelPositions).forEach(pos => {
+      const x = pos.x || 0;
+      const y = pos.y || 0;
+      const width = pos.width || DEFAULT_PANEL_WIDTH;
+      const height = pos.height || DEFAULT_PANEL_HEIGHT;
+      
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
+    });
+    
+    // If no panels exist, use default center
+    if (!isFinite(minX)) {
+      setPanOffset({ x: 0, y: 0 });
+      return { x: 0, y: 0 };
+    }
+    
+    // Calculate the center of all panels
+    const panelsCenterX = (minX + maxX) / 2;
+    const panelsCenterY = (minY + maxY) / 2;
+    
+    // Calculate pan offset to center the panels in the viewport
+    const centeredPanX = -(panelsCenterX - viewportWidth / 2);
+    const centeredPanY = -(panelsCenterY - viewportHeight / 2);
+    
+    // Get current workspace bounds for constraints
     const bounds = calculateWorkspaceBounds();
-    
-    // Calculate the center of the core workspace (where panels actually are)
-    const coreWidth = bounds.coreMaxX - bounds.coreMinX;
-    const coreHeight = bounds.coreMaxY - bounds.coreMinY;
-    const coreCenterX = bounds.coreMinX + (coreWidth / 2);
-    const coreCenterY = bounds.coreMinY + (coreHeight / 2);
-    
-    // Calculate pan offset to center the core workspace in the viewport
-    const centeredPanX = -(coreCenterX - viewportWidth / 2);
-    const centeredPanY = -(coreCenterY - viewportHeight / 2);
     
     // Apply panning constraints to ensure we stay within extended boundaries
     const maxPanX = -bounds.minX;
@@ -995,11 +1016,11 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Center the view on the core workspace after normalization
-      // Use a small delay to ensure state updates are applied
+      // Center the view on the panels after normalization
+      // Use a longer delay to ensure state updates are fully applied
       setTimeout(() => {
         centerViewOnWorkspace();
-      }, 50);
+      }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
     }
