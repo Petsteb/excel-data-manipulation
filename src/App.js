@@ -745,27 +745,29 @@ function App() {
       return { x, y };
     }
     
-    // Search for valid position in a spiral pattern, allowing unlimited expansion
-    const maxSearchRadius = Math.max(workspaceBounds.maxX - workspaceBounds.minX, workspaceBounds.maxY - workspaceBounds.minY) * 2;
+    // Search for valid position in a spiral pattern within extended boundaries
+    const maxSearchRadius = Math.max(workspaceBounds.maxX - workspaceBounds.minX, workspaceBounds.maxY - workspaceBounds.minY) / 2;
     
     for (let radius = GRID_SIZE; radius < maxSearchRadius; radius += GRID_SIZE) {
       for (let angle = 0; angle < 360; angle += 45) {
         const testX = snapToGrid(x + Math.cos(angle * Math.PI / 180) * radius);
         const testY = snapToGrid(y + Math.sin(angle * Math.PI / 180) * radius);
         
-        // Allow any position - no boundary restrictions
-        if (!checkCollision(elementId, testX, testY, width, height)) {
+        // Allow positions within extended boundaries
+        if (testX >= workspaceBounds.minX && testX + width <= workspaceBounds.maxX &&
+            testY >= workspaceBounds.minY && testY + height <= workspaceBounds.maxY &&
+            !checkCollision(elementId, testX, testY, width, height)) {
           return { x: testX, y: testY };
         }
       }
     }
     
-    // Fallback: find next available grid position by scanning workspace + expansion area
+    // Fallback: find next available grid position within extended boundaries
     if (collisionMatrix) {
-      const startX = Math.min(0, workspaceBounds.minX - GRID_SIZE * 10);
-      const startY = Math.min(0, workspaceBounds.minY - GRID_SIZE * 10);
-      const endX = workspaceBounds.maxX + GRID_SIZE * 10;
-      const endY = workspaceBounds.maxY + GRID_SIZE * 10;
+      const startX = workspaceBounds.minX;
+      const startY = workspaceBounds.minY;
+      const endX = workspaceBounds.maxX - width;
+      const endY = workspaceBounds.maxY - height;
       
       for (let testY = startY; testY < endY; testY += GRID_SIZE) {
         for (let testX = startX; testX < endX; testX += GRID_SIZE) {
@@ -791,7 +793,7 @@ function App() {
     let minY = 0;
     let maxY = viewportHeight;
     
-    // Calculate bounds from all panels and buttons
+    // Calculate core bounds from all panels and buttons
     Object.values(panelPositions).forEach(pos => {
       const x = pos.x || 0;
       const y = pos.y || 0;
@@ -804,14 +806,34 @@ function App() {
       maxY = Math.max(maxY, y + height);
     });
     
-    // Add buffer around objects
+    // Add buffer around objects for core workspace
     const buffer = GRID_SIZE * 5;
-    minX -= buffer;
-    minY -= buffer;
-    maxX += buffer;
-    maxY += buffer;
+    const coreMinX = minX - buffer;
+    const coreMinY = minY - buffer;
+    const coreMaxX = maxX + buffer;
+    const coreMaxY = maxY + buffer;
     
-    return { minX, maxX, minY, maxY };
+    // Calculate core workspace dimensions
+    const coreWidth = coreMaxX - coreMinX;
+    const coreHeight = coreMaxY - coreMinY;
+    
+    // Create extended boundaries: 3x the core dimensions in each direction
+    const extendedMinX = coreMinX - (coreWidth * 2); // 2x additional on left (total 3x)
+    const extendedMaxX = coreMaxX + (coreWidth * 2); // 2x additional on right (total 3x)
+    const extendedMinY = coreMinY - (coreHeight * 2); // 2x additional on top (total 3x)
+    const extendedMaxY = coreMaxY + (coreHeight * 2); // 2x additional on bottom (total 3x)
+    
+    return { 
+      minX: extendedMinX, 
+      maxX: extendedMaxX, 
+      minY: extendedMinY, 
+      maxY: extendedMaxY,
+      // Store core bounds for reference
+      coreMinX,
+      coreMaxX,
+      coreMinY,
+      coreMaxY
+    };
   };
 
   // Update workspace boundaries
@@ -882,9 +904,9 @@ function App() {
     const bounds = calculateWorkspaceBounds();
     setWorkspaceBounds(bounds);
     
-    // Create matrix large enough to cover workspace + expansion buffer
-    const matrixWidth = bounds.maxX - bounds.minX + GRID_SIZE * 20;
-    const matrixHeight = bounds.maxY - bounds.minY + GRID_SIZE * 20;
+    // Create matrix large enough to cover extended workspace boundaries
+    const matrixWidth = bounds.maxX - bounds.minX;
+    const matrixHeight = bounds.maxY - bounds.minY;
     
     const matrix = new CollisionMatrix(matrixWidth, matrixHeight);
     
