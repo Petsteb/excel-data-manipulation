@@ -659,7 +659,7 @@ function App() {
   };
 
   // Matrix-based collision detection
-  const checkCollisionMatrix = (elementId, worldX, worldY, width, height) => {
+  const checkCollisionMatrix = (elementId, worldX, worldY, width, height, useInitialPosition = false) => {
     if (!collisionMatrix) {
       return false; // No matrix available, allow movement
     }
@@ -678,17 +678,33 @@ function App() {
       }
     }
     
-    // Clear the current element from the matrix
-    const currentPos = panelPositions[elementId];
-    if (currentPos) {
-      const currentMatrixX = (currentPos.x || 0) - workspaceBounds.minX;
-      const currentMatrixY = (currentPos.y || 0) - workspaceBounds.minY;
-      const currentWidth = currentPos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
-      const currentHeight = currentPos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+    // Clear the element from its original position during drag operations
+    let clearX, clearY, clearWidth, clearHeight;
+    
+    if (useInitialPosition && draggedElement && draggedElement.id === elementId) {
+      // During drag: use the initial position that was stored at drag start
+      clearX = initialPanelPosition.x;
+      clearY = initialPanelPosition.y;
+      const currentPos = panelPositions[elementId];
+      clearWidth = currentPos?.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+      clearHeight = currentPos?.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+    } else {
+      // Normal operation: use current position
+      const currentPos = panelPositions[elementId];
+      if (!currentPos) return false;
       
-      if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-        tempMatrix.setCells(currentMatrixX, currentMatrixY, currentWidth, currentHeight, 0);
-      }
+      clearX = currentPos.x || 0;
+      clearY = currentPos.y || 0;
+      clearWidth = currentPos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+      clearHeight = currentPos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+    }
+    
+    // Convert to matrix coordinates and clear the original position
+    const clearMatrixX = clearX - workspaceBounds.minX;
+    const clearMatrixY = clearY - workspaceBounds.minY;
+    
+    if (clearMatrixX >= 0 && clearMatrixY >= 0) {
+      tempMatrix.setCells(clearMatrixX, clearMatrixY, clearWidth, clearHeight, 0);
     }
     
     // Check if the new position would be valid
@@ -696,10 +712,10 @@ function App() {
   };
 
   // Legacy AABB collision detection (fallback)
-  const checkCollision = (elementId, x, y, width, height) => {
+  const checkCollision = (elementId, x, y, width, height, useInitialPosition = false) => {
     // Use matrix-based collision detection if available
     if (collisionMatrix) {
-      return checkCollisionMatrix(elementId, x, y, width, height);
+      return checkCollisionMatrix(elementId, x, y, width, height, useInitialPosition);
     }
     
     // Fallback to AABB collision detection
@@ -974,6 +990,39 @@ function App() {
     }
   };
 
+  // Rebuild collision matrix from current panel positions
+  const rebuildCollisionMatrix = () => {
+    if (!collisionMatrix) return null;
+    
+    // Clear the entire matrix
+    for (let row = 0; row < collisionMatrix.rows; row++) {
+      for (let col = 0; col < collisionMatrix.cols; col++) {
+        collisionMatrix.matrix[row][col] = 0;
+      }
+    }
+    
+    // Repopulate matrix with current panel positions
+    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+      const x = (pos.x || 0) - workspaceBounds.minX;
+      const y = (pos.y || 0) - workspaceBounds.minY;
+      const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+      const height = pos.height || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+      
+      if (x >= 0 && y >= 0) {
+        // Expand matrix if needed
+        const requiredWidth = x + width + GRID_SIZE * 2;
+        const requiredHeight = y + height + GRID_SIZE * 2;
+        if (requiredWidth > collisionMatrix.width || requiredHeight > collisionMatrix.height) {
+          collisionMatrix.expandMatrix(requiredWidth, requiredHeight);
+        }
+        
+        collisionMatrix.setCells(x, y, width, height, 1);
+      }
+    });
+    
+    return collisionMatrix;
+  };
+
   // Initialize collision matrix with current panel positions
   const initializeCollisionMatrix = () => {
     // Calculate initial workspace bounds
@@ -1011,7 +1060,12 @@ function App() {
     
     if (newLayoutMode) {
       // Initialize collision matrix when entering layout mode
-      initializeCollisionMatrix();
+      const matrix = initializeCollisionMatrix();
+      
+      // Rebuild the matrix to ensure it's in sync with current panel positions
+      setTimeout(() => {
+        rebuildCollisionMatrix();
+      }, 10);
       
       // Center the view on the workspace when entering layout mode
       setTimeout(() => {
@@ -1145,8 +1199,8 @@ function App() {
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Check for collisions at the snapped position
-    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
+    // Check for collisions at the snapped position (use initial position during drag)
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height, true);
     
     // Update panel position in real-time during drag
     // If no collision, move to snapped position; otherwise keep previous position
@@ -1189,8 +1243,8 @@ function App() {
     const snappedX = snapToGrid(elementX);
     const snappedY = snapToGrid(elementY);
     
-    // Check for collisions at the snapped position
-    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height);
+    // Check for collisions at the snapped position (use initial position during drag)
+    const hasCollision = checkCollision(draggedElement.id, snappedX, snappedY, width, height, true);
     
     // Update collision matrix with final position
     if (collisionMatrix) {
