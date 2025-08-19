@@ -1779,25 +1779,26 @@
 .summary-stats-compact {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .stats-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .stat-item {
   flex: 1;
   text-align: center;
-  padding: 8px 12px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s ease;
+  min-width: 85px;
 }
 
 .stat-item:hover {
@@ -1806,23 +1807,25 @@
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #6b7280;
   font-weight: 500;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 
 .stat-value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #1f2937;
+  line-height: 1.2;
 }
 
 .header-match-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 14px;
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1868,10 +1871,10 @@
 .merged-actions {
   text-align: center;
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .view-action {
