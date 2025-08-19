@@ -2354,23 +2354,25 @@ function App() {
                         <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
                         {columnSampleData[index] !== null && columnSampleData[index] !== undefined && (
                           <div className="column-sample" style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--text-secondary)',
-                            marginTop: '8px',
-                            padding: '6px 10px',
-                            backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.05))',
-                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            color: 'var(--text-primary)',
+                            marginTop: '12px',
+                            padding: '12px 14px',
+                            backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.08))',
+                            borderRadius: '8px',
                             fontStyle: 'italic',
-                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.2))',
+                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.3))',
                             wordBreak: 'break-word',
-                            lineHeight: '1.4',
-                            maxHeight: '3em',
+                            lineHeight: '1.5',
+                            minHeight: '60px',
+                            maxHeight: '80px',
                             overflow: 'hidden',
                             display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical'
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            flex: '1'
                           }}>
-                            💭 Example: "{String(columnSampleData[index]).substring(0, 60)}{String(columnSampleData[index]).length > 60 ? '...' : ''}"
+                            💭 Example: "{String(columnSampleData[index]).substring(0, 80)}{String(columnSampleData[index]).length > 80 ? '...' : ''}"
                           </div>
                         )}
                         <div className="column-info">

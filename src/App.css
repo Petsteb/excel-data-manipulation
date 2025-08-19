@@ -1917,18 +1917,18 @@
 }
 
 .column-btn {
-  padding: 18px;
+  padding: 20px;
   border: 1.5px solid var(--theme-border-color, rgba(255, 255, 255, 0.2));
   border-radius: 12px;
   background: var(--theme-card-bg, rgba(255, 255, 255, 0.05));
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-  min-height: 120px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 12px;
   color: var(--text-primary);
 }
 
