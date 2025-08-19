@@ -621,7 +621,7 @@ function looksLikeDate(value) {
     return true;
   }
   
-  // If it's a string, check common date patterns
+  // If it's a string, check common date patterns - ensure complete match with no extra characters
   if (typeof value === 'string') {
     const trimmedValue = value.toString().trim();
     const datePatterns = [
@@ -630,8 +630,8 @@ function looksLikeDate(value) {
       /^\d{1,2}-\d{1,2}-\d{4}$/, // MM-DD-YYYY
       /^\d{1,2}\.\d{1,2}\.\d{4}$/, // DD.MM.YYYY (European format)
       /^\d{1,2}\/\d{1,2}\/\d{2}$/, // MM/DD/YY
-      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i, // Month names
-      /^\d{1,2}[-\/]\w{3}[-\/]\d{4}$/i // DD-MMM-YYYY
+      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}$/i, // Month names with complete format
+      /^\d{1,2}[-\/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[-\/]\d{4}$/i // DD-MMM-YYYY
     ];
     
     // Additional validation: if it matches a date pattern, validate the numbers
