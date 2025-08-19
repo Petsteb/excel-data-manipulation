@@ -61,7 +61,7 @@
 
 .language-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 32px;
   right: 0;
   background: var(--glass-bg, rgba(255, 255, 255, 0.85));
   backdrop-filter: blur(25px);
@@ -75,8 +75,8 @@
   min-width: 200px;
   max-height: 400px;
   overflow: hidden;
-  z-index: 1000;
-  position: relative;
+  z-index: 10000;
+  pointer-events: auto;
 }
 
 .language-dropdown-header {
