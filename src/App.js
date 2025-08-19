@@ -8,6 +8,35 @@ import dashboardIcon from './dashboard.png';
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
+
+// Universal Tooltip Component
+const Tooltip = ({ content, position = "top" }) => {
+  return (
+    <div className="tooltip-wrapper">
+      <div 
+        className="tooltip-indicator"
+        style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          border: '1px solid var(--theme-border-color, #ccc)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '11px',
+          color: 'var(--theme-text-color, #333)',
+          cursor: 'help',
+          backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
+        }}
+      >
+        i
+      </div>
+      <div className="tooltip-content">
+        {content}
+      </div>
+    </div>
+  );
+};
 const DEFAULT_BUTTON_SIZE = 80;
 
 // Collision Detection Matrix Class
@@ -2031,24 +2060,7 @@ function App() {
                       fontSize: '0.9em',
                       whiteSpace: 'nowrap'
                     }}>{t('headerNumberOfRows')}</label>
-                    <div 
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        border: '1px solid var(--theme-border-color, #ccc)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        color: 'var(--theme-text-color, #333)',
-                        cursor: 'help',
-                        backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
-                      }}
-                      title="The number of lines that is common at the beggining of all the uploaded files, like the column names."
-                    >
-                      i
-                    </div>
+                    <Tooltip content="The number of lines that is common at the beggining of all the uploaded files, like the column names." />
                   </div>
                   <input
                     type="number"
@@ -2082,24 +2094,7 @@ function App() {
                       fontSize: '0.9em',
                       whiteSpace: 'nowrap'
                     }}>{t('columnsRow')}</label>
-                    <div 
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        border: '1px solid var(--theme-border-color, #ccc)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        color: 'var(--theme-text-color, #333)',
-                        cursor: 'help',
-                        backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
-                      }}
-                      title="The row that contains the name of the columns."
-                    >
-                      i
-                    </div>
+                    <Tooltip content="The row that contains the name of the columns." />
                   </div>
                   <input
                     type="number"
@@ -2164,7 +2159,7 @@ function App() {
                     gap: '8px'
                   }}>
                     Found {selectedDateColumns.length} date columns
-                    <div className="tooltip-trigger" title="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on 'View Columns'. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type."></div>
+                    <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on 'View Columns'. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
                   </p>
                   <button 
                     className="btn btn-primary"

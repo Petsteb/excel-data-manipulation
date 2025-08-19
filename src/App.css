@@ -991,7 +991,12 @@
   color: inherit !important;
 }
 
-/* Tooltip styling */
+/* Universal Tooltip Component */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .tooltip-trigger {
   cursor: help;
   margin-left: 4px;
@@ -1013,15 +1018,61 @@
   transform: scale(1.1);
 }
 
-/* Dark theme tooltip icon */
-.App.dark-theme .tooltip-trigger {
-  filter: brightness(0) saturate(100%) invert(99%) sepia(3%) saturate(82%) hue-rotate(58deg) brightness(118%) contrast(100%);
+/* Glass morphism tooltip content */
+.tooltip-content {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  max-width: 280px;
+  min-width: 200px;
+  box-shadow: 
+    0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+    inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8));
+  z-index: 1000;
+  white-space: normal;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
 }
 
-.App.dark-theme .tooltip-trigger:hover {
-  filter: brightness(0) saturate(100%) invert(85%) sepia(3%) saturate(25%) hue-rotate(318deg) brightness(104%) contrast(97%);
-  transform: scale(1.1);
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--glass-bg, rgba(255, 255, 255, 0.95));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
+
+.tooltip-wrapper:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltip-indicator:hover {
+  transform: scale(1.05);
+  border-color: var(--theme-primary, #4f46e5);
+  background-color: var(--theme-primary, rgba(79, 70, 229, 0.1));
+}
+
 
 /* Align panel content with title */
 .xy-selection-section .section-content {
