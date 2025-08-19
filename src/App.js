@@ -2354,19 +2354,23 @@ function App() {
                         <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
                         {columnSampleData[index] !== null && columnSampleData[index] !== undefined && (
                           <div className="column-sample" style={{
-                            fontSize: '0.75rem',
+                            fontSize: '0.8rem',
                             color: 'var(--text-secondary)',
-                            marginTop: '6px',
-                            padding: '4px 8px',
+                            marginTop: '8px',
+                            padding: '6px 10px',
                             backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.05))',
                             borderRadius: '6px',
                             fontStyle: 'italic',
+                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.2))',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.4',
+                            maxHeight: '3em',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.2))'
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
                           }}>
-                            💭 Example: "{String(columnSampleData[index]).substring(0, 45)}{String(columnSampleData[index]).length > 45 ? '...' : ''}"
+                            💭 Example: "{String(columnSampleData[index]).substring(0, 60)}{String(columnSampleData[index]).length > 60 ? '...' : ''}"
                           </div>
                         )}
                         <div className="column-info">
