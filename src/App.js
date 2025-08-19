@@ -212,6 +212,7 @@ function App() {
     minY: 0,
     maxY: 800   // Initial viewport height
   });
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
   // Load settings on app start
   useEffect(() => {
@@ -1891,6 +1892,14 @@ function App() {
         >
           <img src={dashboardIcon} alt="Layout" className="layout-icon" />
         </button>
+        <button 
+          className={`layout-button ${isDeveloperMode ? 'active' : ''}`}
+          onClick={() => setIsDeveloperMode(!isDeveloperMode)}
+          title="Toggle Developer Mode"
+          style={{ fontSize: '14px', fontWeight: 'bold' }}
+        >
+          DEV
+        </button>
       </div>
       
       {(processingSummary || filesData.length > 0) && (
@@ -1937,6 +1946,22 @@ function App() {
             />
           )}
           <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                upload-panel
+              </div>
+            )}
             <h3 style={{ textAlign: 'center' }}>{t('uploadTitle')}</h3>
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
@@ -1977,6 +2002,22 @@ function App() {
             />
           )}
           <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                files-summary-panel
+              </div>
+            )}
             <h3 style={{ textAlign: 'center' }}>{t('uploadedFilesSummary')}</h3>
             {filesData.length > 0 ? (
               <div className="file-summary" style={{
@@ -2033,6 +2074,22 @@ function App() {
             />
           )}
           <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                header-selection-panel
+              </div>
+            )}
             <h3 style={{ textAlign: 'center' }}>{t('headerColumnsSelection')}</h3>
             {filesData.length > 0 ? (
               <div className="input-controls" style={{
@@ -2143,6 +2200,22 @@ function App() {
             />
           )}
           <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                date-columns-panel
+              </div>
+            )}
             <h3 style={{ textAlign: 'center' }}>{t('dateColumnsTitle')}</h3>
             {columnNames.length > 0 ? (
               <div>
@@ -2227,6 +2300,22 @@ function App() {
               onMouseDown={(e) => handleResizeStart(e, 'merge-button')}
             />
           )}
+          {isDeveloperMode && (
+            <div style={{ 
+              position: 'absolute', 
+              top: '4px', 
+              right: '4px', 
+              fontSize: '10px', 
+              color: 'var(--theme-text-color, #666)', 
+              backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+              padding: '2px 4px', 
+              borderRadius: '2px',
+              fontFamily: 'monospace',
+              zIndex: 1000
+            }}>
+              merge-button
+            </div>
+          )}
           <button 
             className="merge-button" 
             onClick={handleMergeFiles}
@@ -2260,6 +2349,22 @@ function App() {
             />
           )}
           <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                merged-summary-panel
+              </div>
+            )}
             <h3>{t('mergedFilesSummary')}</h3>
             {processingSummary ? (
               <div className="merged-summary">
@@ -2300,6 +2405,22 @@ function App() {
         {showUploadedFilesPopup && (
           <div className="popup-overlay" onClick={() => setShowUploadedFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              {isDeveloperMode && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '4px', 
+                  right: '4px', 
+                  fontSize: '10px', 
+                  color: 'var(--theme-text-color, #666)', 
+                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  padding: '2px 4px', 
+                  borderRadius: '2px',
+                  fontFamily: 'monospace',
+                  zIndex: 1000
+                }}>
+                  uploaded-files-popup
+                </div>
+              )}
               <div className="popup-header">
                 <h3>All Uploaded Files</h3>
                 <button className="close-btn" onClick={() => setShowUploadedFilesPopup(false)}>×</button>
@@ -2336,6 +2457,22 @@ function App() {
         {showDateColumnsPopup && (
           <div className="popup-overlay" onClick={() => setShowDateColumnsPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              {isDeveloperMode && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '4px', 
+                  right: '4px', 
+                  fontSize: '10px', 
+                  color: 'var(--theme-text-color, #666)', 
+                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  padding: '2px 4px', 
+                  borderRadius: '2px',
+                  fontFamily: 'monospace',
+                  zIndex: 1000
+                }}>
+                  date-columns-popup
+                </div>
+              )}
               <div className="popup-header">
                 <h3>All Columns - Select/Deselect Date Columns</h3>
                 <button className="close-btn" onClick={() => setShowDateColumnsPopup(false)}>×</button>
