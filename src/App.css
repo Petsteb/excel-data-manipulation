@@ -630,9 +630,12 @@
 .file-list {
   margin-top: 20px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 12px;
-  border: 1px solid rgba(203, 213, 225, 0.3);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 16px var(--glass-shadow, rgba(0, 0, 0, 0.1));
 }
 
 .file-list-header {
@@ -885,9 +888,13 @@
 .processing-summary {
   margin-bottom: 30px;
   padding: 25px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border-radius: 16px;
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 16px var(--glass-shadow, rgba(0, 0, 0, 0.1));
+  position: relative;
 }
 
 .processing-summary h3 {
@@ -1062,10 +1069,14 @@
 }
 
 .file-details {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(14, 165, 233, 0.1);
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 16px var(--glass-shadow, rgba(0, 0, 0, 0.1));
+  position: relative;
 }
 
 .file-details h4 {
@@ -1089,11 +1100,14 @@
 /* Collapsible Sections */
 .collapsible-section {
   margin-bottom: 25px;
-  border: 1px solid rgba(203, 213, 225, 0.4);
-  border-radius: 12px;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 16px var(--glass-shadow, rgba(0, 0, 0, 0.1));
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
 }
 
 .section-header {
@@ -1270,9 +1284,13 @@
 /* Other Columns Section */
 .other-columns-section {
   margin-top: 25px;
-  border: 1px solid rgba(203, 213, 225, 0.3);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 16px var(--glass-shadow, rgba(0, 0, 0, 0.1));
+  position: relative;
 }
 
 .other-columns-section summary {

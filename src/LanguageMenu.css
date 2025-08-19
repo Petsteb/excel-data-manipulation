@@ -63,23 +63,32 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: var(--theme-card-bg);
-  border: 1px solid var(--theme-border-color);
-  border-radius: 12px;
-  box-shadow: var(--theme-shadow);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 
+    0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+    inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+    inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05));
   min-width: 200px;
   max-height: 400px;
-  overflow-y: auto;
+  overflow: hidden;
   z-index: 1000;
-  backdrop-filter: blur(20px);
+  position: relative;
 }
 
 .language-dropdown-header {
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--theme-border-color);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  padding: 20px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .language-dropdown-header h3 {
@@ -91,6 +100,10 @@
 
 .language-options {
   padding: 12px 0;
+  position: relative;
+  z-index: 2;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .language-option {
@@ -134,10 +147,37 @@
   font-size: 1.1rem;
 }
 
-/* Dark theme specific styles */
-.App.dark-theme .language-dropdown {
-  background: rgba(30, 41, 59, 0.95);
-  backdrop-filter: blur(20px);
+/* Glass morphism pseudo-elements */
+.language-dropdown::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--glass-highlight, rgba(255, 255, 255, 0.6)),
+    transparent
+  );
+  z-index: 1;
+}
+
+.language-dropdown::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-highlight, rgba(255, 255, 255, 0.6)),
+    transparent,
+    var(--glass-highlight, rgba(255, 255, 255, 0.2))
+  );
+  z-index: 1;
 }
 
 .App.dark-theme .language-dropdown-header h3 {
