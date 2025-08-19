@@ -756,13 +756,13 @@ function App() {
       minWidth = Math.max(minWidth, 280);
       minHeight = Math.max(minHeight, 200);
     } else if (elementId === 'merged-summary-panel') {
-      // 3 stat items (95px each) + gaps (8px each) + padding (32px) + View Summary button space
-      minWidth = Math.max(minWidth, 320);
-      minHeight = Math.max(minHeight, 180);
+      // 3 stat items + View Summary button + Download/Open buttons + all padding
+      minWidth = Math.max(minWidth, 360);
+      minHeight = Math.max(minHeight, 220);
     } else if (elementId === 'header-selection-panel') {
-      // 2 input groups side by side with labels and inputs
-      minWidth = Math.max(minWidth, 320);
-      minHeight = Math.max(minHeight, 200);
+      // 2 input groups side by side with proper spacing for both groups to be visible
+      minWidth = Math.max(minWidth, 380);
+      minHeight = Math.max(minHeight, 240);
     } else if (elementId === 'date-columns-panel') {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
