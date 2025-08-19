@@ -61,7 +61,7 @@
 
 .theme-dropdown {
   position: absolute;
-  top: 48px;
+  top: 32px;
   right: 0;
   width: 300px;
   max-height: 80vh;
@@ -78,7 +78,8 @@
   animation: fadeInScale 0.2s ease-out;
   display: flex;
   flex-direction: column;
-  position: relative;
+  z-index: 10000;
+  pointer-events: auto;
 }
 
 /* Glass morphism pseudo-elements */
