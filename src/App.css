@@ -1790,7 +1790,6 @@
   padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -1798,12 +1797,6 @@
 .stat-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.stat-icon {
-  font-size: 16px;
-  width: 24px;
-  text-align: center;
 }
 
 .stat-info {
@@ -1834,8 +1827,9 @@
 }
 
 .header-match-badge.success {
-  background: #d1fae5;
+  background: transparent;
   color: #059669;
+  border: 2px dotted #059669;
 }
 
 .header-match-badge.warning {
@@ -1887,64 +1881,84 @@
   width: 100%;
 }
 
-/* Enhanced Modal Styles */
-.merged-summary-modal {
-  width: 600px;
-  max-height: 80vh;
-}
-
-.merged-files-detailed {
+/* Files Grid - Matching Date Columns Panel Design */
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
   max-height: 400px;
   overflow-y: auto;
   margin-bottom: 20px;
+  padding: 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  background: #f9fafb;
 }
 
-.merged-file-item {
-  border-bottom: 1px solid #f3f4f6;
-  padding: 16px;
-}
-
-.merged-file-item:last-child {
-  border-bottom: none;
-}
-
-.file-info-merged {
+.file-item {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: default;
+  transition: all 0.2s ease;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  min-height: 80px;
 }
 
-.file-name-merged {
+.file-item:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.file-item.match {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.file-item.no-match {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.file-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-name {
   font-weight: 600;
   color: #1f2937;
-  font-size: 16px;
-  flex: 1;
-}
-
-.file-rows-merged {
-  color: #6b7280;
   font-size: 14px;
+  margin-bottom: 4px;
 }
 
-.header-status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
+.file-rows {
+  color: #6b7280;
   font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.file-status {
+  font-size: 11px;
   font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
   white-space: nowrap;
 }
 
-.header-status-badge.match {
+.file-status.match {
   background: #d1fae5;
   color: #059669;
 }
 
-.header-status-badge.no-match {
+.file-status.no-match {
   background: #fed7d7;
-  color: #e53e3e;
+  color: #dc2626;
 }
 
 /* Summary Totals Grid */
@@ -1990,14 +2004,6 @@
   color: #f9fafb;
 }
 
-.App.dark-theme .file-name-merged {
-  color: #f9fafb;
-}
-
-.App.dark-theme .file-rows-merged {
-  color: #9ca3af;
-}
-
 .App.dark-theme .total-card {
   background: var(--theme-card-bg);
   border-color: rgba(255, 255, 255, 0.1);
@@ -2011,12 +2017,32 @@
   color: #f9fafb;
 }
 
-.App.dark-theme .merged-files-detailed {
+.App.dark-theme .files-grid {
+  background: var(--theme-background);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.App.dark-theme .merged-file-item {
-  border-color: rgba(255, 255, 255, 0.05);
+.App.dark-theme .file-item {
+  background: var(--theme-card-bg);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.App.dark-theme .file-item.match {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.App.dark-theme .file-item.no-match {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.App.dark-theme .file-name {
+  color: #f9fafb;
+}
+
+.App.dark-theme .file-rows {
+  color: #9ca3af;
 }
 
 .primary-actions button {

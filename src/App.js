@@ -2394,7 +2394,6 @@ function App() {
               <div className="merged-summary">
                 <div className="summary-stats-grid">
                   <div className="stat-card">
-                    <div className="stat-icon">✅</div>
                     <div className="stat-info">
                       <div className="stat-label">{t('filesMerged')}</div>
                       <div className="stat-value">{processingSummary.filesProcessed}</div>
@@ -2402,7 +2401,6 @@ function App() {
                   </div>
                   
                   <div className="stat-card">
-                    <div className="stat-icon">📊</div>
                     <div className="stat-info">
                       <div className="stat-label">{t('totalDataRows')}</div>
                       <div className="stat-value">{processingSummary.totalDataRows}</div>
@@ -2410,15 +2408,6 @@ function App() {
                   </div>
                   
                   <div className="stat-card">
-                    <div className="stat-icon">📄</div>
-                    <div className="stat-info">
-                      <div className="stat-label">{t('commonHeaderRows')}</div>
-                      <div className="stat-value">{processingSummary.commonHeaderRows}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-icon">🔍</div>
                     <div className="stat-info">
                       <div className="stat-label">{t('columnHeadersMatch')}</div>
                       <div className="stat-value">
@@ -2435,7 +2424,7 @@ function App() {
                     className="btn btn-view"
                     onClick={() => setShowMergedFilesPopup(true)}
                   >
-                    {t('viewSummary') || 'View Summary'}
+                    View Summary
                   </button>
                 </div>
                 
@@ -2600,13 +2589,29 @@ function App() {
         
         {showMergedFilesPopup && processingSummary && (
           <div className="popup-overlay" onClick={() => setShowMergedFilesPopup(false)}>
-            <div className="popup-content merged-summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              {isDeveloperMode && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '4px', 
+                  right: '4px', 
+                  fontSize: '10px', 
+                  color: 'var(--theme-text-color, #666)', 
+                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  padding: '2px 4px', 
+                  borderRadius: '2px',
+                  fontFamily: 'monospace',
+                  zIndex: 1000
+                }}>
+                  merged-files-popup
+                </div>
+              )}
               <div className="popup-header">
-                <h3>{t('mergedFilesSummary') || 'Merged Files Summary'}</h3>
+                <h3>Merged Files Summary</h3>
                 <button className="close-btn" onClick={() => setShowMergedFilesPopup(false)}>×</button>
               </div>
               <div className="popup-body">
-                <div className="merged-files-detailed">
+                <div className="files-grid">
                   {processingSummary.fileDetails && 
                     // Sort files - non-matching first, then matching
                     [...processingSummary.fileDetails]
@@ -2616,11 +2621,11 @@ function App() {
                         return a.headerMatch ? 1 : -1;
                       })
                       .map((file, index) => (
-                        <div key={index} className="merged-file-item">
-                          <div className="file-info-merged">
-                            <div className="file-name-merged">{file.fileName}</div>
-                            <div className="file-rows-merged">{file.dataRows} rows</div>
-                            <div className={`header-status-badge ${file.headerMatch ? 'match' : 'no-match'}`}>
+                        <div key={index} className={`file-item ${file.headerMatch ? 'match' : 'no-match'}`}>
+                          <div className="file-content">
+                            <div className="file-name">{file.fileName}</div>
+                            <div className="file-rows">{file.dataRows} rows</div>
+                            <div className={`file-status ${file.headerMatch ? 'match' : 'no-match'}`}>
                               {file.headerMatch ? '✓ Headers match' : '⚠ Headers differ'}
                             </div>
                           </div>
