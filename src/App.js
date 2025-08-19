@@ -165,6 +165,7 @@ function App() {
   const [createdFilePath, setCreatedFilePath] = useState('');
   const [status, setStatus] = useState('');
   const [processingSummary, setProcessingSummary] = useState(null);
+  const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('professional');
   const [isLoading, setIsLoading] = useState(true);
   const [columnNamesRow, setColumnNamesRow] = useState(1);
@@ -2391,21 +2392,64 @@ function App() {
             <h3>{t('mergedFilesSummary')}</h3>
             {processingSummary ? (
               <div className="merged-summary">
-                <div className="summary-stats">
-                  <div>Files: {processingSummary.filesProcessed}</div>
-                  <div>Rows: {processingSummary.totalDataRows}</div>
+                <div className="summary-stats-grid">
+                  <div className="stat-card">
+                    <div className="stat-icon">✅</div>
+                    <div className="stat-info">
+                      <div className="stat-label">{t('filesMerged')}</div>
+                      <div className="stat-value">{processingSummary.filesProcessed}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="stat-card">
+                    <div className="stat-icon">📊</div>
+                    <div className="stat-info">
+                      <div className="stat-label">{t('totalDataRows')}</div>
+                      <div className="stat-value">{processingSummary.totalDataRows}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="stat-card">
+                    <div className="stat-icon">📄</div>
+                    <div className="stat-info">
+                      <div className="stat-label">{t('commonHeaderRows')}</div>
+                      <div className="stat-value">{processingSummary.commonHeaderRows}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="stat-card">
+                    <div className="stat-icon">🔍</div>
+                    <div className="stat-info">
+                      <div className="stat-label">{t('columnHeadersMatch')}</div>
+                      <div className="stat-value">
+                        <span className={`header-match-badge ${(processingSummary.matchingFiles || 0) === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
+                          {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
+                <div className="summary-actions">
+                  <button 
+                    className="btn btn-view"
+                    onClick={() => setShowMergedFilesPopup(true)}
+                  >
+                    {t('viewSummary') || 'View Summary'}
+                  </button>
+                </div>
+                
                 <div className="merged-actions">
                   <button className="btn btn-primary" onClick={handleDownloadFile}>
-                    Download
+                    {t('download') || 'Download'}
                   </button>
                   <button className="btn btn-secondary" onClick={handleOpenFile}>
-                    Open
+                    {t('open') || 'Open'}
                   </button>
                 </div>
               </div>
             ) : (
-              <p>Merge results will appear here</p>
+              <p>{t('mergeResultsWillAppearHere') || 'Merge results will appear here'}</p>
             )}
           </div>
         </div>
@@ -2554,41 +2598,52 @@ function App() {
         )}
 
         
-        {false && (
+        {showMergedFilesPopup && processingSummary && (
           <div className="popup-overlay" onClick={() => setShowMergedFilesPopup(false)}>
-            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-content merged-summary-modal" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
-                <h3>Merged Files Summary</h3>
+                <h3>{t('mergedFilesSummary') || 'Merged Files Summary'}</h3>
                 <button className="close-btn" onClick={() => setShowMergedFilesPopup(false)}>×</button>
               </div>
               <div className="popup-body">
                 <div className="merged-files-detailed">
-                  {processingSummary.fileDetails && processingSummary.fileDetails.map((file, index) => (
-                    <div key={index} className="merged-file-item">
-                      <div className="file-info-merged">
-                        <div className="file-name-merged">{file.fileName}</div>
-                        <div className="file-status">
-                          <span className="file-rows-merged">{file.dataRows} rows</span>
-                          <span className={`header-status ${file.headerMatch ? 'match' : 'no-match'}`}>
-                            {file.headerMatch ? '✓ Headers match' : '⚠ Headers differ'}
-                          </span>
+                  {processingSummary.fileDetails && 
+                    // Sort files - non-matching first, then matching
+                    [...processingSummary.fileDetails]
+                      .sort((a, b) => {
+                        // Non-matching files first (headerMatch false comes before true)
+                        if (a.headerMatch === b.headerMatch) return 0;
+                        return a.headerMatch ? 1 : -1;
+                      })
+                      .map((file, index) => (
+                        <div key={index} className="merged-file-item">
+                          <div className="file-info-merged">
+                            <div className="file-name-merged">{file.fileName}</div>
+                            <div className="file-rows-merged">{file.dataRows} rows</div>
+                            <div className={`header-status-badge ${file.headerMatch ? 'match' : 'no-match'}`}>
+                              {file.headerMatch ? '✓ Headers match' : '⚠ Headers differ'}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                  }
                 </div>
-                <div className="summary-totals">
-                  <div className="total-item">
-                    <strong>Total Files:</strong> {processingSummary.filesProcessed}
+                <div className="summary-totals-grid">
+                  <div className="total-card">
+                    <div className="total-label">Total Files:</div>
+                    <div className="total-value">{processingSummary.filesProcessed}</div>
                   </div>
-                  <div className="total-item">
-                    <strong>Total Rows:</strong> {processingSummary.totalDataRows}
+                  <div className="total-card">
+                    <div className="total-label">Total Rows:</div>
+                    <div className="total-value">{processingSummary.totalDataRows}</div>
                   </div>
-                  <div className="total-item">
-                    <strong>Common Headers:</strong> {processingSummary.commonHeaderRows}
+                  <div className="total-card">
+                    <div className="total-label">Common Headers:</div>
+                    <div className="total-value">{processingSummary.commonHeaderRows}</div>
                   </div>
-                  <div className="total-item">
-                    <strong>Header Matches:</strong> {processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}
+                  <div className="total-card">
+                    <div className="total-label">Header Matches:</div>
+                    <div className="total-value">{processingSummary.matchingFiles || 0}/{processingSummary.filesProcessed}</div>
                   </div>
                 </div>
               </div>
