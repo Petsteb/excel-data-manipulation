@@ -796,9 +796,16 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
         onClick={() => setIsOpen(!isOpen)}
         title={t ? t('changeTheme') : "Change Theme"}
       >
-        <span className="theme-icon">
-          {themes[currentTheme]?.isDark ? '🌙' : '☀️'}
-        </span>
+        <img 
+          src={themes[currentTheme]?.isDark ? '/dark-mode-icon.png' : '/light-mode-icon.png'}
+          alt={themes[currentTheme]?.isDark ? 'Dark mode' : 'Light mode'}
+          className="theme-icon"
+          style={{
+            width: '16px',
+            height: '16px',
+            filter: themes[currentTheme]?.isDark ? 'invert(1)' : 'none'
+          }}
+        />
       </button>
       
       {isOpen && (
