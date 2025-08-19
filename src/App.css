@@ -10,6 +10,13 @@
   --theme-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --theme-border-color: #e2e8f0;
   
+  /* Glass morphism for light theme */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.8);
+  --glass-lowlight: rgba(0, 0, 0, 0.05);
+  
   /* Professional text colors */
   --text-primary: #1e293b;
   --text-secondary: #64748b;
@@ -43,6 +50,13 @@
   --text-tertiary: #9ca3af;
   --border-color: rgba(75, 85, 99, 0.4);
   --input-bg: rgba(31, 41, 55, 0.9);
+  
+  /* Glass morphism for dark theme */
+  --glass-bg: rgba(0, 0, 0, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+  --glass-highlight: rgba(255, 255, 255, 0.3);
+  --glass-lowlight: rgba(255, 255, 255, 0.05);
   --step-bg: var(--theme-card-bg);
   
   /* Dark theme specific colors */
@@ -1755,16 +1769,15 @@
 }
 
 .popup-content {
-  background: rgba(255, 255, 255, 0.17);
-  backdrop-filter: blur(41px);
-  -webkit-backdrop-filter: blur(41px);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-    inset 0 0 18px 9px rgba(255, 255, 255, 0.02);
+    0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+    inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+    inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05));
   padding: 0;
   max-width: 90vw;
   max-height: 90vh;
@@ -1783,7 +1796,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.8),
+    var(--glass-highlight, rgba(255, 255, 255, 0.6)),
     transparent
   );
   z-index: 1;
@@ -1798,9 +1811,9 @@
   height: 100%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.8),
+    var(--glass-highlight, rgba(255, 255, 255, 0.6)),
     transparent,
-    rgba(255, 255, 255, 0.3)
+    var(--glass-highlight, rgba(255, 255, 255, 0.2))
   );
   z-index: 1;
 }
