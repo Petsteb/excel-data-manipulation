@@ -2268,7 +2268,7 @@ function App() {
                       justifyContent: 'center',
                       minWidth: '24px',
                       border: 'none',
-                      backgroundColor: 'var(--theme-accent-color, #667eea)',
+                      backgroundColor: 'var(--theme-primary, #4f46e5)',
                       color: 'white',
                       position: 'relative'
                     }}
