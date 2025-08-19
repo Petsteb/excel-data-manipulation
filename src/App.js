@@ -2157,7 +2157,15 @@ function App() {
                   alignItems: 'center',
                   marginBottom: '20px'
                 }}>
-                  <p style={{ margin: 0 }}>Found {selectedDateColumns.length} date columns</p>
+                  <p style={{ 
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    Found {selectedDateColumns.length} date columns
+                    <div className="tooltip-trigger" title="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on 'View Columns'. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type."></div>
+                  </p>
                   <button 
                     className="btn btn-primary"
                     onClick={handleViewColumnsClick}
