@@ -2364,15 +2364,15 @@ function App() {
                             border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.3))',
                             wordBreak: 'break-word',
                             lineHeight: '1.5',
-                            minHeight: '60px',
-                            maxHeight: '80px',
+                            minHeight: '40px',
+                            maxHeight: '55px',
                             overflow: 'hidden',
                             display: '-webkit-box',
                             WebkitLineClamp: 3,
                             WebkitBoxOrient: 'vertical',
                             flex: '1'
                           }}>
-                            💭 Example: "{String(columnSampleData[index]).substring(0, 80)}{String(columnSampleData[index]).length > 80 ? '...' : ''}"
+                            Example: "{String(columnSampleData[index]).substring(0, 80)}{String(columnSampleData[index]).length > 80 ? '...' : ''}"
                           </div>
                         )}
                         <div className="column-info">
