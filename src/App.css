@@ -1755,25 +1755,66 @@
 }
 
 .popup-content {
-  background: var(--theme-bg);
+  background: rgba(255, 255, 255, 0.17);
+  backdrop-filter: blur(41px);
+  -webkit-backdrop-filter: blur(41px);
   border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 18px 9px rgba(255, 255, 255, 0.02);
   padding: 0;
   max-width: 90vw;
   max-height: 90vh;
   width: 600px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--theme-border-color);
+  position: relative;
   overflow: hidden;
 }
 
+.popup-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  z-index: 1;
+}
+
+.popup-content::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+  z-index: 1;
+}
+
 .popup-header {
-  background: var(--theme-card-bg);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
   padding: 20px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--theme-border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .popup-header h3 {
@@ -1807,6 +1848,8 @@
   display: flex;
   flex-direction: column;
   max-height: 70vh;
+  position: relative;
+  z-index: 2;
 }
 
 /* File List Detailed Styles */
