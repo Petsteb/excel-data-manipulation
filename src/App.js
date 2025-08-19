@@ -2257,21 +2257,37 @@ function App() {
                     className="btn btn-primary"
                     onClick={handleViewColumnsClick}
                     style={{
-                      padding: '8px 12px',
-                      fontSize: '16px',
+                      padding: '0',
+                      fontSize: '18px',
                       fontWeight: 'bold',
                       borderRadius: '50%',
-                      width: '32px',
-                      height: '32px',
+                      width: '24px',
+                      height: '24px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      minWidth: '32px',
-                      marginLeft: 'auto'
+                      minWidth: '24px',
+                      border: '2px solid currentColor',
+                      backgroundColor: 'transparent',
+                      color: 'var(--theme-accent-color, #667eea)',
+                      position: 'relative'
                     }}
                     title="View and select more date columns"
                   >
-                    +
+                    <span style={{
+                      display: 'block',
+                      width: '10px',
+                      height: '2px',
+                      backgroundColor: 'currentColor',
+                      position: 'absolute'
+                    }}></span>
+                    <span style={{
+                      display: 'block',
+                      width: '2px',
+                      height: '10px',
+                      backgroundColor: 'currentColor',
+                      position: 'absolute'
+                    }}></span>
                   </button>
                 </div>
               </div>
