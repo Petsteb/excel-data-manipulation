@@ -1775,45 +1775,45 @@
   }
 }
 
-/* Enhanced Merged Summary Stats Grid */
-.summary-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* Compact Merged Summary Stats */
+.summary-stats-compact {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.stat-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  padding: 12px 16px;
+.stats-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  gap: 16px;
 }
 
-.stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.stat-info {
+.stat-item {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  text-align: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
   font-weight: 500;
+  margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #1f2937;
 }
@@ -1838,26 +1838,30 @@
   border: 2px dotted #dc2626;
 }
 
-/* Summary Actions */
-.summary-actions {
+/* Inline Summary Actions */
+.summary-actions-inline {
   display: flex;
   justify-content: center;
-  margin: 16px 0;
+  align-items: center;
 }
 
-.btn-view {
-  background: #6366f1;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+.btn-view-summary {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--theme-text-primary, #1f2937);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.btn-view:hover {
-  background: #4f46e5;
+.btn-view-summary:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Download Section */
@@ -1992,7 +1996,7 @@
 }
 
 /* Dark theme support */
-.App.dark-theme .stat-card {
+.App.dark-theme .stat-item {
   background: var(--theme-card-bg);
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -2003,6 +2007,17 @@
 
 .App.dark-theme .stat-value {
   color: #f9fafb;
+}
+
+.App.dark-theme .btn-view-summary {
+  background: var(--theme-card-bg);
+  color: #f9fafb;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.App.dark-theme .btn-view-summary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .App.dark-theme .total-card {

@@ -2392,23 +2392,19 @@ function App() {
             <h3>{t('mergedFilesSummary')}</h3>
             {processingSummary ? (
               <div className="merged-summary">
-                <div className="summary-stats-grid">
-                  <div className="stat-card">
-                    <div className="stat-info">
+                <div className="summary-stats-compact">
+                  <div className="stats-row">
+                    <div className="stat-item">
                       <div className="stat-label">{t('filesMerged')}</div>
                       <div className="stat-value">{processingSummary.filesProcessed}</div>
                     </div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-info">
+                    
+                    <div className="stat-item">
                       <div className="stat-label">{t('totalDataRows')}</div>
                       <div className="stat-value">{processingSummary.totalDataRows}</div>
                     </div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-info">
+                    
+                    <div className="stat-item">
                       <div className="stat-label">{t('columnHeadersMatch')}</div>
                       <div className="stat-value">
                         <span className={`header-match-badge ${(processingSummary.matchingFiles || 0) === processingSummary.filesProcessed ? 'success' : 'warning'}`}>
@@ -2417,15 +2413,15 @@ function App() {
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="summary-actions">
-                  <button 
-                    className="btn btn-view"
-                    onClick={() => setShowMergedFilesPopup(true)}
-                  >
-                    View Summary
-                  </button>
+                  
+                  <div className="summary-actions-inline">
+                    <button 
+                      className="btn btn-view-summary"
+                      onClick={() => setShowMergedFilesPopup(true)}
+                    >
+                      View Summary
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="merged-actions">
