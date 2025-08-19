@@ -1927,8 +1927,8 @@
   min-height: 150px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 6px;
   color: var(--text-primary);
 }
 

@@ -2351,30 +2351,31 @@ function App() {
                         onClick={() => handleDateColumnChange(index)}
                         disabled={isProcessing}
                       >
-                        <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
-                        {columnSampleData[index] !== null && columnSampleData[index] !== undefined && (
-                          <div className="column-sample" style={{
-                            fontSize: '0.85rem',
-                            color: 'var(--text-primary)',
-                            marginTop: '12px',
-                            padding: '12px 14px',
-                            backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.08))',
-                            borderRadius: '8px',
-                            fontStyle: 'italic',
-                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.3))',
-                            wordBreak: 'break-word',
-                            lineHeight: '1.5',
-                            minHeight: '40px',
-                            maxHeight: '55px',
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            flex: '1'
-                          }}>
-                            Example: "{String(columnSampleData[index]).substring(0, 80)}{String(columnSampleData[index]).length > 80 ? '...' : ''}"
-                          </div>
-                        )}
+                        <div style={{ flex: '1' }}>
+                          <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
+                          {columnSampleData[index] !== null && columnSampleData[index] !== undefined && (
+                            <div className="column-sample" style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--text-primary)',
+                              marginTop: '6px',
+                              padding: '12px 14px',
+                              backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.08))',
+                              borderRadius: '8px',
+                              fontStyle: 'italic',
+                              border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.3))',
+                              wordBreak: 'break-word',
+                              lineHeight: '1.5',
+                              minHeight: '40px',
+                              maxHeight: '55px',
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical'
+                            }}>
+                              Example: "{String(columnSampleData[index]).substring(0, 80)}{String(columnSampleData[index]).length > 80 ? '...' : ''}"
+                            </div>
+                          )}
+                        </div>
                         <div className="column-info">
                           {isAutoDetected && <span className="badge auto">Auto</span>}
                           {hasTime && <span className="badge time">⏰</span>}
