@@ -171,6 +171,7 @@ function App() {
     { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
+  const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
   const [availableButtons] = useState([
     { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
@@ -2109,23 +2110,52 @@ function App() {
             />
           )}
           <div className="panel-content">
-            <h3>{t('dateColumnsTitle')}</h3>
-            {columnNames.length > 0 && autoDetectedDateColumns.length > 0 ? (
+            <h3 style={{ textAlign: 'center' }}>{t('dateColumnsTitle')}</h3>
+            {columnNames.length > 0 ? (
               <div>
-                <p style={{ marginBottom: '20px' }}>Found {autoDetectedDateColumns.length} date columns</p>
-                <div className="date-column-list">
-                  {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
-                    const col = columnNames[colIndex];
-                    return (
-                      <span key={colIndex} className="date-column-badge">
-                        {col?.name || `Column ${colIndex + 1}`}
-                      </span>
-                    );
-                  })}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: 0 }}>Found {selectedDateColumns.length} date columns</p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => setShowDateColumnsPopup(true)}
+                    style={{
+                      padding: '6px 16px',
+                      fontSize: '0.9em',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    View Columns
+                  </button>
                 </div>
+                {selectedDateColumns.length > 0 && (
+                  <div className="date-column-list">
+                    {selectedDateColumns.slice(0, 6).map((colIndex) => {
+                      const col = columnNames[colIndex];
+                      return (
+                        <span key={colIndex} className="date-column-badge">
+                          {col?.name || `Column ${colIndex + 1}`}
+                        </span>
+                      );
+                    })}
+                    {selectedDateColumns.length > 6 && (
+                      <span className="date-column-badge" style={{ 
+                        backgroundColor: 'var(--theme-accent-color, #667eea)',
+                        cursor: 'pointer' 
+                      }}
+                      onClick={() => setShowDateColumnsPopup(true)}>
+                        +{selectedDateColumns.length - 6} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              <p>No date columns detected</p>
+              <p style={{ textAlign: 'center' }}>Upload files to detect date columns</p>
             )}
           </div>
         </div>
@@ -2262,12 +2292,12 @@ function App() {
         )}
 
         
-        {false && (
-          <div className="popup-overlay" onClick={() => setShowColumnSelectionPopup(false)}>
+        {showDateColumnsPopup && (
+          <div className="popup-overlay" onClick={() => setShowDateColumnsPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
                 <h3>All Columns - Select/Deselect Date Columns</h3>
-                <button className="close-btn" onClick={() => setShowColumnSelectionPopup(false)}>×</button>
+                <button className="close-btn" onClick={() => setShowDateColumnsPopup(false)}>×</button>
               </div>
               <div className="popup-body">
                 <div className="columns-grid">
