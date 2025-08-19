@@ -2267,9 +2267,9 @@ function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       minWidth: '24px',
-                      border: '2px solid currentColor',
-                      backgroundColor: 'transparent',
-                      color: 'var(--theme-accent-color, #667eea)',
+                      border: 'none',
+                      backgroundColor: 'var(--theme-accent-color, #667eea)',
+                      color: 'white',
                       position: 'relative'
                     }}
                     title="View and select more date columns"
@@ -2278,14 +2278,14 @@ function App() {
                       display: 'block',
                       width: '10px',
                       height: '2px',
-                      backgroundColor: 'currentColor',
+                      backgroundColor: 'white',
                       position: 'absolute'
                     }}></span>
                     <span style={{
                       display: 'block',
                       width: '2px',
                       height: '10px',
-                      backgroundColor: 'currentColor',
+                      backgroundColor: 'white',
                       position: 'absolute'
                     }}></span>
                   </button>
