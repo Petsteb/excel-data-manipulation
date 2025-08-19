@@ -505,9 +505,10 @@ function App() {
         let sample = null;
         
         // Look for first non-null, non-empty value in this column
-        for (let rowIndex = dataStartIndex; rowIndex < Math.min(firstFile.data.length, dataStartIndex + 10); rowIndex++) {
+        for (let rowIndex = dataStartIndex; rowIndex < Math.min(firstFile.data.length, dataStartIndex + 20); rowIndex++) {
           const row = firstFile.data[rowIndex];
-          if (row && row[colIndex] !== null && row[colIndex] !== undefined && row[colIndex] !== '') {
+          if (row && row[colIndex] !== null && row[colIndex] !== undefined && 
+              String(row[colIndex]).trim() !== '') {
             sample = row[colIndex];
             break;
           }
@@ -2351,20 +2352,21 @@ function App() {
                         disabled={isProcessing}
                       >
                         <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
-                        {columnSampleData[index] && (
+                        {columnSampleData[index] !== null && columnSampleData[index] !== undefined && (
                           <div className="column-sample" style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.75rem',
                             color: 'var(--text-secondary)',
-                            marginTop: '4px',
-                            padding: '2px 6px',
+                            marginTop: '6px',
+                            padding: '4px 8px',
                             backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.05))',
-                            borderRadius: '4px',
+                            borderRadius: '6px',
                             fontStyle: 'italic',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            border: '1px dashed var(--theme-border-color, rgba(255, 255, 255, 0.2))'
                           }}>
-                            Sample: {String(columnSampleData[index]).substring(0, 50)}{String(columnSampleData[index]).length > 50 ? '...' : ''}
+                            💭 Example: "{String(columnSampleData[index]).substring(0, 45)}{String(columnSampleData[index]).length > 45 ? '...' : ''}"
                           </div>
                         )}
                         <div className="column-info">
