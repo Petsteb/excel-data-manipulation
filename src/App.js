@@ -172,6 +172,7 @@ function App() {
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
+  const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
     { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
@@ -484,6 +485,42 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to save date columns:', error);
+    }
+  };
+
+  // Gather sample data for columns when opening the popup
+  const handleViewColumnsClick = async () => {
+    if (filesData.length === 0 || columnNames.length === 0) {
+      setShowDateColumnsPopup(true);
+      return;
+    }
+
+    try {
+      // Find sample data for each column by looking for non-null values in data rows
+      const sampleData = [];
+      const firstFile = filesData[0];
+      const dataStartIndex = commonLines; // Start looking after header rows
+
+      for (let colIndex = 0; colIndex < columnNames.length; colIndex++) {
+        let sample = null;
+        
+        // Look for first non-null, non-empty value in this column
+        for (let rowIndex = dataStartIndex; rowIndex < Math.min(firstFile.data.length, dataStartIndex + 10); rowIndex++) {
+          const row = firstFile.data[rowIndex];
+          if (row && row[colIndex] !== null && row[colIndex] !== undefined && row[colIndex] !== '') {
+            sample = row[colIndex];
+            break;
+          }
+        }
+        
+        sampleData[colIndex] = sample;
+      }
+
+      setColumnSampleData(sampleData);
+      setShowDateColumnsPopup(true);
+    } catch (error) {
+      console.error('Error gathering sample data:', error);
+      setShowDateColumnsPopup(true);
     }
   };
 
@@ -2122,7 +2159,7 @@ function App() {
                   <p style={{ margin: 0 }}>Found {selectedDateColumns.length} date columns</p>
                   <button 
                     className="btn btn-primary"
-                    onClick={() => setShowDateColumnsPopup(true)}
+                    onClick={handleViewColumnsClick}
                     style={{
                       padding: '6px 16px',
                       fontSize: '0.9em',
@@ -2147,7 +2184,7 @@ function App() {
                         backgroundColor: 'var(--theme-accent-color, #667eea)',
                         cursor: 'pointer' 
                       }}
-                      onClick={() => setShowDateColumnsPopup(true)}>
+                      onClick={handleViewColumnsClick}>
                         +{selectedDateColumns.length - 6} more
                       </span>
                     )}
@@ -2314,6 +2351,22 @@ function App() {
                         disabled={isProcessing}
                       >
                         <div className="column-name">{col?.name || `Column ${index + 1}`}</div>
+                        {columnSampleData[index] && (
+                          <div className="column-sample" style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            marginTop: '4px',
+                            padding: '2px 6px',
+                            backgroundColor: 'var(--theme-hover-bg, rgba(255, 255, 255, 0.05))',
+                            borderRadius: '4px',
+                            fontStyle: 'italic',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Sample: {String(columnSampleData[index]).substring(0, 50)}{String(columnSampleData[index]).length > 50 ? '...' : ''}
+                          </div>
+                        )}
                         <div className="column-info">
                           {isAutoDetected && <span className="badge auto">Auto</span>}
                           {hasTime && <span className="badge time">⏰</span>}
