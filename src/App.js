@@ -170,6 +170,7 @@ function App() {
     { id: 'date-columns-panel', name: 'Date Columns Panel', type: 'panel', active: true },
     { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
   ]);
+  const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [availableButtons] = useState([
     { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
   ]);
@@ -294,6 +295,15 @@ function App() {
       document.documentElement.style.setProperty('--theme-shadow', theme.shadow || '0 20px 40px rgba(139, 92, 246, 0.1)');
       document.documentElement.style.setProperty('--theme-shadow-hover', theme.shadowHover || '0 25px 50px rgba(139, 92, 246, 0.15)');
       document.documentElement.style.setProperty('--theme-border-color', theme.borderColor || 'rgba(255, 255, 255, 0.2)');
+      
+      // Add theme-aware tooltip variables
+      if (theme.isDark) {
+        document.documentElement.style.setProperty('--theme-text-color', '#ffffff');
+        document.documentElement.style.setProperty('--theme-tooltip-bg', 'rgba(255, 255, 255, 0.1)');
+      } else {
+        document.documentElement.style.setProperty('--theme-text-color', '#333333');
+        document.documentElement.style.setProperty('--theme-tooltip-bg', 'rgba(0, 0, 0, 0.05)');
+      }
       
       const appElement = document.querySelector('.App');
       if (appElement) {
@@ -1660,34 +1670,86 @@ function App() {
       newWidth = Math.max(minWidth, Math.round(newWidth / GRID_SIZE) * GRID_SIZE);
       newHeight = Math.max(minHeight, Math.round(newHeight / GRID_SIZE) * GRID_SIZE);
       
-      // Lightweight collision check using temporary matrix (no copying entire matrix)
-      let wouldCollide = false;
-      if (collisionMatrix) {
-        // Use the existing checkPositionWithExpansion method which is optimized
-        const newMatrixX = currentX - workspaceBounds.minX;
-        const newMatrixY = currentY - workspaceBounds.minY;
-        const currentMatrixX = currentX - workspaceBounds.minX;
-        const currentMatrixY = currentY - workspaceBounds.minY;
-        
-        // Temporarily clear current element from matrix for testing
-        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-          collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 0);
+      // Simple directional collision check using AABB
+      let canResize = true;
+      
+      // Calculate expansion areas
+      const widthExpanded = newWidth > startWidth;
+      const heightExpanded = newHeight > startHeight;
+      
+      if (widthExpanded || heightExpanded) {
+        // Check collision against all other panels (excluding current element)
+        for (const [otherId, otherPos] of Object.entries(panelPositions)) {
+          if (otherId === elementId) continue; // Skip self
+          
+          const otherX = otherPos.x || 0;
+          const otherY = otherPos.y || 0;
+          const otherWidth = otherPos.width || (availableButtons.find(b => b.id === otherId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
+          const otherHeight = otherPos.height || (availableButtons.find(b => b.id === otherId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_HEIGHT);
+          
+          // Check expansion areas individually
+          if (widthExpanded && !heightExpanded) {
+            // Only width expanded - check right expansion area
+            const rightExpansionX = currentX + startWidth;
+            const rightExpansionWidth = newWidth - startWidth;
+            
+            // Check if right expansion area intersects with other panel
+            const intersects = !(
+              rightExpansionX >= otherX + otherWidth ||  // expansion is to the right of other
+              rightExpansionX + rightExpansionWidth <= otherX ||  // expansion is to the left of other
+              currentY >= otherY + otherHeight ||  // expansion is below other
+              currentY + startHeight <= otherY     // expansion is above other
+            );
+            
+            if (intersects) {
+              canResize = false;
+              break;
+            }
+          } else if (heightExpanded && !widthExpanded) {
+            // Only height expanded - check bottom expansion area
+            const bottomExpansionY = currentY + startHeight;
+            const bottomExpansionHeight = newHeight - startHeight;
+            
+            // Check if bottom expansion area intersects with other panel
+            const intersects = !(
+              currentX >= otherX + otherWidth ||  // expansion is to the right of other
+              currentX + startWidth <= otherX ||  // expansion is to the left of other
+              bottomExpansionY >= otherY + otherHeight ||  // expansion is below other
+              bottomExpansionY + bottomExpansionHeight <= otherY     // expansion is above other
+            );
+            
+            if (intersects) {
+              canResize = false;
+              break;
+            }
+          } else if (widthExpanded && heightExpanded) {
+            // Both dimensions expanded - check if new size intersects with other panel
+            const intersects = !(
+              currentX >= otherX + otherWidth ||  // panel is to the right of other
+              currentX + newWidth <= otherX ||    // panel is to the left of other
+              currentY >= otherY + otherHeight || // panel is below other
+              currentY + newHeight <= otherY      // panel is above other
+            );
+            
+            // But we need to exclude the current overlapping area (if panels are touching)
+            const currentlyIntersects = !(
+              currentX >= otherX + otherWidth ||  // panel is to the right of other
+              currentX + startWidth <= otherX ||  // panel is to the left of other
+              currentY >= otherY + otherHeight || // panel is below other
+              currentY + startHeight <= otherY    // panel is above other
+            );
+            
+            // Only block if the new intersection would be larger than current intersection
+            if (intersects && !currentlyIntersects) {
+              canResize = false;
+              break;
+            }
+          }
         }
-        
-        // Check if new size would be valid
-        wouldCollide = !collisionMatrix.checkPositionWithExpansion(newMatrixX, newMatrixY, newWidth, newHeight);
-        
-        // Restore current element in matrix
-        if (currentMatrixX >= 0 && currentMatrixY >= 0) {
-          collisionMatrix.setCells(currentMatrixX, currentMatrixY, startWidth, startHeight, 1);
-        }
-      } else {
-        // Fallback to legacy collision detection
-        wouldCollide = checkCollision(elementId, currentX, currentY, newWidth, newHeight);
       }
       
-      // Only update state if no collision - no heavy matrix operations during drag
-      if (!wouldCollide) {
+      // Update state if resize is allowed
+      if (canResize) {
         setPanelPositions(prev => ({
           ...prev,
           [elementId]: {
@@ -1807,8 +1869,8 @@ function App() {
             />
           )}
           <div className="panel-content">
-            <h3>{t('uploadTitle')}</h3>
-            <div className="panel-controls">
+            <h3 style={{ textAlign: 'center' }}>{t('uploadTitle')}</h3>
+            <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
                 {t('selectExcelFiles')}
               </button>
@@ -1847,11 +1909,32 @@ function App() {
             />
           )}
           <div className="panel-content">
-            <h3>{t('uploadedFilesSummary')}</h3>
+            <h3 style={{ textAlign: 'center' }}>{t('uploadedFilesSummary')}</h3>
             {filesData.length > 0 ? (
-              <div className="file-summary">
-                <div className="summary-item">📁 {filesData.length} files</div>
-                <div className="summary-item">📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+              <div className="file-summary" style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: '12px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%'
+              }}>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {filesData.length} files</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+                <button 
+                  className="btn btn-primary view-files-button" 
+                  onClick={() => setShowUploadedFilesPopup(true)}
+                  style={{ 
+                    flex: '0 0 auto',
+                    minWidth: 'fit-content',
+                    padding: '6px 16px',
+                    fontSize: '0.9em',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  View
+                </button>
               </div>
             ) : (
               <p>No files uploaded</p>
@@ -1882,11 +1965,52 @@ function App() {
             />
           )}
           <div className="panel-content">
-            <h3>{t('headerColumnsSelection')}</h3>
+            <h3 style={{ textAlign: 'center' }}>{t('headerColumnsSelection')}</h3>
             {filesData.length > 0 ? (
-              <div className="input-controls">
-                <div className="input-group">
-                  <label>{t('headerNumberOfRows')}</label>
+              <div className="input-controls" style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: '30px',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                width: '100%'
+              }}>
+                <div className="input-group" style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-start',
+                  minWidth: 'fit-content'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '8px'
+                  }}>
+                    <label style={{ 
+                      fontSize: '0.9em',
+                      whiteSpace: 'nowrap'
+                    }}>{t('headerNumberOfRows')}</label>
+                    <div 
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        border: '1px solid var(--theme-border-color, #ccc)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        color: 'var(--theme-text-color, #333)',
+                        cursor: 'help',
+                        backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
+                      }}
+                      title="The number of lines that is common at the beggining of all the uploaded files, like the column names."
+                    >
+                      i
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -1894,10 +2018,50 @@ function App() {
                     value={commonLines}
                     onChange={(e) => handleCommonLinesChange(e.target.value)}
                     disabled={isProcessing}
+                    style={{ 
+                      width: '120px',
+                      textAlign: 'center',
+                      padding: '10px',
+                      fontSize: '1.2em',
+                      borderRadius: '8px'
+                    }}
                   />
                 </div>
-                <div className="input-group">
-                  <label>{t('columnsRow')}</label>
+                <div className="input-group" style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-start',
+                  minWidth: 'fit-content'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '8px'
+                  }}>
+                    <label style={{ 
+                      fontSize: '0.9em',
+                      whiteSpace: 'nowrap'
+                    }}>{t('columnsRow')}</label>
+                    <div 
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        border: '1px solid var(--theme-border-color, #ccc)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        color: 'var(--theme-text-color, #333)',
+                        cursor: 'help',
+                        backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
+                      }}
+                      title="The row that contains the name of the columns."
+                    >
+                      i
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="1"
@@ -1905,11 +2069,18 @@ function App() {
                     value={columnNamesRow}
                     onChange={(e) => handleColumnNamesRowChange(e.target.value)}
                     disabled={isProcessing}
+                    style={{ 
+                      width: '120px',
+                      textAlign: 'center',
+                      padding: '10px',
+                      fontSize: '1.2em',
+                      borderRadius: '8px'
+                    }}
                   />
                 </div>
               </div>
             ) : (
-              <p>Upload files to configure headers</p>
+              <p style={{ textAlign: 'center' }}>Upload files to configure headers</p>
             )}
           </div>
         </div>
@@ -1941,7 +2112,7 @@ function App() {
             <h3>{t('dateColumnsTitle')}</h3>
             {columnNames.length > 0 && autoDetectedDateColumns.length > 0 ? (
               <div>
-                <p>Found {autoDetectedDateColumns.length} date columns</p>
+                <p style={{ marginBottom: '20px' }}>Found {autoDetectedDateColumns.length} date columns</p>
                 <div className="date-column-list">
                   {autoDetectedDateColumns.slice(0, 3).map((colIndex) => {
                     const col = columnNames[colIndex];
@@ -2054,8 +2225,8 @@ function App() {
         )}
         
         
-        {/* Remove popups for clean interface */}
-        {false && (
+        {/* Uploaded Files Popup */}
+        {showUploadedFilesPopup && (
           <div className="popup-overlay" onClick={() => setShowUploadedFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
