@@ -2042,7 +2042,7 @@ function App() {
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  View
+                  View Files
                 </button>
               </div>
             ) : (
@@ -2221,7 +2221,7 @@ function App() {
               <div>
                 <div style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-start',
                   alignItems: 'center',
                   marginBottom: '20px'
                 }}>
@@ -2232,41 +2232,48 @@ function App() {
                     gap: '8px'
                   }}>
                     Found {selectedDateColumns.length} date columns
-                    <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on 'View Columns'. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
+                    <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on the '+' button. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
                   </p>
+                </div>
+                <div className="date-column-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  {selectedDateColumns.slice(0, 6).map((colIndex) => {
+                    const col = columnNames[colIndex];
+                    return (
+                      <span key={colIndex} className="date-column-badge">
+                        {col?.name || `Column ${colIndex + 1}`}
+                      </span>
+                    );
+                  })}
+                  {selectedDateColumns.length > 6 && (
+                    <span className="date-column-badge" style={{ 
+                      backgroundColor: 'var(--theme-accent-color, #667eea)',
+                      cursor: 'pointer' 
+                    }}
+                    onClick={handleViewColumnsClick}>
+                      +{selectedDateColumns.length - 6} more
+                    </span>
+                  )}
                   <button 
                     className="btn btn-primary"
                     onClick={handleViewColumnsClick}
                     style={{
-                      padding: '6px 16px',
-                      fontSize: '0.9em',
-                      whiteSpace: 'nowrap'
+                      padding: '8px 12px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      marginLeft: 'auto'
                     }}
+                    title="View and select more date columns"
                   >
-                    View Columns
+                    +
                   </button>
                 </div>
-                {selectedDateColumns.length > 0 && (
-                  <div className="date-column-list">
-                    {selectedDateColumns.slice(0, 6).map((colIndex) => {
-                      const col = columnNames[colIndex];
-                      return (
-                        <span key={colIndex} className="date-column-badge">
-                          {col?.name || `Column ${colIndex + 1}`}
-                        </span>
-                      );
-                    })}
-                    {selectedDateColumns.length > 6 && (
-                      <span className="date-column-badge" style={{ 
-                        backgroundColor: 'var(--theme-accent-color, #667eea)',
-                        cursor: 'pointer' 
-                      }}
-                      onClick={handleViewColumnsClick}>
-                        +{selectedDateColumns.length - 6} more
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
             ) : (
               <p style={{ textAlign: 'center' }}>Upload files to detect date columns</p>
