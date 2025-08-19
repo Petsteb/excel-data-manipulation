@@ -1833,8 +1833,9 @@
 }
 
 .header-match-badge.warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: transparent;
+  color: #dc2626;
+  border: 2px dotted #dc2626;
 }
 
 /* Summary Actions */
