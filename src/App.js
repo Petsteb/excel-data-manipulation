@@ -751,13 +751,26 @@ function App() {
     let minWidth = DEFAULT_PANEL_WIDTH;
     let minHeight = DEFAULT_PANEL_HEIGHT;
     
-    // Adjust based on content
+    // Adjust based on content requirements
     if (elementId === 'upload-panel') {
       minWidth = Math.max(minWidth, 280);
       minHeight = Math.max(minHeight, 200);
     } else if (elementId === 'merged-summary-panel') {
+      // 3 stat items (95px each) + gaps (8px each) + padding (32px) + View Summary button space
+      minWidth = Math.max(minWidth, 320);
+      minHeight = Math.max(minHeight, 180);
+    } else if (elementId === 'header-selection-panel') {
+      // 2 input groups side by side with labels and inputs
+      minWidth = Math.max(minWidth, 320);
+      minHeight = Math.max(minHeight, 200);
+    } else if (elementId === 'date-columns-panel') {
+      // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
-      minHeight = Math.max(minHeight, 220);
+      minHeight = Math.max(minHeight, 200);
+    } else if (elementId === 'files-summary-panel') {
+      // File count/rows display + View Files button
+      minWidth = Math.max(minWidth, 280);
+      minHeight = Math.max(minHeight, 180);
     }
     
     return { width: minWidth, height: minHeight };
