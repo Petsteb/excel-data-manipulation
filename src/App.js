@@ -227,6 +227,7 @@ function App() {
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
+  const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
     { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true }
@@ -257,7 +258,9 @@ function App() {
         setCurrentLanguage(settings.language || 'en');
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
-        setSelectedDateColumns(settings.selectedDateColumns || []);
+        // Load batch-specific date columns from settings
+        setAnafSelectedDateColumns(settings.anafSelectedDateColumns || []);
+        setContabilitateSelectedDateColumns(settings.contabilitateSelectedDateColumns || []);
         
         // Load saved layout positions only for current panels
         if (settings.panelPositions) {
@@ -734,27 +737,46 @@ function App() {
     }
   };
 
-  // Handle date column selection (multi-select)
+  // Handle date column selection (multi-select) - batch-aware
   const handleDateColumnChange = async (columnIndex) => {
-    const newSelectedColumns = selectedDateColumns.includes(columnIndex)
-      ? selectedDateColumns.filter(col => col !== columnIndex)
-      : [...selectedDateColumns, columnIndex];
-    
-    setSelectedDateColumns(newSelectedColumns);
-    
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        selectedDateColumns: newSelectedColumns
-      });
-    } catch (error) {
-      console.error('Failed to save date columns:', error);
+    if (dateColumnsPopupBatch === 'anaf') {
+      const newSelectedColumns = anafSelectedDateColumns.includes(columnIndex)
+        ? anafSelectedDateColumns.filter(col => col !== columnIndex)
+        : [...anafSelectedDateColumns, columnIndex];
+      
+      setAnafSelectedDateColumns(newSelectedColumns);
+      
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        await window.electronAPI.saveSettings({
+          ...settings,
+          anafSelectedDateColumns: newSelectedColumns
+        });
+      } catch (error) {
+        console.error('Failed to save ANAF date columns:', error);
+      }
+    } else if (dateColumnsPopupBatch === 'contabilitate') {
+      const newSelectedColumns = contabilitateSelectedDateColumns.includes(columnIndex)
+        ? contabilitateSelectedDateColumns.filter(col => col !== columnIndex)
+        : [...contabilitateSelectedDateColumns, columnIndex];
+      
+      setContabilitateSelectedDateColumns(newSelectedColumns);
+      
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        await window.electronAPI.saveSettings({
+          ...settings,
+          contabilitateSelectedDateColumns: newSelectedColumns
+        });
+      } catch (error) {
+        console.error('Failed to save Contabilitate date columns:', error);
+      }
     }
   };
 
   // Gather sample data for Contabilitate columns when opening the popup
   const handleContabilitateViewColumnsClick = async () => {
+    setDateColumnsPopupBatch('contabilitate');
     if (contabilitateFiles.length === 0 || contabilitateColumnNames.length === 0) {
       setShowDateColumnsPopup(true);
       return;
@@ -792,6 +814,7 @@ function App() {
 
   // Gather sample data for ANAF columns when opening the popup
   const handleAnafViewColumnsClick = async () => {
+    setDateColumnsPopupBatch('anaf');
     if (anafFiles.length === 0 || anafColumnNames.length === 0) {
       setShowDateColumnsPopup(true);
       return;
@@ -981,7 +1004,7 @@ function App() {
       return;
     }
     
-    if (commonLines < 0 || commonLines > 100) {
+    if (anafCommonLines < 0 || anafCommonLines > 100) {
       setStatus('Please enter a valid number of common lines (0-100)');
       return;
     }
@@ -1011,11 +1034,11 @@ function App() {
       // Process only ANAF files for file generation
       const result = await window.electronAPI.mergeAndSaveExcel({
         filesData: anafFiles,
-        commonLines: parseInt(commonLines),
+        commonLines: parseInt(anafCommonLines),
         outputPath,
-        dateColumnIndices: selectedDateColumns,
-        dateColumnsWithTime,
-        columnNamesRow: parseInt(columnNamesRow)
+        dateColumnIndices: anafSelectedDateColumns,
+        dateColumnsWithTime: anafDateColumnsWithTime,
+        columnNamesRow: parseInt(anafColumnNamesRow)
       });
 
       if (result.success) {
@@ -3223,10 +3246,25 @@ function App() {
               </div>
               <div className="popup-body">
                 <div className="columns-grid">
-                  {columnNames.map((col, index) => {
-                    const isSelected = selectedDateColumns.includes(index);
-                    const isAutoDetected = autoDetectedDateColumns.includes(index);
-                    const hasTime = dateColumnsWithTime.includes(index);
+                  {(() => {
+                    // Get batch-specific data based on which batch opened the popup
+                    const currentColumnNames = dateColumnsPopupBatch === 'anaf' 
+                      ? anafColumnNames 
+                      : contabilitateColumnNames;
+                    const currentSelectedDateColumns = dateColumnsPopupBatch === 'anaf' 
+                      ? anafSelectedDateColumns 
+                      : contabilitateSelectedDateColumns;
+                    const currentAutoDetectedDateColumns = dateColumnsPopupBatch === 'anaf' 
+                      ? anafAutoDetectedDateColumns 
+                      : contabilitateAutoDetectedDateColumns;
+                    const currentDateColumnsWithTime = dateColumnsPopupBatch === 'anaf' 
+                      ? anafDateColumnsWithTime 
+                      : contabilitateDateColumnsWithTime;
+                    
+                    return currentColumnNames.map((col, index) => {
+                      const isSelected = currentSelectedDateColumns.includes(index);
+                      const isAutoDetected = currentAutoDetectedDateColumns.includes(index);
+                      const hasTime = currentDateColumnsWithTime.includes(index);
                     
                     return (
                       <button
@@ -3266,8 +3304,9 @@ function App() {
                           {isSelected && <span className="badge selected">✅</span>}
                         </div>
                       </button>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
