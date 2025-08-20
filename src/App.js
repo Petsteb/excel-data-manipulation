@@ -409,7 +409,7 @@ function App() {
         
         await window.electronAPI.saveSettings(updatedSettings);
         
-        if (filesData.length > 0) {
+        if (anafFiles.length > 0) {
           await extractColumnNames();
         }
       } catch (error) {
@@ -835,22 +835,22 @@ function App() {
     let minHeight = DEFAULT_PANEL_HEIGHT;
     
     // Adjust based on content requirements
-    if (elementId === 'upload-panel') {
+    if (elementId === 'contabilitate-upload-panel' || elementId === 'anaf-upload-panel') {
       minWidth = Math.max(minWidth, 280);
       minHeight = Math.max(minHeight, 200);
-    } else if (elementId === 'merged-summary-panel') {
+    } else if (elementId === 'final-summary-panel') {
       // 3 stat items + View Summary button + Download/Open buttons + all padding
       minWidth = Math.max(minWidth, 400);
       minHeight = Math.max(minHeight, 300);
-    } else if (elementId === 'header-selection-panel') {
+    } else if (elementId === 'contabilitate-header-panel' || elementId === 'anaf-header-panel') {
       // 2 input groups with labels and input fields - need full height for both sections
       minWidth = Math.max(minWidth, 420);
       minHeight = Math.max(minHeight, 180);
-    } else if (elementId === 'date-columns-panel') {
+    } else if (elementId === 'contabilitate-date-panel' || elementId === 'anaf-date-panel') {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
-    } else if (elementId === 'files-summary-panel') {
+    } else if (elementId === 'contabilitate-summary-panel' || elementId === 'anaf-summary-panel') {
       // File count/rows display + View Files button
       minWidth = Math.max(minWidth, 280);
       minHeight = Math.max(minHeight, 180);
@@ -2001,7 +2001,7 @@ function App() {
         </button>
       </div>
       
-      {(processingSummary || filesData.length > 0) && (
+      {(processingSummary || contabilitateFiles.length > 0 || anafFiles.length > 0) && (
         <div className="remake-button-container">
           <button className="btn btn-secondary" onClick={resetApp}>
             {t('remake')}
@@ -2246,7 +2246,7 @@ function App() {
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>{t('headerColumnsSelection')}</h3>
-            {filesData.length > 0 ? (
+            {anafFiles.length > 0 ? (
               <div className="input-controls" style={{
                 display: 'flex',
                 flexDirection: 'row',
@@ -2496,10 +2496,10 @@ function App() {
           )}
           <button 
             className="merge-button" 
-            onClick={handleMergeFiles}
-            disabled={isProcessing || filesData.length === 0}
+            onClick={handleGenerateSummary}
+            disabled={isProcessing || anafFiles.length === 0}
           >
-            {isProcessing ? 'Processing...' : 'Merge'}
+            {isProcessing ? 'Processing...' : t('generateSummary')}
           </button>
         </div>
         
@@ -2633,7 +2633,7 @@ function App() {
               </div>
               <div className="popup-body">
                 <div className="file-list-detailed">
-                  {filesData.map((fileData, index) => (
+                  {contabilitateFiles.map((fileData, index) => (
                     <div 
                       key={index} 
                       className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
