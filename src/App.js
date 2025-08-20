@@ -322,29 +322,29 @@ function App() {
 
   // Auto-extract columns when columnNamesRow changes
   useEffect(() => {
-    const numValue = parseInt(columnNamesRow);
+    const numValue = parseInt(anafColumnNamesRow);
     if (!isNaN(numValue) && numValue > 0 && anafFiles.length > 0) {
-      console.log('useEffect: columnNamesRow changed to:', numValue, 'triggering extraction');
+      console.log('useEffect: anafColumnNamesRow changed to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractAnafColumnNames();
       }, 300);
       
       return () => clearTimeout(delayedExtraction);
     }
-  }, [columnNamesRow, anafFiles]);
+  }, [anafColumnNamesRow, anafFiles]);
 
   // Auto-extract columns for Contabilitate when columnNamesRow changes
   useEffect(() => {
-    const numValue = parseInt(columnNamesRow);
+    const numValue = parseInt(contabilitateColumnNamesRow);
     if (!isNaN(numValue) && numValue > 0 && contabilitateFiles.length > 0) {
-      console.log('useEffect: columnNamesRow changed for Contabilitate to:', numValue, 'triggering extraction');
+      console.log('useEffect: contabilitateColumnNamesRow changed for Contabilitate to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractContabilitateColumnNames();
       }, 300);
       
       return () => clearTimeout(delayedExtraction);
     }
-  }, [columnNamesRow, contabilitateFiles]);
+  }, [contabilitateColumnNamesRow, contabilitateFiles]);
 
   // Restore view position when app finishes loading
   useEffect(() => {
@@ -462,7 +462,7 @@ function App() {
         await window.electronAPI.saveSettings(updatedSettings);
         
         if (anafFiles.length > 0) {
-          await extractColumnNames();
+          await extractAnafColumnNames();
         }
       } catch (error) {
         console.error('Failed to save common lines:', error);
@@ -607,9 +607,9 @@ function App() {
     if (anafFiles.length === 0) return;
     
     try {
-      console.log('Extracting column names for row:', columnNamesRow, '(type:', typeof columnNamesRow, ') with commonLines:', commonLines, '(type:', typeof commonLines, ')');
-      const rowIndex = (parseInt(columnNamesRow) || 1) - 1;
-      const commonLinesInt = parseInt(commonLines) || 1;
+      console.log('Extracting ANAF column names for row:', anafColumnNamesRow, '(type:', typeof anafColumnNamesRow, ') with commonLines:', anafCommonLines, '(type:', typeof anafCommonLines, ')');
+      const rowIndex = (parseInt(anafColumnNamesRow) || 1) - 1;
+      const commonLinesInt = parseInt(anafCommonLines) || 1;
       
       console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
       
@@ -648,7 +648,7 @@ function App() {
           
           setStatus(`${result.columnNames.length} columns found. Auto-selected ${newSelectedColumns.length} date column(s).`);
         } else {
-          setStatus(`${result.columnNames.length} columns found from row ${columnNamesRow}`);
+          setStatus(`${result.columnNames.length} columns found from row ${anafColumnNamesRow}`);
         }
       } else {
         console.warn('ANAF column extraction failed:', result.error);
@@ -673,9 +673,9 @@ function App() {
     if (contabilitateFiles.length === 0) return;
     
     try {
-      console.log('Extracting Contabilitate column names for row:', columnNamesRow, '(type:', typeof columnNamesRow, ') with commonLines:', commonLines, '(type:', typeof commonLines, ')');
-      const rowIndex = (parseInt(columnNamesRow) || 1) - 1;
-      const commonLinesInt = parseInt(commonLines) || 1;
+      console.log('Extracting Contabilitate column names for row:', contabilitateColumnNamesRow, '(type:', typeof contabilitateColumnNamesRow, ') with commonLines:', contabilitateCommonLines, '(type:', typeof contabilitateCommonLines, ')');
+      const rowIndex = (parseInt(contabilitateColumnNamesRow) || 1) - 1;
+      const commonLinesInt = parseInt(contabilitateCommonLines) || 1;
       
       console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
       
@@ -714,7 +714,7 @@ function App() {
           
           setStatus(`${result.columnNames.length} Contabilitate columns found. Auto-selected ${newSelectedColumns.length} date column(s).`);
         } else {
-          setStatus(`${result.columnNames.length} Contabilitate columns found from row ${columnNamesRow}`);
+          setStatus(`${result.columnNames.length} Contabilitate columns found from row ${contabilitateColumnNamesRow}`);
         }
       } else {
         console.warn('Contabilitate column extraction failed:', result.error);
@@ -753,9 +753,9 @@ function App() {
     }
   };
 
-  // Gather sample data for columns when opening the popup
-  const handleViewColumnsClick = async () => {
-    if (anafFiles.length === 0 || columnNames.length === 0) {
+  // Gather sample data for Contabilitate columns when opening the popup
+  const handleContabilitateViewColumnsClick = async () => {
+    if (contabilitateFiles.length === 0 || contabilitateColumnNames.length === 0) {
       setShowDateColumnsPopup(true);
       return;
     }
@@ -763,10 +763,10 @@ function App() {
     try {
       // Find sample data for each column by looking for non-null values in data rows
       const sampleData = [];
-      const firstFile = anafFiles[0];
-      const dataStartIndex = commonLines; // Start looking after header rows
+      const firstFile = contabilitateFiles[0];
+      const dataStartIndex = contabilitateCommonLines; // Start looking after header rows
 
-      for (let colIndex = 0; colIndex < columnNames.length; colIndex++) {
+      for (let colIndex = 0; colIndex < contabilitateColumnNames.length; colIndex++) {
         let sample = null;
         
         // Look for first non-null, non-empty value in this column
@@ -785,7 +785,44 @@ function App() {
       setColumnSampleData(sampleData);
       setShowDateColumnsPopup(true);
     } catch (error) {
-      console.error('Error gathering sample data:', error);
+      console.error('Error gathering Contabilitate sample data:', error);
+      setShowDateColumnsPopup(true);
+    }
+  };
+
+  // Gather sample data for ANAF columns when opening the popup
+  const handleAnafViewColumnsClick = async () => {
+    if (anafFiles.length === 0 || anafColumnNames.length === 0) {
+      setShowDateColumnsPopup(true);
+      return;
+    }
+
+    try {
+      // Find sample data for each column by looking for non-null values in data rows
+      const sampleData = [];
+      const firstFile = anafFiles[0];
+      const dataStartIndex = anafCommonLines; // Start looking after header rows
+
+      for (let colIndex = 0; colIndex < anafColumnNames.length; colIndex++) {
+        let sample = null;
+        
+        // Look for first non-null, non-empty value in this column
+        for (let rowIndex = dataStartIndex; rowIndex < Math.min(firstFile.data.length, dataStartIndex + 20); rowIndex++) {
+          const row = firstFile.data[rowIndex];
+          if (row && row[colIndex] !== null && row[colIndex] !== undefined && 
+              String(row[colIndex]).trim() !== '') {
+            sample = row[colIndex];
+            break;
+          }
+        }
+        
+        sampleData[colIndex] = sample;
+      }
+
+      setColumnSampleData(sampleData);
+      setShowDateColumnsPopup(true);
+    } catch (error) {
+      console.error('Error gathering ANAF sample data:', error);
       setShowDateColumnsPopup(true);
     }
   };
@@ -1031,15 +1068,20 @@ function App() {
   };
 
   const resetApp = () => {
-    setSelectedFiles([]);
     setContabilitateFiles([]);
     setAnafFiles([]);
     setSelectedFileIndices(new Set());
     setSelectedAnafFileIndices(new Set());
-    setColumnNames([]);
-    setAutoDetectedDateColumns([]);
-    setDateColumnsWithTime([]);
-    setSelectedDateColumns([]);
+    // Clear Contabilitate batch state
+    setContabilitateColumnNames([]);
+    setContabilitateSelectedDateColumns([]);
+    setContabilitateAutoDetectedDateColumns([]);
+    setContabilitateDateColumnsWithTime([]);
+    // Clear ANAF batch state
+    setAnafColumnNames([]);
+    setAnafSelectedDateColumns([]);
+    setAnafAutoDetectedDateColumns([]);
+    setAnafDateColumnsWithTime([]);
     setCreatedFilePath('');
     setStatus('');
     setProcessingSummary(null);
@@ -2801,13 +2843,13 @@ function App() {
                       backgroundColor: 'var(--theme-accent-color, #667eea)',
                       cursor: 'pointer' 
                     }}
-                    onClick={handleViewColumnsClick}>
+                    onClick={handleContabilitateViewColumnsClick}>
                       +{contabilitateSelectedDateColumns.length - 6} more
                     </span>
                   )}
                   <button 
                     className="btn btn-primary"
-                    onClick={handleViewColumnsClick}
+                    onClick={handleContabilitateViewColumnsClick}
                     style={{
                       padding: '0',
                       fontSize: '18px',
@@ -2922,13 +2964,13 @@ function App() {
                       backgroundColor: 'var(--theme-accent-color, #667eea)',
                       cursor: 'pointer' 
                     }}
-                    onClick={handleViewColumnsClick}>
+                    onClick={handleAnafViewColumnsClick}>
                       +{anafSelectedDateColumns.length - 6} more
                     </span>
                   )}
                   <button 
                     className="btn btn-primary"
-                    onClick={handleViewColumnsClick}
+                    onClick={handleAnafViewColumnsClick}
                     style={{
                       padding: '0',
                       fontSize: '18px',
