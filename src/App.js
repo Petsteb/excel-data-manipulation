@@ -2205,19 +2205,20 @@ function App() {
             )}
           </div>
         </div>
-        {/* Panel 3 - Header Selection */}
+
+        {/* Panel 4 - ANAF Summary */}
         <div 
-          className="xy-selection-section panel"
-          data-panel="header-selection-panel"
+          className="uploaded-files-summary panel"
+          data-panel="anaf-summary-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'header-selection-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'anaf-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('header-selection-panel').x}px`,
-            top: `${getVisualPosition('header-selection-panel').y}px`,
-            width: `${getVisualPosition('header-selection-panel').width}px`,
-            height: `${getVisualPosition('header-selection-panel').height}px`,
+            left: `${getVisualPosition('anaf-summary-panel').x}px`,
+            top: `${getVisualPosition('anaf-summary-panel').y}px`,
+            width: `${getVisualPosition('anaf-summary-panel').width}px`,
+            height: `${getVisualPosition('anaf-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -2225,7 +2226,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'header-selection-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'anaf-summary-panel')}
             />
           )}
           <div className="panel-content">
@@ -2242,11 +2243,82 @@ function App() {
                 fontFamily: 'monospace',
                 zIndex: 1000
               }}>
-                header-selection-panel
+                anaf-summary-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>{t('headerColumnsSelection')}</h3>
+            <h3 style={{ textAlign: 'center' }}>Summary of {t('anaf')} files</h3>
             {anafFiles.length > 0 ? (
+              <div className="file-summary" style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: '12px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%'
+              }}>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {anafFiles.length} files</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {anafFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+                <button 
+                  className="btn btn-primary view-files-button" 
+                  onClick={() => setShowUploadedFilesPopup(true)}
+                  style={{
+                    flex: '0 0 auto',
+                    fontSize: '11px',
+                    padding: '4px 8px'
+                  }}
+                >
+                  View Files
+                </button>
+              </div>
+            ) : (
+              <p>No files uploaded</p>
+            )}
+          </div>
+        </div>
+
+        {/* Panel 5 - Contabilitate Header Selection */}
+        <div 
+          className="xy-selection-section panel"
+          data-panel="contabilitate-header-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-header-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('contabilitate-header-panel').x}px`,
+            top: `${getVisualPosition('contabilitate-header-panel').y}px`,
+            width: `${getVisualPosition('contabilitate-header-panel').width}px`,
+            height: `${getVisualPosition('contabilitate-header-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-header-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                contabilitate-header-panel
+              </div>
+            )}
+            <h3 style={{ textAlign: 'center' }}>Header Selection for {t('contabilitate')}</h3>
+            {contabilitateFiles.length > 0 ? (
               <div className="input-controls" style={{
                 display: 'flex',
                 flexDirection: 'row',
@@ -2330,20 +2402,20 @@ function App() {
             )}
           </div>
         </div>
-        
-        {/* Panel 4 - Date Columns */}
+
+        {/* Panel 6 - ANAF Header Selection */}
         <div 
-          className="date-columns-section panel"
-          data-panel="date-columns-panel"
+          className="xy-selection-section panel"
+          data-panel="anaf-header-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'date-columns-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'anaf-header-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('date-columns-panel').x}px`,
-            top: `${getVisualPosition('date-columns-panel').y}px`,
-            width: `${getVisualPosition('date-columns-panel').width}px`,
-            height: `${getVisualPosition('date-columns-panel').height}px`,
+            left: `${getVisualPosition('anaf-header-panel').x}px`,
+            top: `${getVisualPosition('anaf-header-panel').y}px`,
+            width: `${getVisualPosition('anaf-header-panel').width}px`,
+            height: `${getVisualPosition('anaf-header-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -2351,7 +2423,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'date-columns-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'anaf-header-panel')}
             />
           )}
           <div className="panel-content">
@@ -2368,10 +2440,108 @@ function App() {
                 fontFamily: 'monospace',
                 zIndex: 1000
               }}>
-                date-columns-panel
+                anaf-header-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>{t('dateColumnsTitle')}</h3>
+            <h3 style={{ textAlign: 'center' }}>Header Selection for {t('anaf')}</h3>
+            {anafFiles.length > 0 ? (
+              <div className="input-controls" style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: '20px',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                width: '100%',
+                padding: '10px'
+              }}>
+                <div className="input-group" style={{ flex: '1 1 160px', minWidth: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <label className="input-label" style={{ fontSize: '12px', marginBottom: '4px', fontWeight: 'bold' }}>
+                    {t('headerNumberOfRows')}
+                    <Tooltip content={t('headerNumberTooltip')} />
+                  </label>
+                  <input 
+                    type="number" 
+                    value={commonLines} 
+                    onChange={handleCommonLinesChange}
+                    style={{
+                      width: '60px',
+                      padding: '2px 4px',
+                      textAlign: 'center',
+                      fontSize: '12px'
+                    }}
+                    min="0"
+                    max="100"
+                  />
+                </div>
+                
+                <div className="input-group" style={{ flex: '1 1 160px', minWidth: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <label className="input-label" style={{ fontSize: '12px', marginBottom: '4px', fontWeight: 'bold' }}>
+                    {t('columnsRow')}
+                    <Tooltip content={t('columnsRowTooltip')} />
+                  </label>
+                  <input 
+                    type="number" 
+                    value={columnNamesRow} 
+                    onChange={handleColumnNamesRowChange}
+                    style={{
+                      width: '60px',
+                      padding: '2px 4px',
+                      textAlign: 'center',
+                      fontSize: '12px'
+                    }}
+                    min="1"
+                    max="100"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center' }}>Upload ANAF files to configure headers</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Panel 7 - Contabilitate Date Columns */}
+        <div 
+          className="date-columns-section panel"
+          data-panel="contabilitate-date-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-date-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('contabilitate-date-panel').x}px`,
+            top: `${getVisualPosition('contabilitate-date-panel').y}px`,
+            width: `${getVisualPosition('contabilitate-date-panel').width}px`,
+            height: `${getVisualPosition('contabilitate-date-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-date-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                contabilitate-date-panel
+              </div>
+            )}
+            <h3 style={{ textAlign: 'center' }}>Date Columns for {t('contabilitate')}</h3>
             {columnNames.length > 0 ? (
               <div>
                 <div style={{
@@ -2451,71 +2621,20 @@ function App() {
             )}
           </div>
         </div>
-        
-        {/* Merge Button */}
+
+        {/* Panel 8 - ANAF Date Columns */}
         <div 
-          className="merge-section panel button-panel"
-          data-panel="merge-button"
+          className="date-columns-section panel"
+          data-panel="anaf-date-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'merge-button', type: 'button' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'anaf-date-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('merge-button').x}px`,
-            top: `${getVisualPosition('merge-button').y}px`,
-            width: `${getVisualPosition('merge-button').width}px`,
-            height: `${getVisualPosition('merge-button').height}px`,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          {isLayoutMode && (
-            <div 
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'merge-button')}
-            />
-          )}
-          {isDeveloperMode && (
-            <div style={{ 
-              position: 'absolute', 
-              top: '4px', 
-              right: '4px', 
-              fontSize: '10px', 
-              color: 'var(--theme-text-color, #666)', 
-              backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
-              padding: '2px 4px', 
-              borderRadius: '2px',
-              fontFamily: 'monospace',
-              zIndex: 1000
-            }}>
-              merge-button
-            </div>
-          )}
-          <button 
-            className="merge-button" 
-            onClick={handleGenerateSummary}
-            disabled={isProcessing || anafFiles.length === 0}
-          >
-            {isProcessing ? 'Processing...' : t('generateSummary')}
-          </button>
-        </div>
-        
-        {/* Panel 5 - Merged Summary */}
-        <div 
-          className="merged-files-section panel"
-          data-panel="merged-summary-panel"
-          draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'merged-summary-panel', type: 'panel' })}
-          onDragEnd={handleDragEnd}
-          style={{
-            position: 'absolute',
-            left: `${getVisualPosition('merged-summary-panel').x}px`,
-            top: `${getVisualPosition('merged-summary-panel').y}px`,
-            width: `${getVisualPosition('merged-summary-panel').width}px`,
-            height: `${getVisualPosition('merged-summary-panel').height}px`,
+            left: `${getVisualPosition('anaf-date-panel').x}px`,
+            top: `${getVisualPosition('anaf-date-panel').y}px`,
+            width: `${getVisualPosition('anaf-date-panel').width}px`,
+            height: `${getVisualPosition('anaf-date-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -2523,7 +2642,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'merged-summary-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'anaf-date-panel')}
             />
           )}
           <div className="panel-content">
@@ -2540,10 +2659,174 @@ function App() {
                 fontFamily: 'monospace',
                 zIndex: 1000
               }}>
-                merged-summary-panel
+                anaf-date-panel
               </div>
             )}
-            <h3>{t('mergedFilesSummary')}</h3>
+            <h3 style={{ textAlign: 'center' }}>Date Columns for {t('anaf')}</h3>
+            {columnNames.length > 0 ? (
+              <div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: '12px'
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('dateColumnsFound')}</span>
+                  <span style={{ 
+                    fontSize: '11px', 
+                    backgroundColor: 'var(--theme-accent-bg)', 
+                    color: 'var(--theme-accent-text)', 
+                    padding: '2px 6px', 
+                    borderRadius: '3px' 
+                  }}>
+                    {selectedDateColumns.length}
+                  </span>
+                  <Tooltip content={t('dateColumnsTooltip')} />
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={handleViewColumnsClick}
+                    style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      marginLeft: '8px'
+                    }}
+                  >
+                    {t('viewColumns')}
+                  </button>
+                </div>
+                
+                <div className="date-columns-preview" style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '4px',
+                  justifyContent: 'center',
+                  maxHeight: '60px',
+                  overflowY: 'auto'
+                }}>
+                  {selectedDateColumns.slice(0, 6).map((columnIndex, index) => (
+                    <span 
+                      key={index}
+                      className="date-column-badge"
+                      style={{
+                        backgroundColor: 'var(--theme-date-column-bg, #e3f2fd)',
+                        color: 'var(--theme-date-column-text, #1976d2)',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontSize: '10px',
+                        border: '1px solid var(--theme-date-column-border, #bbdefb)'
+                      }}
+                    >
+                      {columnNames[columnIndex]}
+                    </span>
+                  ))}
+                  {selectedDateColumns.length > 6 && (
+                    <span style={{ fontSize: '10px', color: 'var(--theme-text-color, #666)' }}>
+                      {t('andMore')} {selectedDateColumns.length - 6} {t('more')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center' }}>Upload ANAF files to detect date columns</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Generate Summary Button */}
+        <div 
+          className="merge-section panel button-panel"
+          data-panel="generate-summary-button"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'generate-summary-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('generate-summary-button').x}px`,
+            top: `${getVisualPosition('generate-summary-button').y}px`,
+            width: `${getVisualPosition('generate-summary-button').width}px`,
+            height: `${getVisualPosition('generate-summary-button').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'generate-summary-button')}
+            />
+          )}
+          {isDeveloperMode && (
+            <div style={{ 
+              position: 'absolute', 
+              top: '4px', 
+              right: '4px', 
+              fontSize: '10px', 
+              color: 'var(--theme-text-color, #666)', 
+              backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+              padding: '2px 4px', 
+              borderRadius: '2px',
+              fontFamily: 'monospace',
+              zIndex: 1000
+            }}>
+              generate-summary-button
+            </div>
+          )}
+          <button 
+            className="merge-button" 
+            onClick={handleGenerateSummary}
+            disabled={isProcessing || anafFiles.length === 0}
+          >
+            {isProcessing ? 'Processing...' : t('generateSummary')}
+          </button>
+        </div>
+        
+        {/* Panel 9 - Final Summary */}
+        <div 
+          className="merged-files-section panel"
+          data-panel="final-summary-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'final-summary-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('final-summary-panel').x}px`,
+            top: `${getVisualPosition('final-summary-panel').y}px`,
+            width: `${getVisualPosition('final-summary-panel').width}px`,
+            height: `${getVisualPosition('final-summary-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'final-summary-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                final-summary-panel
+              </div>
+            )}
+            <h3>Final Summary</h3>
             {processingSummary ? (
               <div className="merged-summary">
                 <div className="summary-stats-compact">
