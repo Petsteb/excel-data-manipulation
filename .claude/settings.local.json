@@ -48,7 +48,9 @@
       "Bash(git rm:*)",
       "Bash(timeout:*)",
       "Bash(git restore:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(rg:*)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

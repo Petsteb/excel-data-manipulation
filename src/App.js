@@ -162,7 +162,16 @@ function App() {
   const [anafFiles, setAnafFiles] = useState([]);
   const [selectedFileIndices, setSelectedFileIndices] = useState(new Set());
   const [selectedAnafFileIndices, setSelectedAnafFileIndices] = useState(new Set());
+  // Shared header configuration (for backwards compatibility)
   const [commonLines, setCommonLines] = useState(1);
+  const [columnNamesRow, setColumnNamesRow] = useState(1);
+  
+  // Batch-specific header configuration
+  const [contabilitateCommonLines, setContabilitateCommonLines] = useState(1);
+  const [contabilitateColumnNamesRow, setContabilitateColumnNamesRow] = useState(1);
+  const [anafCommonLines, setAnafCommonLines] = useState(1);
+  const [anafColumnNamesRow, setAnafColumnNamesRow] = useState(1);
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdFilePath, setCreatedFilePath] = useState('');
   const [status, setStatus] = useState('');
@@ -170,7 +179,6 @@ function App() {
   const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('professional');
   const [isLoading, setIsLoading] = useState(true);
-  const [columnNamesRow, setColumnNamesRow] = useState(1);
   // Contabilitate column state
   const [contabilitateColumnNames, setContabilitateColumnNames] = useState([]);
   const [contabilitateSelectedDateColumns, setContabilitateSelectedDateColumns] = useState([]);
@@ -484,6 +492,112 @@ function App() {
         console.log('Settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
       } catch (error) {
         console.error('Failed to save settings:', error);
+      }
+    }
+  };
+
+  // Batch-specific handlers for Contabilitate
+  const handleContabilitateCommonLinesChange = async (value) => {
+    const numValue = parseInt(value);
+    
+    if (!isNaN(numValue) && numValue > 0) {
+      setContabilitateCommonLines(numValue);
+      setContabilitateColumnNamesRow(numValue);
+      
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        const updatedSettings = {
+          ...settings,
+          contabilitateCommonLines: numValue,
+          contabilitateColumnNamesRow: numValue,
+          contabilitateColumnNamesRowExplicitlySet: false
+        };
+        
+        await window.electronAPI.saveSettings(updatedSettings);
+        
+        if (contabilitateFiles.length > 0) {
+          await extractContabilitateColumnNames();
+        }
+      } catch (error) {
+        console.error('Failed to save Contabilitate common lines:', error);
+      }
+    } else {
+      setContabilitateCommonLines(value);
+    }
+  };
+
+  const handleContabilitateColumnNamesRowChange = async (value) => {
+    console.log('=== handleContabilitateColumnNamesRowChange called with value:', value, 'type:', typeof value);
+    
+    setContabilitateColumnNamesRow(value);
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        const currentCommonLines = parseInt(contabilitateCommonLines);
+        
+        await window.electronAPI.saveSettings({
+          ...settings,
+          contabilitateColumnNamesRow: numValue,
+          contabilitateColumnNamesRowExplicitlySet: numValue !== currentCommonLines
+        });
+        console.log('Contabilitate settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
+      } catch (error) {
+        console.error('Failed to save Contabilitate settings:', error);
+      }
+    }
+  };
+
+  // Batch-specific handlers for ANAF
+  const handleAnafCommonLinesChange = async (value) => {
+    const numValue = parseInt(value);
+    
+    if (!isNaN(numValue) && numValue > 0) {
+      setAnafCommonLines(numValue);
+      setAnafColumnNamesRow(numValue);
+      
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        const updatedSettings = {
+          ...settings,
+          anafCommonLines: numValue,
+          anafColumnNamesRow: numValue,
+          anafColumnNamesRowExplicitlySet: false
+        };
+        
+        await window.electronAPI.saveSettings(updatedSettings);
+        
+        if (anafFiles.length > 0) {
+          await extractAnafColumnNames();
+        }
+      } catch (error) {
+        console.error('Failed to save ANAF common lines:', error);
+      }
+    } else {
+      setAnafCommonLines(value);
+    }
+  };
+
+  const handleAnafColumnNamesRowChange = async (value) => {
+    console.log('=== handleAnafColumnNamesRowChange called with value:', value, 'type:', typeof value);
+    
+    setAnafColumnNamesRow(value);
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        const currentCommonLines = parseInt(anafCommonLines);
+        
+        await window.electronAPI.saveSettings({
+          ...settings,
+          anafColumnNamesRow: numValue,
+          anafColumnNamesRowExplicitlySet: numValue !== currentCommonLines
+        });
+        console.log('ANAF settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
+      } catch (error) {
+        console.error('Failed to save ANAF settings:', error);
       }
     }
   };
@@ -2463,8 +2577,8 @@ function App() {
                     type="number"
                     min="0"
                     max="100"
-                    value={commonLines}
-                    onChange={(e) => handleCommonLinesChange(e.target.value)}
+                    value={contabilitateCommonLines}
+                    onChange={(e) => handleContabilitateCommonLinesChange(e.target.value)}
                     disabled={isProcessing}
                     style={{ 
                       width: '120px',
@@ -2497,8 +2611,8 @@ function App() {
                     type="number"
                     min="1"
                     max="100"
-                    value={columnNamesRow}
-                    onChange={(e) => handleColumnNamesRowChange(e.target.value)}
+                    value={contabilitateColumnNamesRow}
+                    onChange={(e) => handleContabilitateColumnNamesRowChange(e.target.value)}
                     disabled={isProcessing}
                     style={{ 
                       width: '120px',
@@ -2575,8 +2689,8 @@ function App() {
                   </label>
                   <input 
                     type="number" 
-                    value={commonLines} 
-                    onChange={handleCommonLinesChange}
+                    value={anafCommonLines} 
+                    onChange={(e) => handleAnafCommonLinesChange(e.target.value)}
                     style={{
                       width: '60px',
                       padding: '2px 4px',
@@ -2595,8 +2709,8 @@ function App() {
                   </label>
                   <input 
                     type="number" 
-                    value={columnNamesRow} 
-                    onChange={handleColumnNamesRowChange}
+                    value={anafColumnNamesRow} 
+                    onChange={(e) => handleAnafColumnNamesRowChange(e.target.value)}
                     style={{
                       width: '60px',
                       padding: '2px 4px',
