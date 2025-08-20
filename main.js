@@ -95,8 +95,8 @@ function createWindow() {
   
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
-    // Developer tools disabled - remove the next line to enable them
-    // mainWindow.webContents.openDevTools();
+    // Developer tools enabled for debugging
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile('build/index.html');
   }

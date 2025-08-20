@@ -758,11 +758,11 @@ function App() {
     } else if (elementId === 'merged-summary-panel') {
       // 3 stat items + View Summary button + Download/Open buttons + all padding
       minWidth = Math.max(minWidth, 400);
-      minHeight = Math.max(minHeight, 280);
+      minHeight = Math.max(minHeight, 300);
     } else if (elementId === 'header-selection-panel') {
       // 2 input groups with labels and input fields - need full height for both sections
       minWidth = Math.max(minWidth, 420);
-      minHeight = Math.max(minHeight, 300);
+      minHeight = Math.max(minHeight, 180);
     } else if (elementId === 'date-columns-panel') {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
@@ -1247,6 +1247,8 @@ function App() {
       // Set the view to normal mode position after a delay
       setTimeout(() => {
         setPanOffset(normalModePosition);
+        // Update the stored normal mode position to match what we just set
+        setNormalModeViewPosition(normalModePosition);
       }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
