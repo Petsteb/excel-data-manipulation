@@ -38,8 +38,13 @@ const translations = {
     uploadFilesToDetectDate: "Upload files to detect date columns",
     viewColumns: "View Columns",
     
+    // Batch Names
+    contabilitate: "Contabilitate",
+    anaf: "ANAF",
+    
     // Merge Button
     mergeFiles: "Merge Files",
+    generateSummary: "Generate Summary",
     processing: "Processing...",
     
     // Summary of Merged Files
@@ -158,8 +163,13 @@ const translations = {
     uploadFilesToDetectDate: "Încarcă fișiere pentru a detecta coloanele de dată",
     viewColumns: "Vezi Coloane",
     
+    // Batch Names
+    contabilitate: "Contabilitate",
+    anaf: "ANAF",
+    
     // Merge Button
     mergeFiles: "Îmbină Fișiere",
+    generateSummary: "Generează Rezumat",
     processing: "Se procesează...",
     
     // Summary of Merged Files
@@ -278,8 +288,13 @@ const translations = {
     uploadFilesToDetectDate: "Téléchargez des fichiers pour détecter les colonnes de date",
     viewColumns: "Voir Colonnes",
     
+    // Batch Names
+    contabilitate: "Contabilitate",
+    anaf: "ANAF",
+    
     // Merge Button
     mergeFiles: "Fusionner Fichiers",
+    generateSummary: "Générer Résumé",
     processing: "Traitement...",
     
     // Summary of Merged Files
@@ -398,8 +413,13 @@ const translations = {
     uploadFilesToDetectDate: "Laden Sie Dateien hoch, um Datumsspalten zu erkennen",
     viewColumns: "Spalten Anzeigen",
     
+    // Batch Names
+    contabilitate: "Contabilitate",
+    anaf: "ANAF",
+    
     // Merge Button
     mergeFiles: "Dateien Zusammenführen",
+    generateSummary: "Zusammenfassung Generieren",
     processing: "Verarbeitung...",
     
     // Summary of Merged Files
@@ -518,8 +538,13 @@ const translations = {
     uploadFilesToDetectDate: "Sube archivos para detectar columnas de fecha",
     viewColumns: "Ver Columnas",
     
+    // Batch Names
+    contabilitate: "Contabilitate",
+    anaf: "ANAF",
+    
     // Merge Button
     mergeFiles: "Fusionar Archivos",
+    generateSummary: "Generar Resumen",
     processing: "Procesando...",
     
     // Summary of Merged Files

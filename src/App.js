@@ -158,8 +158,10 @@ function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const { t } = useTranslation(currentLanguage);
-  const [filesData, setFilesData] = useState([]);
+  const [contabilitateFiles, setContabilitateFiles] = useState([]);
+  const [anafFiles, setAnafFiles] = useState([]);
   const [selectedFileIndices, setSelectedFileIndices] = useState(new Set());
+  const [selectedAnafFileIndices, setSelectedAnafFileIndices] = useState(new Set());
   const [commonLines, setCommonLines] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdFilePath, setCreatedFilePath] = useState('');
@@ -176,12 +178,16 @@ function App() {
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
-    'upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'files-summary-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'header-selection-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'date-columns-panel': { x: 20, y: 220, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'merged-summary-panel': { x: 280, y: 220, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'merge-button': { x: 540, y: 220, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE }
+    'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'contabilitate-header-panel': { x: 20, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
+    'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
@@ -194,17 +200,21 @@ function App() {
   const [normalModeViewPosition, setNormalModeViewPosition] = useState({ x: 0, y: 0 }); // Store last normal mode view position
   const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
-    { id: 'upload-panel', name: 'Upload Files Panel', type: 'panel', active: true },
-    { id: 'files-summary-panel', name: 'Files Summary Panel', type: 'panel', active: true },
-    { id: 'header-selection-panel', name: 'Header Selection Panel', type: 'panel', active: true },
-    { id: 'date-columns-panel', name: 'Date Columns Panel', type: 'panel', active: true },
-    { id: 'merged-summary-panel', name: 'Merged Summary Panel', type: 'panel', active: true }
+    { id: 'contabilitate-upload-panel', name: 'Contabilitate Upload Panel', type: 'panel', active: true },
+    { id: 'anaf-upload-panel', name: 'ANAF Upload Panel', type: 'panel', active: true },
+    { id: 'contabilitate-summary-panel', name: 'Contabilitate Summary Panel', type: 'panel', active: true },
+    { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
+    { id: 'contabilitate-header-panel', name: 'Contabilitate Header Panel', type: 'panel', active: true },
+    { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
+    { id: 'contabilitate-date-panel', name: 'Contabilitate Date Panel', type: 'panel', active: true },
+    { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
+    { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
-    { id: 'merge-button', name: 'Merge Button', type: 'button', active: true }
+    { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
   const [workspaceBounds, setWorkspaceBounds] = useState({
@@ -274,7 +284,7 @@ function App() {
   // Auto-extract columns when columnNamesRow changes
   useEffect(() => {
     const numValue = parseInt(columnNamesRow);
-    if (!isNaN(numValue) && numValue > 0 && filesData.length > 0) {
+    if (!isNaN(numValue) && numValue > 0 && anafFiles.length > 0) {
       console.log('useEffect: columnNamesRow changed to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractColumnNames();
@@ -282,7 +292,7 @@ function App() {
       
       return () => clearTimeout(delayedExtraction);
     }
-  }, [columnNamesRow, filesData]);
+  }, [columnNamesRow, anafFiles]);
 
   // Restore view position when app finishes loading
   useEffect(() => {
@@ -436,7 +446,7 @@ function App() {
 
   // Extract column names from the specified row
   const extractColumnNames = async () => {
-    if (filesData.length === 0) return;
+    if (anafFiles.length === 0) return;
     
     try {
       console.log('Extracting column names for row:', columnNamesRow, '(type:', typeof columnNamesRow, ') with commonLines:', commonLines, '(type:', typeof commonLines, ')');
@@ -451,7 +461,7 @@ function App() {
       }
       
       const result = await window.electronAPI.getColumnNames({
-        filesData,
+        filesData: anafFiles,
         rowIndex: rowIndex,
         commonLines: commonLinesInt
       });
@@ -521,7 +531,7 @@ function App() {
 
   // Gather sample data for columns when opening the popup
   const handleViewColumnsClick = async () => {
-    if (filesData.length === 0 || columnNames.length === 0) {
+    if (anafFiles.length === 0 || columnNames.length === 0) {
       setShowDateColumnsPopup(true);
       return;
     }
@@ -529,7 +539,7 @@ function App() {
     try {
       // Find sample data for each column by looking for non-null values in data rows
       const sampleData = [];
-      const firstFile = filesData[0];
+      const firstFile = anafFiles[0];
       const dataStartIndex = commonLines; // Start looking after header rows
 
       for (let colIndex = 0; colIndex < columnNames.length; colIndex++) {
@@ -556,47 +566,84 @@ function App() {
     }
   };
 
-  const handleSelectFiles = async (append = false) => {
+  const handleSelectContabilitateFiles = async (append = false) => {
     try {
       const filePaths = await window.electronAPI.selectExcelFiles();
       if (filePaths.length > 0) {
         let newFilePaths = filePaths;
         let newData = [];
         
-        if (append && selectedFiles.length > 0) {
+        if (append && contabilitateFiles.length > 0) {
           // Filter out files that are already selected
-          const existingPaths = selectedFiles.map(path => path.toLowerCase());
+          const existingPaths = contabilitateFiles.map(file => file.filePath.toLowerCase());
           newFilePaths = filePaths.filter(path => !existingPaths.includes(path.toLowerCase()));
           
           if (newFilePaths.length === 0) {
-            setStatus('All selected files are already uploaded');
+            setStatus('All selected files are already uploaded to Contabilitate');
             return;
           }
           
-          setStatus(`Adding ${newFilePaths.length} new files...`);
+          setStatus(`Adding ${newFilePaths.length} new files to Contabilitate...`);
           newData = await window.electronAPI.readExcelFiles(newFilePaths);
           
           // Combine with existing data
-          setSelectedFiles([...selectedFiles, ...newFilePaths]);
-          setFilesData([...filesData, ...newData]);
+          setContabilitateFiles([...contabilitateFiles, ...newData]);
           setSelectedFileIndices(new Set());
-          setStatus(`${filesData.length + newData.length} Excel files loaded successfully (${newData.length} added)`);
+          setStatus(`${contabilitateFiles.length + newData.length} Contabilitate files loaded successfully (${newData.length} added)`);
         } else {
-          // Replace existing files (original behavior)
-          setSelectedFiles(newFilePaths);
+          // Replace existing files
           setSelectedFileIndices(new Set());
-          setStatus('Files selected. Reading data...');
+          setStatus('Contabilitate files selected. Reading data...');
           
           newData = await window.electronAPI.readExcelFiles(newFilePaths);
-          setFilesData(newData);
-          setStatus(`${newData.length} Excel files loaded successfully`);
-          setProcessingSummary(null);
+          setContabilitateFiles(newData);
+          setStatus(`${newData.length} Contabilitate files loaded successfully`);
         }
-        
-        await extractColumnNames();
       }
     } catch (error) {
       setStatus(`Error selecting files: ${error.message}`);
+    }
+  };
+
+  const handleSelectAnafFiles = async (append = false) => {
+    try {
+      const filePaths = await window.electronAPI.selectExcelFiles();
+      if (filePaths.length > 0) {
+        let newFilePaths = filePaths;
+        let newData = [];
+        
+        if (append && anafFiles.length > 0) {
+          // Filter out files that are already selected
+          const existingPaths = anafFiles.map(file => file.filePath.toLowerCase());
+          newFilePaths = filePaths.filter(path => !existingPaths.includes(path.toLowerCase()));
+          
+          if (newFilePaths.length === 0) {
+            setStatus('All selected files are already uploaded to ANAF');
+            return;
+          }
+          
+          setStatus(`Adding ${newFilePaths.length} new files to ANAF...`);
+          newData = await window.electronAPI.readExcelFiles(newFilePaths);
+          
+          // Combine with existing data
+          setAnafFiles([...anafFiles, ...newData]);
+          setSelectedAnafFileIndices(new Set());
+          setStatus(`${anafFiles.length + newData.length} ANAF files loaded successfully (${newData.length} added)`);
+        } else {
+          // Replace existing files
+          setSelectedAnafFileIndices(new Set());
+          setStatus('ANAF files selected. Reading data...');
+          
+          newData = await window.electronAPI.readExcelFiles(newFilePaths);
+          setAnafFiles(newData);
+          setStatus(`${newData.length} ANAF files loaded successfully`);
+        }
+        
+        // Extract column names from ANAF files (main processing batch)
+        await extractColumnNames();
+      }
+    } catch (error) {
+      setStatus(`Error selecting ANAF files: ${error.message}`);
     }
   };
 
@@ -626,30 +673,47 @@ function App() {
     setSelectedFileIndices(newSelected);
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelectedContabilitate = () => {
     if (selectedFileIndices.size === 0) return;
     
-    const newFilesData = filesData.filter((_, index) => !selectedFileIndices.has(index));
-    const newSelectedFiles = selectedFiles.filter((_, index) => !selectedFileIndices.has(index));
+    const newContabilitateFiles = contabilitateFiles.filter((_, index) => !selectedFileIndices.has(index));
     
-    setFilesData(newFilesData);
-    setSelectedFiles(newSelectedFiles);
+    setContabilitateFiles(newContabilitateFiles);
     setSelectedFileIndices(new Set());
-    setStatus(`Deleted ${selectedFileIndices.size} files. ${newFilesData.length} files remaining.`);
+    setStatus(`Deleted ${selectedFileIndices.size} Contabilitate files remaining.`);
   };
 
-  const selectAllFiles = () => {
-    const allIndices = new Set(filesData.map((_, index) => index));
+  const handleDeleteSelectedAnaf = () => {
+    if (selectedAnafFileIndices.size === 0) return;
+    
+    const newAnafFiles = anafFiles.filter((_, index) => !selectedAnafFileIndices.has(index));
+    
+    setAnafFiles(newAnafFiles);
+    setSelectedAnafFileIndices(new Set());
+    setStatus(`Deleted ${selectedAnafFileIndices.size} ANAF files remaining.`);
+  };
+
+  const selectAllContabilitateFiles = () => {
+    const allIndices = new Set(contabilitateFiles.map((_, index) => index));
     setSelectedFileIndices(allIndices);
   };
 
-  const deselectAllFiles = () => {
+  const selectAllAnafFiles = () => {
+    const allIndices = new Set(anafFiles.map((_, index) => index));
+    setSelectedAnafFileIndices(allIndices);
+  };
+
+  const deselectAllContabilitateFiles = () => {
     setSelectedFileIndices(new Set());
   };
 
-  const handleMergeFiles = async () => {
-    if (filesData.length === 0) {
-      setStatus('Please select Excel files first');
+  const deselectAllAnafFiles = () => {
+    setSelectedAnafFileIndices(new Set());
+  };
+
+  const handleGenerateSummary = async () => {
+    if (anafFiles.length === 0) {
+      setStatus('Please select ANAF files first');
       return;
     }
     
@@ -669,9 +733,20 @@ function App() {
         return;
       }
 
-      setStatus('Merging files...');
+      setStatus('Generating summary and processing ANAF files...');
+      
+      // Generate summary that includes data from both batches
+      const summaryData = {
+        contabilitateFiles: contabilitateFiles,
+        anafFiles: anafFiles,
+        totalFiles: contabilitateFiles.length + anafFiles.length,
+        contabilitateRowCount: contabilitateFiles.reduce((total, file) => total + file.rowCount, 0),
+        anafRowCount: anafFiles.reduce((total, file) => total + file.rowCount, 0)
+      };
+      
+      // Process only ANAF files for file generation
       const result = await window.electronAPI.mergeAndSaveExcel({
-        filesData,
+        filesData: anafFiles,
         commonLines: parseInt(commonLines),
         outputPath,
         dateColumnIndices: selectedDateColumns,
@@ -681,7 +756,13 @@ function App() {
 
       if (result.success) {
         setCreatedFilePath(result.outputPath);
-        setProcessingSummary(result.summary);
+        // Enhanced summary with both batch information
+        const enhancedSummary = {
+          ...result.summary,
+          contabilitateInfo: summaryData,
+          processedBatch: 'ANAF'
+        };
+        setProcessingSummary(enhancedSummary);
         setStatus(`Successfully created merged file: ${result.outputPath}`);
       } else {
         setStatus(`Error merging files: ${result.error}`);
@@ -724,8 +805,10 @@ function App() {
 
   const resetApp = () => {
     setSelectedFiles([]);
-    setFilesData([]);
+    setContabilitateFiles([]);
+    setAnafFiles([]);
     setSelectedFileIndices(new Set());
+    setSelectedAnafFileIndices(new Set());
     setColumnNames([]);
     setAutoDetectedDateColumns([]);
     setDateColumnsWithTime([]);
@@ -1938,19 +2021,19 @@ function App() {
         onContextMenu={handleContextMenu}
       >
         {/* Grid Board - all panels positioned absolutely */}
-        {/* Panel 1 - Upload Files */}
+        {/* Panel 1 - Contabilitate Upload */}
         <div 
           className="upload-section panel"
-          data-panel="upload-panel"
+          data-panel="contabilitate-upload-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'upload-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('upload-panel').x}px`,
-            top: `${getVisualPosition('upload-panel').y}px`,
-            width: `${getVisualPosition('upload-panel').width}px`,
-            height: `${getVisualPosition('upload-panel').height}px`,
+            left: `${getVisualPosition('contabilitate-upload-panel').x}px`,
+            top: `${getVisualPosition('contabilitate-upload-panel').y}px`,
+            width: `${getVisualPosition('contabilitate-upload-panel').width}px`,
+            height: `${getVisualPosition('contabilitate-upload-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -1958,7 +2041,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'upload-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-upload-panel')}
             />
           )}
           <div className="panel-content">
@@ -1975,18 +2058,74 @@ function App() {
                 fontFamily: 'monospace',
                 zIndex: 1000
               }}>
-                upload-panel
+                contabilitate-upload-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>{t('uploadTitle')}</h3>
+            <h3 style={{ textAlign: 'center' }}>{t('contabilitate')}</h3>
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <button className="btn btn-primary" onClick={() => handleSelectFiles(false)} disabled={isProcessing}>
+              <button className="btn btn-primary" onClick={() => handleSelectContabilitateFiles(false)} disabled={isProcessing}>
                 {t('selectExcelFiles')}
               </button>
               <button 
-                className={`btn btn-secondary ${filesData.length === 0 ? 'disabled-grey' : ''}`}
-                onClick={() => handleSelectFiles(true)} 
-                disabled={isProcessing || filesData.length === 0}
+                className={`btn btn-secondary ${contabilitateFiles.length === 0 ? 'disabled-grey' : ''}`}
+                onClick={() => handleSelectContabilitateFiles(true)} 
+                disabled={isProcessing || contabilitateFiles.length === 0}
+              >
+                {t('addMoreFiles')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 2 - ANAF Upload */}
+        <div 
+          className="upload-section panel"
+          data-panel="anaf-upload-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'anaf-upload-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('anaf-upload-panel').x}px`,
+            top: `${getVisualPosition('anaf-upload-panel').y}px`,
+            width: `${getVisualPosition('anaf-upload-panel').width}px`,
+            height: `${getVisualPosition('anaf-upload-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'anaf-upload-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                padding: '2px 4px', 
+                borderRadius: '2px',
+                fontFamily: 'monospace',
+                zIndex: 1000
+              }}>
+                anaf-upload-panel
+              </div>
+            )}
+            <h3 style={{ textAlign: 'center' }}>{t('anaf')}</h3>
+            <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={() => handleSelectAnafFiles(false)} disabled={isProcessing}>
+                {t('selectExcelFiles')}
+              </button>
+              <button 
+                className={`btn btn-secondary ${anafFiles.length === 0 ? 'disabled-grey' : ''}`}
+                onClick={() => handleSelectAnafFiles(true)} 
+                disabled={isProcessing || anafFiles.length === 0}
               >
                 {t('addMoreFiles')}
               </button>
@@ -1994,19 +2133,19 @@ function App() {
           </div>
         </div>
         
-        {/* Panel 2 - Files Summary */}
+        {/* Panel 3 - Contabilitate Summary */}
         <div 
           className="uploaded-files-summary panel"
-          data-panel="files-summary-panel"
+          data-panel="contabilitate-summary-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'files-summary-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('files-summary-panel').x}px`,
-            top: `${getVisualPosition('files-summary-panel').y}px`,
-            width: `${getVisualPosition('files-summary-panel').width}px`,
-            height: `${getVisualPosition('files-summary-panel').height}px`,
+            left: `${getVisualPosition('contabilitate-summary-panel').x}px`,
+            top: `${getVisualPosition('contabilitate-summary-panel').y}px`,
+            width: `${getVisualPosition('contabilitate-summary-panel').width}px`,
+            height: `${getVisualPosition('contabilitate-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -2014,7 +2153,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'files-summary-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-summary-panel')}
             />
           )}
           <div className="panel-content">
@@ -2031,11 +2170,11 @@ function App() {
                 fontFamily: 'monospace',
                 zIndex: 1000
               }}>
-                files-summary-panel
+                contabilitate-summary-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>{t('uploadedFilesSummary')}</h3>
-            {filesData.length > 0 ? (
+            <h3 style={{ textAlign: 'center' }}>Summary of {t('contabilitate')} files</h3>
+            {contabilitateFiles.length > 0 ? (
               <div className="file-summary" style={{
                 display: 'flex',
                 flexDirection: 'row',
@@ -2045,8 +2184,8 @@ function App() {
                 alignItems: 'center',
                 width: '100%'
               }}>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {filesData.length} files</div>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {filesData.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {contabilitateFiles.length} files</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {contabilitateFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
                 <button 
                   className="btn btn-primary view-files-button" 
                   onClick={() => setShowUploadedFilesPopup(true)}
