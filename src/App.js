@@ -244,22 +244,46 @@ function App() {
         setColumnNamesRow(columnNamesRowValue);
         setSelectedDateColumns(settings.selectedDateColumns || []);
         
-        // Load saved layout positions or use defaults
+        // Load saved layout positions only for current panels
         if (settings.panelPositions) {
-          setPanelPositions(prev => ({ ...prev, ...settings.panelPositions }));
+          const defaultPanelPositions = {
+            'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'contabilitate-header-panel': { x: 20, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
+            'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
+          };
+          
+          const currentPanelIds = Object.keys(defaultPanelPositions);
+          const filteredPositions = {};
+          
+          // Only load positions for panels that exist in current layout
+          currentPanelIds.forEach(panelId => {
+            if (settings.panelPositions[panelId]) {
+              filteredPositions[panelId] = settings.panelPositions[panelId];
+            }
+          });
+          
+          setPanelPositions(prev => ({ ...prev, ...filteredPositions }));
         }
         
-        // Load saved workspace bounds or use defaults
-        if (settings.workspaceBounds) {
-          setWorkspaceBounds(settings.workspaceBounds);
-        }
+        // Don't load old workspace bounds - let them be recalculated from current panels
+        // This prevents issues with phantom panels from old layouts
         
         // Load saved normal mode view position or use defaults
         if (settings.normalModeViewPosition) {
           setNormalModeViewPosition(settings.normalModeViewPosition);
         }
         
+        // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
+          updateWorkspaceBounds();
+          initializeCollisionMatrix();
           applyTheme(settings.theme || 'professional');
         }, 100);
       } catch (error) {
