@@ -2743,7 +2743,7 @@ function App() {
                         border: '1px solid var(--theme-date-column-border, #bbdefb)'
                       }}
                     >
-                      {columnNames[columnIndex]}
+                      {columnNames[columnIndex]?.name || `Column ${columnIndex + 1}`}
                     </span>
                   ))}
                   {selectedDateColumns.length > 6 && (
