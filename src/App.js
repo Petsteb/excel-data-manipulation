@@ -171,10 +171,17 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState('professional');
   const [isLoading, setIsLoading] = useState(true);
   const [columnNamesRow, setColumnNamesRow] = useState(1);
-  const [columnNames, setColumnNames] = useState([]);
-  const [selectedDateColumns, setSelectedDateColumns] = useState([]);
-  const [autoDetectedDateColumns, setAutoDetectedDateColumns] = useState([]);
-  const [dateColumnsWithTime, setDateColumnsWithTime] = useState([]);
+  // Contabilitate column state
+  const [contabilitateColumnNames, setContabilitateColumnNames] = useState([]);
+  const [contabilitateSelectedDateColumns, setContabilitateSelectedDateColumns] = useState([]);
+  const [contabilitateAutoDetectedDateColumns, setContabilitateAutoDetectedDateColumns] = useState([]);
+  const [contabilitateDateColumnsWithTime, setContabilitateDateColumnsWithTime] = useState([]);
+  
+  // ANAF column state  
+  const [anafColumnNames, setAnafColumnNames] = useState([]);
+  const [anafSelectedDateColumns, setAnafSelectedDateColumns] = useState([]);
+  const [anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns] = useState([]);
+  const [anafDateColumnsWithTime, setAnafDateColumnsWithTime] = useState([]);
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
@@ -311,12 +318,25 @@ function App() {
     if (!isNaN(numValue) && numValue > 0 && anafFiles.length > 0) {
       console.log('useEffect: columnNamesRow changed to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
-        extractColumnNames();
+        extractAnafColumnNames();
       }, 300);
       
       return () => clearTimeout(delayedExtraction);
     }
   }, [columnNamesRow, anafFiles]);
+
+  // Auto-extract columns for Contabilitate when columnNamesRow changes
+  useEffect(() => {
+    const numValue = parseInt(columnNamesRow);
+    if (!isNaN(numValue) && numValue > 0 && contabilitateFiles.length > 0) {
+      console.log('useEffect: columnNamesRow changed for Contabilitate to:', numValue, 'triggering extraction');
+      const delayedExtraction = setTimeout(() => {
+        extractContabilitateColumnNames();
+      }, 300);
+      
+      return () => clearTimeout(delayedExtraction);
+    }
+  }, [columnNamesRow, contabilitateFiles]);
 
   // Restore view position when app finishes loading
   useEffect(() => {
@@ -468,8 +488,8 @@ function App() {
     }
   };
 
-  // Extract column names from the specified row
-  const extractColumnNames = async () => {
+  // Extract column names for ANAF batch
+  const extractAnafColumnNames = async () => {
     if (anafFiles.length === 0) return;
     
     try {
@@ -493,20 +513,20 @@ function App() {
       console.log('Column extraction result:', result);
       
       if (result.success) {
-        setColumnNames(result.columnNames);
-        setAutoDetectedDateColumns(result.autoDetectedDateColumns || []);
-        setDateColumnsWithTime(result.dateColumnsWithTime || []);
+        setAnafColumnNames(result.columnNames);
+        setAnafAutoDetectedDateColumns(result.autoDetectedDateColumns || []);
+        setAnafDateColumnsWithTime(result.dateColumnsWithTime || []);
         
         if (result.autoDetectedDateColumns && result.autoDetectedDateColumns.length > 0) {
           const newSelectedColumns = [...result.autoDetectedDateColumns];
-          console.log('Auto-selecting all date columns:', newSelectedColumns);
-          setSelectedDateColumns(newSelectedColumns);
+          console.log('Auto-selecting ANAF date columns:', newSelectedColumns);
+          setAnafSelectedDateColumns(newSelectedColumns);
           
           try {
             const settings = await window.electronAPI.loadSettings();
             await window.electronAPI.saveSettings({
               ...settings,
-              selectedDateColumns: newSelectedColumns
+              anafSelectedDateColumns: newSelectedColumns
             });
           } catch (saveError) {
             console.error('Failed to save auto-selected date columns:', saveError);
@@ -517,20 +537,86 @@ function App() {
           setStatus(`${result.columnNames.length} columns found from row ${columnNamesRow}`);
         }
       } else {
-        console.warn('Column extraction failed:', result.error);
-        setColumnNames([]);
-        setAutoDetectedDateColumns([]);
-        setDateColumnsWithTime([]);
-        setSelectedDateColumns([]);
-        setStatus(`Error extracting column names: ${result.error}`);
+        console.warn('ANAF column extraction failed:', result.error);
+        setAnafColumnNames([]);
+        setAnafAutoDetectedDateColumns([]);
+        setAnafDateColumnsWithTime([]);
+        setAnafSelectedDateColumns([]);
+        setStatus(`Error extracting ANAF column names: ${result.error}`);
       }
     } catch (error) {
-      console.error('Failed to extract column names:', error);
-      setColumnNames([]);
-      setAutoDetectedDateColumns([]);
-      setDateColumnsWithTime([]);
-      setSelectedDateColumns([]);
-      setStatus(`Failed to extract column names: ${error.message}`);
+      console.error('Failed to extract ANAF column names:', error);
+      setAnafColumnNames([]);
+      setAnafAutoDetectedDateColumns([]);
+      setAnafDateColumnsWithTime([]);
+      setAnafSelectedDateColumns([]);
+      setStatus(`Failed to extract ANAF column names: ${error.message}`);
+    }
+  };
+
+  // Extract column names for Contabilitate batch
+  const extractContabilitateColumnNames = async () => {
+    if (contabilitateFiles.length === 0) return;
+    
+    try {
+      console.log('Extracting Contabilitate column names for row:', columnNamesRow, '(type:', typeof columnNamesRow, ') with commonLines:', commonLines, '(type:', typeof commonLines, ')');
+      const rowIndex = (parseInt(columnNamesRow) || 1) - 1;
+      const commonLinesInt = parseInt(commonLines) || 1;
+      
+      console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
+      
+      if (rowIndex < 0) {
+        setStatus('Error: Row number must be 1 or greater');
+        return;
+      }
+      
+      const result = await window.electronAPI.getColumnNames({
+        filesData: contabilitateFiles,
+        rowIndex: rowIndex,
+        commonLines: commonLinesInt
+      });
+      
+      console.log('Contabilitate column extraction result:', result);
+      
+      if (result.success) {
+        setContabilitateColumnNames(result.columnNames);
+        setContabilitateAutoDetectedDateColumns(result.autoDetectedDateColumns || []);
+        setContabilitateDateColumnsWithTime(result.dateColumnsWithTime || []);
+        
+        if (result.autoDetectedDateColumns && result.autoDetectedDateColumns.length > 0) {
+          const newSelectedColumns = [...result.autoDetectedDateColumns];
+          console.log('Auto-selecting Contabilitate date columns:', newSelectedColumns);
+          setContabilitateSelectedDateColumns(newSelectedColumns);
+          
+          try {
+            const settings = await window.electronAPI.loadSettings();
+            await window.electronAPI.saveSettings({
+              ...settings,
+              contabilitateSelectedDateColumns: newSelectedColumns
+            });
+          } catch (saveError) {
+            console.error('Failed to save Contabilitate auto-selected date columns:', saveError);
+          }
+          
+          setStatus(`${result.columnNames.length} Contabilitate columns found. Auto-selected ${newSelectedColumns.length} date column(s).`);
+        } else {
+          setStatus(`${result.columnNames.length} Contabilitate columns found from row ${columnNamesRow}`);
+        }
+      } else {
+        console.warn('Contabilitate column extraction failed:', result.error);
+        setContabilitateColumnNames([]);
+        setContabilitateAutoDetectedDateColumns([]);
+        setContabilitateDateColumnsWithTime([]);
+        setContabilitateSelectedDateColumns([]);
+        setStatus(`Error extracting Contabilitate column names: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to extract Contabilitate column names:', error);
+      setContabilitateColumnNames([]);
+      setContabilitateAutoDetectedDateColumns([]);
+      setContabilitateDateColumnsWithTime([]);
+      setContabilitateSelectedDateColumns([]);
+      setStatus(`Failed to extract Contabilitate column names: ${error.message}`);
     }
   };
 
@@ -623,6 +709,9 @@ function App() {
           setContabilitateFiles(newData);
           setStatus(`${newData.length} Contabilitate files loaded successfully`);
         }
+        
+        // Extract column names from Contabilitate files
+        await extractContabilitateColumnNames();
       }
     } catch (error) {
       setStatus(`Error selecting files: ${error.message}`);
@@ -664,7 +753,7 @@ function App() {
         }
         
         // Extract column names from ANAF files (main processing batch)
-        await extractColumnNames();
+        await extractAnafColumnNames();
       }
     } catch (error) {
       setStatus(`Error selecting ANAF files: ${error.message}`);
@@ -2566,7 +2655,7 @@ function App() {
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>Date Columns for {t('contabilitate')}</h3>
-            {columnNames.length > 0 ? (
+            {contabilitateColumnNames.length > 0 ? (
               <div>
                 <div style={{
                   display: 'flex',
@@ -2580,26 +2669,26 @@ function App() {
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    Found {selectedDateColumns.length} date columns
+                    Found {contabilitateSelectedDateColumns.length} date columns
                     <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on the '+' button. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
                   </p>
                 </div>
                 <div className="date-column-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  {selectedDateColumns.slice(0, 6).map((colIndex) => {
-                    const col = columnNames[colIndex];
+                  {contabilitateSelectedDateColumns.slice(0, 6).map((colIndex) => {
+                    const col = contabilitateColumnNames[colIndex];
                     return (
                       <span key={colIndex} className="date-column-badge">
                         {col?.name || `Column ${colIndex + 1}`}
                       </span>
                     );
                   })}
-                  {selectedDateColumns.length > 6 && (
+                  {contabilitateSelectedDateColumns.length > 6 && (
                     <span className="date-column-badge" style={{ 
                       backgroundColor: 'var(--theme-accent-color, #667eea)',
                       cursor: 'pointer' 
                     }}
                     onClick={handleViewColumnsClick}>
-                      +{selectedDateColumns.length - 6} more
+                      +{contabilitateSelectedDateColumns.length - 6} more
                     </span>
                   )}
                   <button 
@@ -2687,70 +2776,56 @@ function App() {
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>Date Columns for {t('anaf')}</h3>
-            {columnNames.length > 0 ? (
+            {anafColumnNames.length > 0 ? (
               <div>
                 <div style={{
                   display: 'flex',
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                   alignItems: 'center',
-                  marginBottom: '12px'
+                  marginBottom: '20px'
                 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('dateColumnsFound')}</span>
-                  <span style={{ 
-                    fontSize: '11px', 
-                    backgroundColor: 'var(--theme-accent-bg)', 
-                    color: 'var(--theme-accent-text)', 
-                    padding: '2px 6px', 
-                    borderRadius: '3px' 
+                  <p style={{ 
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}>
-                    {selectedDateColumns.length}
-                  </span>
-                  <Tooltip content={t('dateColumnsTooltip')} />
+                    Found {anafSelectedDateColumns.length} date columns
+                    <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on the '+' button. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
+                  </p>
+                </div>
+                <div className="date-column-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  {anafSelectedDateColumns.slice(0, 6).map((colIndex) => {
+                    const col = anafColumnNames[colIndex];
+                    return (
+                      <span key={colIndex} className="date-column-badge">
+                        {col?.name || `Column ${colIndex + 1}`}
+                      </span>
+                    );
+                  })}
+                  {anafSelectedDateColumns.length > 6 && (
+                    <span className="date-column-badge" style={{ 
+                      backgroundColor: 'var(--theme-accent-color, #667eea)',
+                      cursor: 'pointer' 
+                    }}
+                    onClick={handleViewColumnsClick}>
+                      +{anafSelectedDateColumns.length - 6} more
+                    </span>
+                  )}
                   <button 
-                    className="btn btn-secondary"
+                    className="btn btn-primary"
                     onClick={handleViewColumnsClick}
                     style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
+                      padding: '0',
+                      fontSize: '18px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
                       marginLeft: '8px'
                     }}
                   >
-                    {t('viewColumns')}
+                    +
                   </button>
-                </div>
-                
-                <div className="date-columns-preview" style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '4px',
-                  justifyContent: 'center',
-                  maxHeight: '60px',
-                  overflowY: 'auto'
-                }}>
-                  {selectedDateColumns.slice(0, 6).map((columnIndex, index) => (
-                    <span 
-                      key={index}
-                      className="date-column-badge"
-                      style={{
-                        backgroundColor: 'var(--theme-date-column-bg, #e3f2fd)',
-                        color: 'var(--theme-date-column-text, #1976d2)',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        fontSize: '10px',
-                        border: '1px solid var(--theme-date-column-border, #bbdefb)'
-                      }}
-                    >
-                      {columnNames[columnIndex]?.name || `Column ${columnIndex + 1}`}
-                    </span>
-                  ))}
-                  {selectedDateColumns.length > 6 && (
-                    <span style={{ fontSize: '10px', color: 'var(--theme-text-color, #666)' }}>
-                      {t('andMore')} {selectedDateColumns.length - 6} {t('more')}
-                    </span>
-                  )}
                 </div>
               </div>
             ) : (
