@@ -1556,8 +1556,13 @@ function App() {
     let minY = 0;
     let maxY = viewportHeight;
     
-    // Calculate core bounds from all panels and buttons
-    Object.values(panelPositions).forEach(pos => {
+    // Calculate core bounds from active panels and buttons only
+    Object.entries(panelPositions).filter(([elementId]) => {
+      // Only include panels that are in the availablePanels list and active, or buttons
+      const panel = availablePanels.find(p => p.id === elementId);
+      const button = availableButtons.find(b => b.id === elementId);
+      return (panel && panel.active) || button;
+    }).forEach(([elementId, pos]) => {
       const x = pos.x || 0;
       const y = pos.y || 0;
       const width = pos.width || DEFAULT_PANEL_WIDTH;
@@ -1773,8 +1778,13 @@ function App() {
       }
     }
     
-    // Repopulate matrix with current panel positions
-    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+    // Repopulate matrix with active panel positions only
+    Object.entries(panelPositions).filter(([elementId]) => {
+      // Only include panels that are in the availablePanels list and active, or buttons
+      const panel = availablePanels.find(p => p.id === elementId);
+      const button = availableButtons.find(b => b.id === elementId);
+      return (panel && panel.active) || button;
+    }).forEach(([elementId, pos]) => {
       const x = (pos.x || 0) - workspaceBounds.minX;
       const y = (pos.y || 0) - workspaceBounds.minY;
       const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
@@ -1807,9 +1817,14 @@ function App() {
     
     const matrix = new CollisionMatrix(matrixWidth, matrixHeight);
     
-    // Populate matrix with existing panels and buttons
+    // Populate matrix with active panels and buttons only
     // Adjust coordinates to matrix space (subtract minX, minY offset)
-    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+    Object.entries(panelPositions).filter(([elementId]) => {
+      // Only include panels that are in the availablePanels list and active, or buttons
+      const panel = availablePanels.find(p => p.id === elementId);
+      const button = availableButtons.find(b => b.id === elementId);
+      return (panel && panel.active) || button;
+    }).forEach(([elementId, pos]) => {
       const x = (pos.x || 0) - bounds.minX;
       const y = (pos.y || 0) - bounds.minY;
       const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
@@ -2299,7 +2314,12 @@ function App() {
         onClick={handleMinimapClick}
       >
         {/* Minimap panels */}
-        {Object.entries(panelPositions).map(([elementId, pos]) => {
+        {Object.entries(panelPositions).filter(([elementId]) => {
+          // Only show panels that are in the availablePanels list and active, or buttons
+          const panel = availablePanels.find(p => p.id === elementId);
+          const button = availableButtons.find(b => b.id === elementId);
+          return (panel && panel.active) || button;
+        }).map(([elementId, pos]) => {
           const x = pos.x || 0;
           const y = pos.y || 0;
           const width = pos.width || (availableButtons.find(b => b.id === elementId) ? DEFAULT_BUTTON_SIZE : DEFAULT_PANEL_WIDTH);
