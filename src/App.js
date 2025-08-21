@@ -191,7 +191,11 @@ function App() {
   // Conta processing state
   const [processedContaFiles, setProcessedContaFiles] = useState([]);
   const [selectedAccounts, setSelectedAccounts] = useState([]);
-  const [availableAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
+  const [availableAccounts, setAvailableAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
+  const [customAccounts, setCustomAccounts] = useState([]);
+  const [showAccountInput, setShowAccountInput] = useState(false);
+  const [newAccountInput, setNewAccountInput] = useState('');
+  const [contextMenu, setContextMenu] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [accountSums, setAccountSums] = useState({});
@@ -314,6 +318,12 @@ function App() {
           setEndDate(settings.contaEndDate);
         }
         
+        // Load saved custom accounts
+        if (settings.customAccounts && Array.isArray(settings.customAccounts)) {
+          setCustomAccounts(settings.customAccounts);
+          setAvailableAccounts(prev => [...prev, ...settings.customAccounts]);
+        }
+        
         // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
           updateWorkspaceBounds();
@@ -331,6 +341,16 @@ function App() {
 
     loadAppSettings();
   }, []);
+
+  // Handle document clicks to close context menu
+  useEffect(() => {
+    if (contextMenu) {
+      document.addEventListener('click', handleDocumentClick);
+      return () => {
+        document.removeEventListener('click', handleDocumentClick);
+      };
+    }
+  }, [contextMenu]);
 
   // Apply theme when component mounts and currentTheme changes
   useEffect(() => {
@@ -1029,6 +1049,7 @@ function App() {
   const autoSelectFoundAccounts = (files) => {
     const foundAccounts = [];
     
+    // Use current availableAccounts which includes both default and custom accounts
     for (const account of availableAccounts) {
       const isFoundInFiles = files.some(file => {
         // For single account files, check the accountNumber property
@@ -1158,6 +1179,74 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to save end date:', error);
+    }
+  };
+
+  const handleAddAccountClick = () => {
+    setShowAccountInput(true);
+    setNewAccountInput('');
+  };
+
+  const handleAccountInputSubmit = () => {
+    const accountName = newAccountInput.trim();
+    if (accountName && !availableAccounts.includes(accountName) && !customAccounts.includes(accountName)) {
+      const updatedCustomAccounts = [...customAccounts, accountName];
+      setCustomAccounts(updatedCustomAccounts);
+      setAvailableAccounts([...availableAccounts, accountName]);
+      saveCustomAccounts(updatedCustomAccounts);
+    }
+    setShowAccountInput(false);
+    setNewAccountInput('');
+  };
+
+  const handleAccountInputCancel = () => {
+    setShowAccountInput(false);
+    setNewAccountInput('');
+  };
+
+  const handleAccountRightClick = (e, account) => {
+    e.preventDefault();
+    // Only allow deletion of custom accounts
+    if (customAccounts.includes(account)) {
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        account: account
+      });
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (contextMenu && contextMenu.account) {
+      const accountToDelete = contextMenu.account;
+      const updatedCustomAccounts = customAccounts.filter(acc => acc !== accountToDelete);
+      const updatedAvailableAccounts = availableAccounts.filter(acc => acc !== accountToDelete);
+      const updatedSelectedAccounts = selectedAccounts.filter(acc => acc !== accountToDelete);
+      
+      setCustomAccounts(updatedCustomAccounts);
+      setAvailableAccounts(updatedAvailableAccounts);
+      setSelectedAccounts(updatedSelectedAccounts);
+      saveCustomAccounts(updatedCustomAccounts);
+    }
+    setContextMenu(null);
+  };
+
+  const saveCustomAccounts = async (accounts) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        customAccounts: accounts
+      });
+    } catch (error) {
+      console.error('Failed to save custom accounts:', error);
+    }
+  };
+
+  // Close context menu when clicking elsewhere
+  const handleDocumentClick = () => {
+    if (contextMenu) {
+      setContextMenu(null);
     }
   };
 
@@ -1466,6 +1555,9 @@ function App() {
     setStartDate('');
     setEndDate('');
     setAccountSums({});
+    setShowAccountInput(false);
+    setNewAccountInput('');
+    setContextMenu(null);
     setCreatedFilePath('');
     setStatus('');
     setProcessingSummary(null);
@@ -3220,6 +3312,7 @@ function App() {
                       <button
                         key={account}
                         onClick={() => handleAccountToggle(account)}
+                        onContextMenu={(e) => handleAccountRightClick(e, account)}
                         style={{
                           padding: '6px 12px',
                           borderRadius: '16px',
@@ -3244,25 +3337,96 @@ function App() {
                       </button>
                     );
                   })}
-                  <button
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '50%',
-                      border: '1px solid var(--theme-border-color)',
-                      backgroundColor: 'var(--theme-button-bg)',
-                      color: 'var(--theme-text-color)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      width: '28px',
-                      height: '28px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Add more accounts"
-                  >
-                    +
-                  </button>
+                  
+                  {/* Add Account Input Field */}
+                  {showAccountInput ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="text"
+                        value={newAccountInput}
+                        onChange={(e) => setNewAccountInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAccountInputSubmit();
+                          } else if (e.key === 'Escape') {
+                            handleAccountInputCancel();
+                          }
+                        }}
+                        placeholder="Account name"
+                        autoFocus
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          border: '1px solid var(--theme-border-color)',
+                          backgroundColor: 'var(--theme-input-bg)',
+                          color: 'var(--theme-text-color)',
+                          fontSize: '12px',
+                          width: '80px'
+                        }}
+                      />
+                      <button
+                        onClick={handleAccountInputSubmit}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '50%',
+                          border: '1px solid #10b981',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Add account"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={handleAccountInputCancel}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '50%',
+                          border: '1px solid #ef4444',
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleAddAccountClick}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '50%',
+                        border: '1px solid var(--theme-border-color)',
+                        backgroundColor: 'var(--theme-button-bg)',
+                        color: 'var(--theme-text-color)',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Add custom account"
+                    >
+                      +
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -3762,6 +3926,43 @@ function App() {
         {/* Minimap - only shown in layout mode */}
         {renderMinimap()}
       </main>
+
+      {/* Context Menu for Account Deletion */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            backgroundColor: 'var(--theme-bg-color)',
+            border: '1px solid var(--theme-border-color)',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            zIndex: 10000,
+            minWidth: '120px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            style={{
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#ef4444',
+              borderRadius: '4px'
+            }}
+            onClick={handleDeleteAccount}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            Delete "{contextMenu.account}"
+          </div>
+        </div>
+      )}
     </div>
   );
 }
