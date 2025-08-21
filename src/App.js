@@ -4043,7 +4043,9 @@ function App() {
                 backgroundColor: 'var(--theme-input-bg)',
                 color: 'var(--theme-text-color)',
                 border: '1px solid var(--theme-border-color)',
-                borderRadius: '2px'
+                borderRadius: '2px',
+                position: 'relative',
+                zIndex: 10001
               }}
             >
               <option value="cont">cont (Account)</option>
@@ -4070,7 +4072,9 @@ function App() {
                 backgroundColor: 'var(--theme-input-bg)',
                 color: 'var(--theme-text-color)',
                 border: '1px solid var(--theme-border-color)',
-                borderRadius: '2px'
+                borderRadius: '2px',
+                position: 'relative',
+                zIndex: 10001
               }}
             >
               <option value="suma_c">suma_c (Credit)</option>
