@@ -1008,16 +1008,16 @@ function App() {
       if (nonEmptyValues.length === 7) {
         // Insert 'cont' column between 3rd and 4th column (after explicatie, before cd)
         // Original format: data, ndp, explicatie, cd, suma_d, suma_c, sold
-        // Target format: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
+        // Target format: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold
         const standardizedRow = [
           row[0], // data
           row[1], // ndp
           row[2], // explicatie
+          accountNumber, // cont (inserted between 3rd and 4th)
           row[3], // cd
           row[4], // suma_d
           row[5], // suma_c
-          row[6], // sold
-          accountNumber // cont (added at end)
+          row[6]  // sold
         ];
         cleanedData.push(standardizedRow);
       }
@@ -1050,16 +1050,16 @@ function App() {
       if (row && row.length >= 12) {
         // Format: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold, validat, categorie, id_nota, fel_d, isred
         // We ignore the last 4 columns (validat, categorie, id_nota, fel_d) and use first 8
-        // Standard format: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
+        // Standard format: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold
         const standardizedRow = [
           row[0], // data
           row[1], // ndp
           row[2], // explicatie
+          row[3], // cont
           row[4], // cd
           row[5], // suma_d
           row[6], // suma_c
-          row[7], // sold
-          row[3]  // cont
+          row[7]  // sold
         ];
         cleanedData.push(standardizedRow);
       }
@@ -1164,7 +1164,7 @@ function App() {
           }
         }
         // For multiple account files, check the data rows
-        return file.data.some(row => row[7] && row[7].toString() === account);
+        return file.data.some(row => row[3] && row[3].toString() === account);
       });
       
       if (isFoundInFiles) {
@@ -1198,7 +1198,7 @@ function App() {
     for (const file of processedContaFiles) {
       console.log(`Processing file: ${file.name}, rows: ${file.data.length}, accountNumber: ${file.accountNumber}`);
       for (const row of file.data) {
-        const rowAccount = row[7]; // cont column
+        const rowAccount = row[3]; // cont column (now at index 3)
         
         // Apply filtering based on account configuration (config already defined above)
         let rowMatches = false;
@@ -1206,7 +1206,7 @@ function App() {
         // Get the value from the row based on the filter column
         let filterValue;
         if (config.filterColumn === 'cont') {
-          filterValue = row[7]; // cont column
+          filterValue = row[3]; // cont column (now at index 3)
         } else if (config.filterColumn === 'data') {
           filterValue = row[0]; // data column
         } else if (config.filterColumn === 'explicatie') {
@@ -1214,7 +1214,7 @@ function App() {
         } else if (config.filterColumn === 'ndp') {
           filterValue = row[1]; // ndp column
         } else {
-          filterValue = row[7]; // default to cont
+          filterValue = row[3]; // default to cont (now at index 3)
         }
         
         // Check if the row matches the filter criteria
@@ -1268,15 +1268,15 @@ function App() {
           let columnIndex;
           
           // Map column names to indices in standardized row format
-          // Row format: [data, ndp, explicatie, cd, suma_d, suma_c, sold, cont]
+          // Row format: [data, ndp, explicatie, cont, cd, suma_d, suma_c, sold]
           if (config.sumColumn === 'suma_c') {
-            columnIndex = 5;
+            columnIndex = 6; // suma_c is now at index 6
           } else if (config.sumColumn === 'suma_d') {
-            columnIndex = 4;
+            columnIndex = 5; // suma_d is now at index 5
           } else if (config.sumColumn === 'sold') {
-            columnIndex = 6;
+            columnIndex = 7; // sold is now at index 7
           } else {
-            columnIndex = 5; // Default to suma_c
+            columnIndex = 6; // Default to suma_c
           }
           
           const value = parseFloat(row[columnIndex]) || 0;
@@ -3488,7 +3488,7 @@ function App() {
                         }
                       }
                       // For multiple account files, check the data rows
-                      return file.data.some(row => row[7] && row[7].toString() === account);
+                      return file.data.some(row => row[3] && row[3].toString() === account);
                     });
                     
                     return (
