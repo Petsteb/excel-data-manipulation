@@ -4115,11 +4115,11 @@ function App() {
                       backdropFilter: 'blur(15px)',
                       WebkitBackdropFilter: 'blur(15px)',
                       border: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
-                        '2px solid var(--accent-color, #007acc)' : '1px solid transparent',
+                        '2px solid var(--theme-accent, #10b981)' : '1px solid transparent',
                       boxShadow: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
                         `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
                          inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
-                         0 0 0 1px var(--accent-color, rgba(0, 122, 204, 0.3))` : 'none',
+                         0 0 0 1px var(--theme-accent, rgba(16, 185, 129, 0.3))` : 'none',
                       margin: '2px',
                       transition: 'all 0.2s ease'
                     }}
@@ -4228,11 +4228,11 @@ function App() {
                       backdropFilter: 'blur(15px)',
                       WebkitBackdropFilter: 'blur(15px)',
                       border: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
-                        '2px solid var(--accent-color, #007acc)' : '1px solid transparent',
+                        '2px solid var(--theme-accent, #10b981)' : '1px solid transparent',
                       boxShadow: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
                         `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
                          inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
-                         0 0 0 1px var(--accent-color, rgba(0, 122, 204, 0.3))` : 'none',
+                         0 0 0 1px var(--theme-accent, rgba(16, 185, 129, 0.3))` : 'none',
                       margin: '2px',
                       transition: 'all 0.2s ease'
                     }}
