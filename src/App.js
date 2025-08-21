@@ -4146,9 +4146,6 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
-              Filter Value:
-            </label>
             <input
               type="text"
               value={getAccountConfig(contextMenu.account).filterValue || ''}
