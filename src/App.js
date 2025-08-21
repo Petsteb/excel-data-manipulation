@@ -1073,6 +1073,8 @@ function App() {
   };
 
   const processContaFiles = async (files) => {
+    console.log('=== CONTA FILES PROCESSING STARTED ===');
+    console.log('Number of files to process:', files?.length);
     try {
       setStatus('Processing conta files...');
       const processedFiles = [];
@@ -1100,6 +1102,8 @@ function App() {
       
       setProcessedContaFiles(processedFiles);
       setStatus(`Processed ${processedFiles.length} conta files`);
+      console.log('=== CONTA FILES PROCESSING COMPLETED ===');
+      console.log('Total processed files:', processedFiles.length);
       
       // Auto-detect and set data column as date column
       autoDetectDataColumn(processedFiles);
