@@ -1705,8 +1705,7 @@ function App() {
     // Clear Conta processing state
     setProcessedContaFiles([]);
     setSelectedAccounts([]);
-    setStartDate('');
-    setEndDate('');
+    // Preserve date selection - don't reset startDate and endDate
     setAccountSums({});
     setShowAccountInput(false);
     setNewAccountInput('');
