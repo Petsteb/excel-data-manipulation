@@ -198,6 +198,8 @@ function App() {
   const [showAccountInput, setShowAccountInput] = useState(false);
   const [newAccountInput, setNewAccountInput] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [sumDropdownOpen, setSumDropdownOpen] = useState(false);
   const [accountConfigs, setAccountConfigs] = useState({});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -1319,6 +1321,8 @@ function App() {
   const handleDocumentClick = () => {
     if (contextMenu) {
       setContextMenu(null);
+      setFilterDropdownOpen(false);
+      setSumDropdownOpen(false);
     }
   };
 
@@ -4026,63 +4030,204 @@ function App() {
             Account: {contextMenu.account}
           </div>
           
-          <div style={{ marginBottom: '8px' }}>
+          <div style={{ marginBottom: '8px', position: 'relative' }}>
             <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Filter Column:
             </label>
-            <select
-              value={getAccountConfig(contextMenu.account).filterColumn}
-              onChange={(e) => updateAccountConfig(contextMenu.account, {
-                ...getAccountConfig(contextMenu.account),
-                filterColumn: e.target.value
-              })}
+            <div
+              onClick={() => {
+                setFilterDropdownOpen(!filterDropdownOpen);
+                setSumDropdownOpen(false);
+              }}
               style={{
                 width: '100%',
-                padding: '4px',
+                padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
                 color: 'var(--theme-text-color)',
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
+                cursor: 'pointer',
                 position: 'relative',
-                zIndex: 100000,
-                isolation: 'isolate'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
               }}
             >
-              <option value="cont">cont (Account)</option>
-              <option value="data">data (Date)</option>
-              <option value="explicatie">explicatie (Description)</option>
-              <option value="ndp">ndp (Document Number)</option>
-            </select>
+              <span>
+                {(() => {
+                  const value = getAccountConfig(contextMenu.account).filterColumn;
+                  switch(value) {
+                    case 'cont': return 'cont (Account)';
+                    case 'data': return 'data (Date)';
+                    case 'explicatie': return 'explicatie (Description)';
+                    case 'ndp': return 'ndp (Document Number)';
+                    default: return value;
+                  }
+                })()}
+              </span>
+              <span style={{ transform: filterDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+            </div>
+            {filterDropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '0',
+                right: '0',
+                background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+                backdropFilter: 'blur(25px)',
+                WebkitBackdropFilter: 'blur(25px)',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+                boxShadow: `
+                  0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                  inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                  inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+                `,
+                zIndex: 100001,
+                marginTop: '2px'
+              }}>
+                {[
+                  { value: 'cont', label: 'cont (Account)' },
+                  { value: 'data', label: 'data (Date)' },
+                  { value: 'explicatie', label: 'explicatie (Description)' },
+                  { value: 'ndp', label: 'ndp (Document Number)' }
+                ].map((option, index, arr) => (
+                  <div
+                    key={option.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateAccountConfig(contextMenu.account, {
+                        ...getAccountConfig(contextMenu.account),
+                        filterColumn: option.value
+                      });
+                      setFilterDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--theme-text-color)',
+                      cursor: 'pointer',
+                      borderRadius: index === 0 ? '8px 8px 0 0' : 
+                                  index === arr.length - 1 ? '0 0 8px 8px' : '0',
+                      backgroundColor: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
+                                     'var(--glass-highlight, rgba(255, 255, 255, 0.3))' : 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (getAccountConfig(contextMenu.account).filterColumn !== option.value) {
+                        e.target.style.backgroundColor = 'var(--glass-lowlight, rgba(0, 0, 0, 0.05))';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (getAccountConfig(contextMenu.account).filterColumn !== option.value) {
+                        e.target.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '12px', position: 'relative' }}>
             <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Sum Column:
             </label>
-            <select
-              value={getAccountConfig(contextMenu.account).sumColumn}
-              onChange={(e) => updateAccountConfig(contextMenu.account, {
-                ...getAccountConfig(contextMenu.account),
-                sumColumn: e.target.value
-              })}
+            <div
+              onClick={() => {
+                setSumDropdownOpen(!sumDropdownOpen);
+                setFilterDropdownOpen(false);
+              }}
               style={{
                 width: '100%',
-                padding: '4px',
+                padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
                 color: 'var(--theme-text-color)',
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
+                cursor: 'pointer',
                 position: 'relative',
-                zIndex: 100000,
-                isolation: 'isolate'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
               }}
             >
-              <option value="suma_c">suma_c (Credit)</option>
-              <option value="suma_d">suma_d (Debit)</option>
-              <option value="sold">sold (Balance)</option>
-            </select>
+              <span>
+                {(() => {
+                  const value = getAccountConfig(contextMenu.account).sumColumn;
+                  switch(value) {
+                    case 'suma_c': return 'suma_c (Credit)';
+                    case 'suma_d': return 'suma_d (Debit)';
+                    case 'sold': return 'sold (Balance)';
+                    default: return value;
+                  }
+                })()}
+              </span>
+              <span style={{ transform: sumDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+            </div>
+            {sumDropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '0',
+                right: '0',
+                background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+                backdropFilter: 'blur(25px)',
+                WebkitBackdropFilter: 'blur(25px)',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+                boxShadow: `
+                  0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                  inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                  inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+                `,
+                zIndex: 100001,
+                marginTop: '2px'
+              }}>
+                {[
+                  { value: 'suma_c', label: 'suma_c (Credit)' },
+                  { value: 'suma_d', label: 'suma_d (Debit)' },
+                  { value: 'sold', label: 'sold (Balance)' }
+                ].map((option, index, arr) => (
+                  <div
+                    key={option.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateAccountConfig(contextMenu.account, {
+                        ...getAccountConfig(contextMenu.account),
+                        sumColumn: option.value
+                      });
+                      setSumDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--theme-text-color)',
+                      cursor: 'pointer',
+                      borderRadius: index === 0 ? '8px 8px 0 0' : 
+                                  index === arr.length - 1 ? '0 0 8px 8px' : '0',
+                      backgroundColor: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
+                                     'var(--glass-highlight, rgba(255, 255, 255, 0.3))' : 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (getAccountConfig(contextMenu.account).sumColumn !== option.value) {
+                        e.target.style.backgroundColor = 'var(--glass-lowlight, rgba(0, 0, 0, 0.05))';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (getAccountConfig(contextMenu.account).sumColumn !== option.value) {
+                        e.target.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div
