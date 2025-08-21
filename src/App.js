@@ -204,9 +204,7 @@ function App() {
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'contabilitate-header-panel': { x: 20, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -228,9 +226,7 @@ function App() {
     { id: 'anaf-upload-panel', name: 'ANAF Upload Panel', type: 'panel', active: true },
     { id: 'contabilitate-summary-panel', name: 'Contabilitate Summary Panel', type: 'panel', active: true },
     { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
-    { id: 'contabilitate-header-panel', name: 'Contabilitate Header Panel', type: 'panel', active: false },
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
-    { id: 'contabilitate-date-panel', name: 'Contabilitate Date Panel', type: 'panel', active: false },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
     { id: 'conta-account-selection-panel', name: 'Conta Account Selection Panel', type: 'panel', active: true },
     { id: 'conta-sums-panel', name: 'Conta Sums Panel', type: 'panel', active: true },
@@ -280,9 +276,7 @@ function App() {
             'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'contabilitate-header-panel': { x: 20, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -1379,11 +1373,11 @@ function App() {
       // 3 stat items + View Summary button + Download/Open buttons + all padding
       minWidth = Math.max(minWidth, 400);
       minHeight = Math.max(minHeight, 300);
-    } else if (elementId === 'contabilitate-header-panel' || elementId === 'anaf-header-panel') {
+    } else if (elementId === 'anaf-header-panel') {
       // 2 input groups with labels and input fields - need full height for both sections
       minWidth = Math.max(minWidth, 420);
       minHeight = Math.max(minHeight, 180);
-    } else if (elementId === 'contabilitate-date-panel' || elementId === 'anaf-date-panel') {
+    } else if (elementId === 'anaf-date-panel') {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
@@ -2822,133 +2816,7 @@ function App() {
           </div>
         </div>
 
-        {/* Panel 5 - Contabilitate Header Selection */}
-        <div 
-          className="xy-selection-section panel"
-          data-panel="contabilitate-header-panel"
-          draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-header-panel', type: 'panel' })}
-          onDragEnd={handleDragEnd}
-          style={{
-            position: 'absolute',
-            left: `${getVisualPosition('contabilitate-header-panel').x}px`,
-            top: `${getVisualPosition('contabilitate-header-panel').y}px`,
-            width: `${getVisualPosition('contabilitate-header-panel').width}px`,
-            height: `${getVisualPosition('contabilitate-header-panel').height}px`,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
-          }}
-        >
-          {isLayoutMode && (
-            <div 
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-header-panel')}
-            />
-          )}
-          <div className="panel-content">
-            {isDeveloperMode && (
-              <div style={{ 
-                position: 'absolute', 
-                top: '4px', 
-                right: '4px', 
-                fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
-                padding: '2px 4px', 
-                borderRadius: '2px',
-                fontFamily: 'monospace',
-                zIndex: 1000
-              }}>
-                contabilitate-header-panel
-              </div>
-            )}
-            <h3 style={{ textAlign: 'center' }}>Header Selection for {t('contabilitate')}</h3>
-            {contabilitateFiles.length > 0 ? (
-              <div className="input-controls" style={{
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                gap: '30px',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                width: '100%'
-              }}>
-                <div className="input-group" style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'flex-start',
-                  minWidth: 'fit-content'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '8px'
-                  }}>
-                    <label style={{ 
-                      fontSize: '0.9em',
-                      whiteSpace: 'nowrap'
-                    }}>{t('headerNumberOfRows')}</label>
-                    <Tooltip content="The number of lines that is common at the beggining of all the uploaded files, like the column names." />
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={contabilitateCommonLines}
-                    onChange={(e) => handleContabilitateCommonLinesChange(e.target.value)}
-                    disabled={isProcessing}
-                    style={{ 
-                      width: '120px',
-                      textAlign: 'center',
-                      padding: '10px',
-                      fontSize: '1.2em',
-                      borderRadius: '8px'
-                    }}
-                  />
-                </div>
-                <div className="input-group" style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'flex-start',
-                  minWidth: 'fit-content'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '8px'
-                  }}>
-                    <label style={{ 
-                      fontSize: '0.9em',
-                      whiteSpace: 'nowrap'
-                    }}>{t('columnsRow')}</label>
-                    <Tooltip content="The row that contains the name of the columns." />
-                  </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={contabilitateColumnNamesRow}
-                    onChange={(e) => handleContabilitateColumnNamesRowChange(e.target.value)}
-                    disabled={isProcessing}
-                    style={{ 
-                      width: '120px',
-                      textAlign: 'center',
-                      padding: '10px',
-                      fontSize: '1.2em',
-                      borderRadius: '8px'
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <p style={{ textAlign: 'center' }}>Upload files to configure headers</p>
-            )}
-          </div>
-        </div>
-
-        {/* Panel 6 - ANAF Header Selection */}
+        {/* Panel 5 - ANAF Header Selection */}
         <div 
           className="xy-selection-section panel"
           data-panel="anaf-header-panel"
@@ -3046,128 +2914,7 @@ function App() {
           </div>
         </div>
         
-        {/* Panel 7 - Contabilitate Date Columns */}
-        <div 
-          className="date-columns-section panel"
-          data-panel="contabilitate-date-panel"
-          draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-date-panel', type: 'panel' })}
-          onDragEnd={handleDragEnd}
-          style={{
-            position: 'absolute',
-            left: `${getVisualPosition('contabilitate-date-panel').x}px`,
-            top: `${getVisualPosition('contabilitate-date-panel').y}px`,
-            width: `${getVisualPosition('contabilitate-date-panel').width}px`,
-            height: `${getVisualPosition('contabilitate-date-panel').height}px`,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
-          }}
-        >
-          {isLayoutMode && (
-            <div 
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'contabilitate-date-panel')}
-            />
-          )}
-          <div className="panel-content">
-            {isDeveloperMode && (
-              <div style={{ 
-                position: 'absolute', 
-                top: '4px', 
-                right: '4px', 
-                fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
-                padding: '2px 4px', 
-                borderRadius: '2px',
-                fontFamily: 'monospace',
-                zIndex: 1000
-              }}>
-                contabilitate-date-panel
-              </div>
-            )}
-            <h3 style={{ textAlign: 'center' }}>Date Columns for {t('contabilitate')}</h3>
-            {contabilitateColumnNames.length > 0 ? (
-              <div>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}>
-                  <p style={{ 
-                    margin: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    Found {contabilitateSelectedDateColumns.length} date columns
-                    <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on the '+' button. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
-                  </p>
-                </div>
-                <div className="date-column-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  {contabilitateSelectedDateColumns.slice(0, 6).map((colIndex) => {
-                    const col = contabilitateColumnNames[colIndex];
-                    return (
-                      <span key={colIndex} className="date-column-badge">
-                        {col?.name || `Column ${colIndex + 1}`}
-                      </span>
-                    );
-                  })}
-                  {contabilitateSelectedDateColumns.length > 6 && (
-                    <span className="date-column-badge" style={{ 
-                      backgroundColor: 'var(--theme-accent-color, #667eea)',
-                      cursor: 'pointer' 
-                    }}
-                    onClick={handleContabilitateViewColumnsClick}>
-                      +{contabilitateSelectedDateColumns.length - 6} more
-                    </span>
-                  )}
-                  <button 
-                    className="btn btn-primary"
-                    onClick={handleContabilitateViewColumnsClick}
-                    style={{
-                      padding: '0',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '24px',
-                      border: 'none',
-                      backgroundColor: 'var(--theme-primary, #4f46e5)',
-                      color: 'white',
-                      position: 'relative'
-                    }}
-                    title="View and select more date columns"
-                  >
-                    <span style={{
-                      display: 'block',
-                      width: '10px',
-                      height: '2px',
-                      backgroundColor: 'white',
-                      position: 'absolute'
-                    }}></span>
-                    <span style={{
-                      display: 'block',
-                      width: '2px',
-                      height: '10px',
-                      backgroundColor: 'white',
-                      position: 'absolute'
-                    }}></span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p style={{ textAlign: 'center' }}>Upload files to detect date columns</p>
-            )}
-          </div>
-        </div>
-
-        {/* Panel 8 - ANAF Date Columns */}
+        {/* Panel 6 - ANAF Date Columns */}
         <div 
           className="date-columns-section panel"
           data-panel="anaf-date-panel"
