@@ -4016,7 +4016,7 @@ function App() {
               inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
               inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
             `,
-            zIndex: 10000,
+            zIndex: 99999,
             minWidth: '200px',
             padding: '12px'
           }}
@@ -4045,7 +4045,8 @@ function App() {
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 position: 'relative',
-                zIndex: 10001
+                zIndex: 100000,
+                isolation: 'isolate'
               }}
             >
               <option value="cont">cont (Account)</option>
@@ -4074,7 +4075,8 @@ function App() {
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 position: 'relative',
-                zIndex: 10001
+                zIndex: 100000,
+                isolation: 'isolate'
               }}
             >
               <option value="suma_c">suma_c (Credit)</option>
