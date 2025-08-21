@@ -3086,29 +3086,40 @@ function App() {
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Account Selection</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                  {availableAccounts.map(account => (
-                    <button
-                      key={account}
-                      onClick={() => handleAccountToggle(account)}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '16px',
-                        border: '1px solid var(--theme-border-color)',
-                        backgroundColor: selectedAccounts.includes(account) 
-                          ? 'var(--theme-primary, #4f46e5)' 
-                          : 'var(--theme-button-bg)',
-                        color: selectedAccounts.includes(account) 
-                          ? 'white' 
-                          : 'var(--theme-text-color)',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        minWidth: 'fit-content'
-                      }}
-                    >
-                      {account}
-                    </button>
-                  ))}
+                  {availableAccounts.map(account => {
+                    const isSelected = selectedAccounts.includes(account);
+                    const isFoundInFiles = processedContaFiles.some(file => 
+                      file.data.some(row => row[7] && row[7].toString() === account)
+                    );
+                    
+                    return (
+                      <button
+                        key={account}
+                        onClick={() => handleAccountToggle(account)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '16px',
+                          border: isFoundInFiles 
+                            ? '2px solid #10b981' 
+                            : '1px solid var(--theme-border-color)',
+                          backgroundColor: isSelected 
+                            ? 'var(--theme-primary, #4f46e5)' 
+                            : 'var(--theme-button-bg)',
+                          color: isSelected 
+                            ? 'white' 
+                            : 'var(--theme-text-color)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          minWidth: 'fit-content',
+                          boxShadow: isFoundInFiles ? '0 0 0 1px rgba(16, 185, 129, 0.1)' : 'none'
+                        }}
+                        title={isFoundInFiles ? `Found in uploaded files` : `Not found in uploaded files`}
+                      >
+                        {account}
+                      </button>
+                    );
+                  })}
                   <button
                     style={{
                       padding: '6px 10px',
