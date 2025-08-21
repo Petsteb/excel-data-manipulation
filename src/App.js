@@ -201,8 +201,8 @@ function App() {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [sumDropdownOpen, setSumDropdownOpen] = useState(false);
   const [accountConfigs, setAccountConfigs] = useState({});
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState('01/01/2001');
+  const [endDate, setEndDate] = useState('05/06/2025');
   const [accountSums, setAccountSums] = useState({});
   const [anafSelectedDateColumns, setAnafSelectedDateColumns] = useState([]);
   const [anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns] = useState([]);
@@ -315,12 +315,12 @@ function App() {
           setNormalModeViewPosition(settings.normalModeViewPosition);
         }
         
-        // Load saved conta date range
+        // Load saved conta date range and convert to DD/MM/YYYY display format
         if (settings.contaStartDate) {
-          setStartDate(settings.contaStartDate);
+          setStartDate(formatToDisplay(settings.contaStartDate));
         }
         if (settings.contaEndDate) {
-          setEndDate(settings.contaEndDate);
+          setEndDate(formatToDisplay(settings.contaEndDate));
         }
         
         // Load saved custom accounts and removed default accounts
@@ -968,8 +968,8 @@ function App() {
     const cleanedData = [];
     const data = fileData.data;
     
-    // Skip first 10 rows as per specification
-    let startIndex = 10;
+    // Skip first 9 rows (headers), start from row 9 which contains first transaction
+    let startIndex = 9;
     
     for (let i = startIndex; i < data.length; i++) {
       const row = data[i];
@@ -989,16 +989,16 @@ function App() {
         continue;
       }
       
-      // Check if row has exactly 7 values (non-empty cells)
+      // Check if row has 6 or 7 values (non-empty cells) - both are valid transaction formats
       const nonEmptyValues = row.filter(cell => 
         cell !== null && cell !== undefined && cell !== ''
       );
       
-      if (nonEmptyValues.length === 7) {
+      if (nonEmptyValues.length === 7 || nonEmptyValues.length === 6) {
         // For empty first row files: INSERT 'cont' column BETWEEN 3rd and 4th positions
-        // Original 7 columns: data | ndp | explicatie | cd | suma_d | suma_c | sold
-        // Insert 'cont' BETWEEN 3rd and 4th: data | ndp | explicatie | CONT | cd | suma_d | suma_c | sold
-        // The 'cont' column gets the account number from FILENAME (e.g., 436)
+        // Original format: data | ndp | explicatie | cd | suma_d | suma_c | sold (6-7 columns)
+        // Standardized format: data | ndp | explicatie | CONT | cd | suma_d | suma_c | sold (8 columns)
+        // The 'cont' column gets the account number from FILENAME
         const standardizedRow = [
           row[0], // data (position 0)
           row[1], // ndp (position 1)
@@ -1009,12 +1009,12 @@ function App() {
           row[5], // suma_c (shifted from position 5 to 6) 
           row[6]  // sold (shifted from position 6 to 7)
         ];
+        
+        
         cleanedData.push(standardizedRow);
       }
     }
     
-    if (cleanedData.length > 0) {
-    }
     
     return {
       ...fileData,
@@ -1160,9 +1160,14 @@ function App() {
     if (!processedContaFiles.length) return 0;
     
     let sum = 0;
-    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
-    const end = endDate ? new Date(endDate + 'T23:59:59') : null;
+    // Parse DD/MM/YYYY format to ISO format before creating Date objects
+    const startISO = parseDDMMYYYY(startDate);
+    const endISO = parseDDMMYYYY(endDate);
+    const start = startISO ? new Date(startISO + 'T00:00:00') : null;
+    const end = endISO ? new Date(endISO + 'T23:59:59') : null;
     const config = getAccountConfig(account);
+    
+    
     
     
     for (const file of processedContaFiles) {
@@ -1203,6 +1208,8 @@ function App() {
           const targetFilterValue = config.filterValue || '';
           rowMatches = filterValue && filterValue.toString().includes(targetFilterValue);
         }
+        
+        
         
         
         if (rowMatches) {
@@ -1271,14 +1278,53 @@ function App() {
     );
   };
 
+  // Helper function to parse DD/MM/YYYY format to ISO format (YYYY-MM-DD)
+  const parseDDMMYYYY = (dateStr) => {
+    if (!dateStr) return null;
+    
+    // If already in ISO format (YYYY-MM-DD), return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Parse DD/MM/YYYY format
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+    
+    const [, day, month, year] = match;
+    const paddedDay = day.padStart(2, '0');
+    const paddedMonth = month.padStart(2, '0');
+    
+    return `${year}-${paddedMonth}-${paddedDay}`;
+  };
+
+  // Helper function to format ISO date (YYYY-MM-DD) to DD/MM/YYYY for display
+  const formatToDisplay = (isoDateStr) => {
+    if (!isoDateStr) return '';
+    
+    // If already in DD/MM/YYYY format, return as is
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(isoDateStr)) {
+      return isoDateStr;
+    }
+    
+    // Parse ISO format (YYYY-MM-DD)
+    const match = isoDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return isoDateStr;
+    
+    const [, year, month, day] = match;
+    return `${parseInt(day)}/${parseInt(month)}/${year}`;
+  };
+
   const handleStartDateChange = async (newStartDate) => {
     setStartDate(newStartDate);
     
     try {
       const settings = await window.electronAPI.loadSettings();
+      // Convert DD/MM/YYYY to ISO format for storage
+      const isoDate = parseDDMMYYYY(newStartDate);
       await window.electronAPI.saveSettings({
         ...settings,
-        contaStartDate: newStartDate
+        contaStartDate: isoDate || newStartDate
       });
     } catch (error) {
       console.error('Failed to save start date:', error);
@@ -1290,9 +1336,11 @@ function App() {
     
     try {
       const settings = await window.electronAPI.loadSettings();
+      // Convert DD/MM/YYYY to ISO format for storage
+      const isoDate = parseDDMMYYYY(newEndDate);
       await window.electronAPI.saveSettings({
         ...settings,
-        contaEndDate: newEndDate
+        contaEndDate: isoDate || newEndDate
       });
     } catch (error) {
       console.error('Failed to save end date:', error);
@@ -3586,9 +3634,11 @@ function App() {
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Date Selection</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <input
-                    type="date"
+                    type="text"
                     value={startDate}
                     onChange={(e) => handleStartDateChange(e.target.value)}
+                    placeholder="DD/MM/YYYY"
+                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
                     style={{
                       flex: 1,
                       padding: '8px',
@@ -3601,9 +3651,11 @@ function App() {
                   />
                   <span style={{ color: 'var(--theme-text-color)', fontSize: '14px' }}>→</span>
                   <input
-                    type="date"
+                    type="text"
                     value={endDate}
                     onChange={(e) => handleEndDateChange(e.target.value)}
+                    placeholder="DD/MM/YYYY"
+                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
                     style={{
                       flex: 1,
                       padding: '8px',
