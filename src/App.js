@@ -1354,6 +1354,12 @@ function App() {
     setAnafSelectedDateColumns([]);
     setAnafAutoDetectedDateColumns([]);
     setAnafDateColumnsWithTime([]);
+    // Clear Conta processing state
+    setProcessedContaFiles([]);
+    setSelectedAccounts([]);
+    setStartDate('');
+    setEndDate('');
+    setAccountSums({});
     setCreatedFilePath('');
     setStatus('');
     setProcessingSummary(null);
