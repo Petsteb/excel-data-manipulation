@@ -50,7 +50,8 @@
       "Bash(git restore:*)",
       "Bash(git reset:*)",
       "Bash(rg:*)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(del \"nul\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

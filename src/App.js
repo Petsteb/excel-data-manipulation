@@ -4006,13 +4006,19 @@ function App() {
             position: 'fixed',
             left: contextMenu.x,
             top: contextMenu.y,
-            backgroundColor: 'var(--theme-bg-color)',
-            border: '1px solid var(--theme-border-color)',
-            borderRadius: '4px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+            backdropFilter: 'blur(25px)',
+            WebkitBackdropFilter: 'blur(25px)',
+            borderRadius: '12px',
+            border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+            boxShadow: `
+              0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+              inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+              inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+            `,
             zIndex: 10000,
             minWidth: '200px',
-            padding: '8px'
+            padding: '12px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
