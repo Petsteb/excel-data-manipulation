@@ -228,7 +228,7 @@ function App() {
     { id: 'anaf-upload-panel', name: 'ANAF Upload Panel', type: 'panel', active: true },
     { id: 'contabilitate-summary-panel', name: 'Contabilitate Summary Panel', type: 'panel', active: true },
     { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
-    { id: 'contabilitate-header-panel', name: 'Contabilitate Header Panel', type: 'panel', active: true },
+    { id: 'contabilitate-header-panel', name: 'Contabilitate Header Panel', type: 'panel', active: false },
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
     { id: 'contabilitate-date-panel', name: 'Contabilitate Date Panel', type: 'panel', active: false },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
