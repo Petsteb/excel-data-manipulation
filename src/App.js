@@ -187,6 +187,13 @@ function App() {
   
   // ANAF column state  
   const [anafColumnNames, setAnafColumnNames] = useState([]);
+  
+  // Conta processing state
+  const [processedContaFiles, setProcessedContaFiles] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [accountSums, setAccountSums] = useState({});
   const [anafSelectedDateColumns, setAnafSelectedDateColumns] = useState([]);
   const [anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns] = useState([]);
   const [anafDateColumnsWithTime, setAnafDateColumnsWithTime] = useState([]);
@@ -201,6 +208,8 @@ function App() {
     'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
@@ -221,8 +230,10 @@ function App() {
     { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
     { id: 'contabilitate-header-panel', name: 'Contabilitate Header Panel', type: 'panel', active: true },
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
-    { id: 'contabilitate-date-panel', name: 'Contabilitate Date Panel', type: 'panel', active: true },
+    { id: 'contabilitate-date-panel', name: 'Contabilitate Date Panel', type: 'panel', active: false },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
+    { id: 'conta-account-selection-panel', name: 'Conta Account Selection Panel', type: 'panel', active: true },
+    { id: 'conta-sums-panel', name: 'Conta Sums Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
@@ -273,6 +284,8 @@ function App() {
             'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'contabilitate-date-panel': { x: 20, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
             'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
           };
@@ -850,6 +863,222 @@ function App() {
     }
   };
 
+  const detectFileType = (fileData) => {
+    if (!fileData.data || fileData.data.length === 0) return 'unknown';
+    
+    const firstRow = fileData.data[0];
+    let nonNullCount = 0;
+    
+    for (let i = 0; i < Math.min(firstRow.length, 12); i++) {
+      if (firstRow[i] !== null && firstRow[i] !== undefined && firstRow[i] !== '') {
+        nonNullCount++;
+      }
+    }
+    
+    return nonNullCount === 12 ? 'multiple-accounts' : 'single-account';
+  };
+
+  const extractAccountFromFilename = (filePath) => {
+    const filename = filePath.split(/[/\\]/).pop() || '';
+    const numbers = filename.match(/\d+/g) || [];
+    
+    if (numbers.length === 0) return null;
+    
+    let largestNumber = '';
+    for (const num of numbers) {
+      if (num.length > largestNumber.length || (num.length === largestNumber.length && num > largestNumber)) {
+        largestNumber = num;
+      }
+    }
+    
+    return largestNumber;
+  };
+
+  const cleanSingleAccountFile = (fileData, accountNumber) => {
+    const cleanedData = [];
+    const data = fileData.data;
+    let startIndex = 10; // Skip first 10 rows
+    
+    for (let i = startIndex; i < data.length; i++) {
+      const row = data[i];
+      
+      // Skip empty rows
+      if (!row || row.every(cell => !cell || cell === '')) {
+        continue;
+      }
+      
+      // Skip "Fisa contului" groups (7 rows starting with empty first row, second row contains "Fisa contului")
+      if (i + 1 < data.length && 
+          (!row[0] || row[0] === '') && 
+          data[i + 1] && 
+          data[i + 1][0] && 
+          data[i + 1][0].toString().includes('Fisa contului')) {
+        i += 6; // Skip the next 6 rows (total 7 rows)
+        continue;
+      }
+      
+      // Check if row has data in first 7 columns
+      let hasData = true;
+      for (let col = 0; col < 7; col++) {
+        if (!row[col] || row[col] === '') {
+          hasData = false;
+          break;
+        }
+      }
+      
+      if (hasData) {
+        // Create standardized row: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
+        const standardizedRow = [
+          row[0], // data
+          row[1], // ndp
+          row[2], // explicatie
+          row[3], // cd
+          row[4], // suma_d
+          row[5], // suma_c
+          row[6], // sold
+          accountNumber // cont
+        ];
+        cleanedData.push(standardizedRow);
+      }
+    }
+    
+    return {
+      ...fileData,
+      data: cleanedData,
+      standardized: true,
+      accountNumber: accountNumber
+    };
+  };
+
+  const cleanMultipleAccountsFile = (fileData) => {
+    const cleanedData = [];
+    const data = fileData.data;
+    
+    // Skip first row and process rest
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      
+      if (row && row.length >= 8) {
+        // Extract first 8 columns: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold
+        const standardizedRow = [
+          row[0], // data
+          row[1], // ndp
+          row[2], // explicatie
+          row[4], // cd (was column 4)
+          row[5], // suma_d
+          row[6], // suma_c
+          row[7], // sold
+          row[3]  // cont (was column 3)
+        ];
+        cleanedData.push(standardizedRow);
+      }
+    }
+    
+    return {
+      ...fileData,
+      data: cleanedData,
+      standardized: true,
+      multipleAccounts: true
+    };
+  };
+
+  const processContaFiles = async (files) => {
+    try {
+      setStatus('Processing conta files...');
+      const processedFiles = [];
+      
+      for (const file of files) {
+        const fileType = detectFileType(file);
+        
+        if (fileType === 'single-account') {
+          const accountNumber = extractAccountFromFilename(file.filePath);
+          if (accountNumber) {
+            const cleanedFile = cleanSingleAccountFile(file, accountNumber);
+            processedFiles.push(cleanedFile);
+          }
+        } else if (fileType === 'multiple-accounts') {
+          const cleanedFile = cleanMultipleAccountsFile(file);
+          processedFiles.push(cleanedFile);
+        }
+      }
+      
+      setProcessedContaFiles(processedFiles);
+      setStatus(`Processed ${processedFiles.length} conta files`);
+      
+      // Auto-detect and set data column as date column
+      autoDetectDataColumn(processedFiles);
+      
+    } catch (error) {
+      setStatus(`Error processing conta files: ${error.message}`);
+      console.error('Error processing conta files:', error);
+    }
+  };
+
+  const autoDetectDataColumn = (files) => {
+    // Automatically set column 0 (data) as date column
+    setContabilitateSelectedDateColumns([0]);
+    setContabilitateAutoDetectedDateColumns([0]);
+  };
+
+  const calculateAccountSums = (account, startDate, endDate) => {
+    if (!processedContaFiles.length) return 0;
+    
+    let sum = 0;
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    
+    for (const file of processedContaFiles) {
+      for (const row of file.data) {
+        const rowAccount = row[7]; // cont column
+        const rowDate = new Date(row[0]); // data column
+        
+        if (rowAccount === account) {
+          // Check date range
+          if (start && rowDate < start) continue;
+          if (end && rowDate > end) continue;
+          
+          // Apply sum rules based on account
+          if (account === '4423') {
+            // SUMA_C column (index 5)
+            sum += parseFloat(row[5]) || 0;
+          } else if (account === '4424') {
+            // SUMA_D column (index 4)
+            sum += parseFloat(row[4]) || 0;
+          } else if (account.startsWith('44') || account.startsWith('43')) {
+            // SUMA_C column (index 5)
+            sum += parseFloat(row[5]) || 0;
+          }
+        }
+      }
+    }
+    
+    return sum;
+  };
+
+  const handleAccountSelection = (account) => {
+    setSelectedAccount(account);
+  };
+
+  const handleDateRangeChange = (start, end) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const handleCalculateSums = () => {
+    if (!selectedAccount) {
+      setStatus('Please select an account first');
+      return;
+    }
+    
+    const sum = calculateAccountSums(selectedAccount, startDate, endDate);
+    setAccountSums({
+      ...accountSums,
+      [selectedAccount]: sum
+    });
+    
+    setStatus(`Sum for account ${selectedAccount}: ${sum}`);
+  };
+
   const handleSelectContabilitateFiles = async (append = false) => {
     try {
       const filePaths = await window.electronAPI.selectExcelFiles();
@@ -886,6 +1115,9 @@ function App() {
         
         // Extract column names from Contabilitate files
         await extractContabilitateColumnNames();
+        
+        // Process conta files for uniform structure (use the correct data)
+        await processContaFiles(append ? [...contabilitateFiles, ...newData] : newData);
       }
     } catch (error) {
       setStatus(`Error selecting files: ${error.message}`);
@@ -1142,6 +1374,14 @@ function App() {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
+    } else if (elementId === 'conta-account-selection-panel') {
+      // Account selection dropdown, date inputs, and calculate button
+      minWidth = Math.max(minWidth, 260);
+      minHeight = Math.max(minHeight, 220);
+    } else if (elementId === 'conta-sums-panel') {
+      // Account sum display and clear button
+      minWidth = Math.max(minWidth, 240);
+      minHeight = Math.max(minHeight, 180);
     } else if (elementId === 'contabilitate-summary-panel' || elementId === 'anaf-summary-panel') {
       // File count/rows display + View Files button
       minWidth = Math.max(minWidth, 280);
@@ -3009,6 +3249,193 @@ function App() {
               </div>
             ) : (
               <p style={{ textAlign: 'center' }}>Upload ANAF files to detect date columns</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Panel 9 - Conta Account Selection */}
+        <div 
+          className="conta-account-selection panel"
+          data-panel="conta-account-selection-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'conta-account-selection-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('conta-account-selection-panel').x}px`,
+            top: `${getVisualPosition('conta-account-selection-panel').y}px`,
+            width: `${getVisualPosition('conta-account-selection-panel').width}px`,
+            height: `${getVisualPosition('conta-account-selection-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'conta-account-selection-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                opacity: 0.7,
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}>
+                conta-account-selection-panel
+              </div>
+            )}
+            <h3 style={{ textAlign: 'center' }}>Account Selection</h3>
+            {processedContaFiles.length > 0 ? (
+              <div>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>Select Account:</label>
+                  <select
+                    value={selectedAccount}
+                    onChange={(e) => handleAccountSelection(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px',
+                      backgroundColor: 'var(--theme-input-bg)',
+                      color: 'var(--theme-text-color)',
+                      border: '1px solid var(--theme-border-color)'
+                    }}
+                  >
+                    <option value="">Select an account...</option>
+                    <option value="4423">4423</option>
+                    <option value="4424">4424</option>
+                    {Array.from(new Set(
+                      processedContaFiles.flatMap(file => 
+                        file.data.map(row => row[7])
+                      ).filter(account => 
+                        account && 
+                        (account.toString().startsWith('44') || account.toString().startsWith('43')) &&
+                        account !== '4423' && account !== '4424'
+                      )
+                    )).map(account => (
+                      <option key={account} value={account}>{account}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px',
+                      backgroundColor: 'var(--theme-input-bg)',
+                      color: 'var(--theme-text-color)',
+                      border: '1px solid var(--theme-border-color)'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '5px',
+                      backgroundColor: 'var(--theme-input-bg)',
+                      color: 'var(--theme-text-color)',
+                      border: '1px solid var(--theme-border-color)'
+                    }}
+                  />
+                </div>
+                
+                <button
+                  className="btn btn-primary"
+                  onClick={handleCalculateSums}
+                  disabled={!selectedAccount || isProcessing}
+                  style={{ width: '100%' }}
+                >
+                  Calculate Sum
+                </button>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center' }}>Process conta files to select accounts</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Panel 10 - Conta Sums Display */}
+        <div 
+          className="conta-sums panel"
+          data-panel="conta-sums-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'conta-sums-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('conta-sums-panel').x}px`,
+            top: `${getVisualPosition('conta-sums-panel').y}px`,
+            width: `${getVisualPosition('conta-sums-panel').width}px`,
+            height: `${getVisualPosition('conta-sums-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'conta-sums-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                opacity: 0.7,
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}>
+                conta-sums-panel
+              </div>
+            )}
+            <h3 style={{ textAlign: 'center' }}>Account Sums</h3>
+            {Object.keys(accountSums).length > 0 ? (
+              <div>
+                {Object.entries(accountSums).map(([account, sum]) => (
+                  <div key={account} style={{
+                    padding: '10px',
+                    margin: '5px 0',
+                    backgroundColor: 'var(--theme-button-bg)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span>Account {account}:</span>
+                    <strong>{sum.toFixed(2)}</strong>
+                  </div>
+                ))}
+                
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setAccountSums({})}
+                  style={{ width: '100%', marginTop: '10px' }}
+                >
+                  Clear All Sums
+                </button>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center' }}>No sums calculated yet</p>
             )}
           </div>
         </div>
