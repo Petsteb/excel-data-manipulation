@@ -1011,6 +1011,9 @@ function App() {
       // Auto-detect and set data column as date column
       autoDetectDataColumn(processedFiles);
       
+      // Auto-select all found accounts
+      autoSelectFoundAccounts(processedFiles);
+      
     } catch (error) {
       setStatus(`Error processing conta files: ${error.message}`);
       console.error('Error processing conta files:', error);
@@ -1021,6 +1024,38 @@ function App() {
     // Automatically set column 0 (data) as date column
     setContabilitateSelectedDateColumns([0]);
     setContabilitateAutoDetectedDateColumns([0]);
+  };
+
+  const autoSelectFoundAccounts = (files) => {
+    const foundAccounts = [];
+    
+    for (const account of availableAccounts) {
+      const isFoundInFiles = files.some(file => {
+        // For single account files, check the accountNumber property
+        if (file.accountNumber) {
+          // Exact match
+          if (file.accountNumber === account) {
+            return true;
+          }
+          // Partial match for accounts like 446.DIV where file might be fise_446.xls
+          if (account.startsWith(file.accountNumber + '.')) {
+            return true;
+          }
+        }
+        // For multiple account files, check the data rows
+        return file.data.some(row => row[7] && row[7].toString() === account);
+      });
+      
+      if (isFoundInFiles) {
+        foundAccounts.push(account);
+      }
+    }
+    
+    setSelectedAccounts(foundAccounts);
+    
+    if (foundAccounts.length > 0) {
+      setStatus(`Auto-selected ${foundAccounts.length} found account(s): ${foundAccounts.join(', ')}`);
+    }
   };
 
   const calculateAccountSums = (account, startDate, endDate) => {
