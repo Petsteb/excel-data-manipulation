@@ -4111,14 +4111,15 @@ function App() {
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
                       background: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
-                        'var(--glass-bg, rgba(255, 255, 255, 0.85))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                        'linear-gradient(135deg, var(--glass-bg, rgba(255, 255, 255, 0.95)), var(--glass-bg, rgba(255, 255, 255, 0.85)))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
                       backdropFilter: 'blur(15px)',
                       WebkitBackdropFilter: 'blur(15px)',
                       border: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
-                        '1px solid var(--glass-border, rgba(0, 0, 0, 0.2))' : '1px solid transparent',
+                        '2px solid var(--accent-color, #007acc)' : '1px solid transparent',
                       boxShadow: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
-                        `0 2px 8px var(--glass-shadow, rgba(0, 0, 0, 0.1)),
-                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8))` : 'none',
+                        `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
+                         0 0 0 1px var(--accent-color, rgba(0, 122, 204, 0.3))` : 'none',
                       margin: '2px',
                       transition: 'all 0.2s ease'
                     }}
@@ -4223,14 +4224,15 @@ function App() {
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
                       background: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
-                        'var(--glass-bg, rgba(255, 255, 255, 0.85))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                        'linear-gradient(135deg, var(--glass-bg, rgba(255, 255, 255, 0.95)), var(--glass-bg, rgba(255, 255, 255, 0.85)))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
                       backdropFilter: 'blur(15px)',
                       WebkitBackdropFilter: 'blur(15px)',
                       border: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
-                        '1px solid var(--glass-border, rgba(0, 0, 0, 0.2))' : '1px solid transparent',
+                        '2px solid var(--accent-color, #007acc)' : '1px solid transparent',
                       boxShadow: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
-                        `0 2px 8px var(--glass-shadow, rgba(0, 0, 0, 0.1)),
-                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8))` : 'none',
+                        `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
+                         0 0 0 1px var(--accent-color, rgba(0, 122, 204, 0.3))` : 'none',
                       margin: '2px',
                       transition: 'all 0.2s ease'
                     }}
