@@ -1069,13 +1069,13 @@ function App() {
   const getDefaultAccountConfig = (account) => {
     // Default configurations based on conta anaf relation.txt
     if (account === '4423') {
-      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+      return { filterColumn: 'cont', sumColumn: 'suma_c', filterValue: account };
     } else if (account === '4424') {
-      return { filterColumn: 'cont', sumColumn: 'suma_d' };
+      return { filterColumn: 'cont', sumColumn: 'suma_d', filterValue: account };
     } else if (account.startsWith('44') || account.startsWith('43')) {
-      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+      return { filterColumn: 'cont', sumColumn: 'suma_c', filterValue: account };
     } else {
-      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+      return { filterColumn: 'cont', sumColumn: 'suma_c', filterValue: account };
     }
   };
 
@@ -4143,6 +4143,35 @@ function App() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+              Filter Value:
+            </label>
+            <input
+              type="text"
+              value={getAccountConfig(contextMenu.account).filterValue || ''}
+              onChange={(e) => updateAccountConfig(contextMenu.account, {
+                ...getAccountConfig(contextMenu.account),
+                filterValue: e.target.value
+              })}
+              disabled={getAccountConfig(contextMenu.account).filterColumn === 'cont'}
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 
+                  'var(--theme-bg-color-disabled, rgba(128, 128, 128, 0.2))' : 'var(--theme-input-bg)',
+                color: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 
+                  'var(--theme-text-color-disabled, rgba(128, 128, 128, 0.6))' : 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px',
+                cursor: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 'not-allowed' : 'text'
+              }}
+              placeholder={getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 
+                contextMenu.account : 'Enter filter value...'}
+            />
           </div>
 
           <div style={{ marginBottom: '12px', position: 'relative' }}>
