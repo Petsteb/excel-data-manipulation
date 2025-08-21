@@ -3094,9 +3094,21 @@ function App() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAccounts.map(account => {
                     const isSelected = selectedAccounts.includes(account);
-                    const isFoundInFiles = processedContaFiles.some(file => 
-                      file.data.some(row => row[7] && row[7].toString() === account)
-                    );
+                    const isFoundInFiles = processedContaFiles.some(file => {
+                      // For single account files, check the accountNumber property
+                      if (file.accountNumber) {
+                        // Exact match
+                        if (file.accountNumber === account) {
+                          return true;
+                        }
+                        // Partial match for accounts like 446.DIV where file might be fise_446.xls
+                        if (account.startsWith(file.accountNumber + '.')) {
+                          return true;
+                        }
+                      }
+                      // For multiple account files, check the data rows
+                      return file.data.some(row => row[7] && row[7].toString() === account);
+                    });
                     
                     return (
                       <button
