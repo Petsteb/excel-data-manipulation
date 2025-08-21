@@ -1486,8 +1486,15 @@ function App() {
         // Extract column names from Contabilitate files
         await extractContabilitateColumnNames();
         
+        console.log('=== ABOUT TO CALL PROCESSCONTAFILES ===');
+        console.log('append:', append);
+        console.log('contabilitateFiles.length:', contabilitateFiles.length);
+        console.log('newData.length:', newData.length);
+        
         // Process conta files for uniform structure (use the correct data)
         await processContaFiles(append ? [...contabilitateFiles, ...newData] : newData);
+        
+        console.log('=== AFTER PROCESSCONTAFILES CALL ===');
       }
     } catch (error) {
       setStatus(`Error selecting files: ${error.message}`);
