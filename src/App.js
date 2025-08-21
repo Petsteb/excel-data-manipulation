@@ -4022,12 +4022,12 @@ function App() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-text-color)' }}>
             Account: {contextMenu.account}
           </div>
           
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Filter Column:
             </label>
             <select
@@ -4054,7 +4054,7 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Sum Column:
             </label>
             <select
