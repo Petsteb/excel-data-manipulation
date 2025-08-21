@@ -964,19 +964,9 @@ function App() {
   };
 
   const cleanSingleAccountFile = (fileData, accountNumber) => {
-    console.log(`Cleaning single account file for account: ${accountNumber}`);
-    console.log(`Original data length: ${fileData.data.length}`);
     
     const cleanedData = [];
     const data = fileData.data;
-    
-    // Debug: Show sample rows from different parts of the file
-    console.log(`Sample rows from file:`);
-    for (let i = 0; i < Math.min(data.length, 20); i += 5) {
-      if (data[i] && data[i].length > 0) {
-        console.log(`Row ${i}:`, data[i].slice(0, 8)); // First 8 columns
-      }
-    }
     
     // Skip first 10 rows as per specification
     let startIndex = 10;
@@ -995,7 +985,6 @@ function App() {
           data[i + 1] && 
           data[i + 1][0] && 
           data[i + 1][0].toString().includes('Fisa contului')) {
-        console.log(`Skipping "Fisa contului" group starting at row ${i}`);
         i += 6; // Skip the next 6 rows (total 7 rows)
         continue;
       }
@@ -1006,26 +995,25 @@ function App() {
       );
       
       if (nonEmptyValues.length === 7) {
-        // Insert 'cont' column between 3rd and 4th column (after explicatie, before cd)
-        // Original format: data, ndp, explicatie, cd, suma_d, suma_c, sold
-        // Target format: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold
+        // For empty first row files: INSERT 'cont' column BETWEEN 3rd and 4th positions
+        // Original 7 columns: data | ndp | explicatie | cd | suma_d | suma_c | sold
+        // Insert 'cont' BETWEEN 3rd and 4th: data | ndp | explicatie | CONT | cd | suma_d | suma_c | sold
+        // The 'cont' column gets the account number from FILENAME (e.g., 436)
         const standardizedRow = [
-          row[0], // data
-          row[1], // ndp
-          row[2], // explicatie
-          accountNumber, // cont (inserted between 3rd and 4th)
-          row[3], // cd
-          row[4], // suma_d
-          row[5], // suma_c
-          row[6]  // sold
+          row[0], // data (position 0)
+          row[1], // ndp (position 1)
+          row[2], // explicatie (position 2)  
+          accountNumber, // cont (INSERTED at position 3 - from filename, e.g., 436)
+          row[3], // cd (shifted from position 3 to 4)
+          row[4], // suma_d (shifted from position 4 to 5)
+          row[5], // suma_c (shifted from position 5 to 6) 
+          row[6]  // sold (shifted from position 6 to 7)
         ];
         cleanedData.push(standardizedRow);
       }
     }
     
-    console.log(`Cleaned data for account ${accountNumber}: ${cleanedData.length} rows`);
     if (cleanedData.length > 0) {
-      console.log('Sample cleaned row:', cleanedData[0]);
     }
     
     return {
@@ -1037,8 +1025,6 @@ function App() {
   };
 
   const cleanMultipleAccountsFile = (fileData) => {
-    console.log(`Cleaning multiple accounts file`);
-    console.log(`Original data length: ${fileData.data.length}`);
     
     const cleanedData = [];
     const data = fileData.data;
@@ -1065,9 +1051,7 @@ function App() {
       }
     }
     
-    console.log(`Cleaned multiple accounts data: ${cleanedData.length} rows`);
     if (cleanedData.length > 0) {
-      console.log('Sample cleaned row:', cleanedData[0]);
     }
     
     return {
@@ -1079,28 +1063,22 @@ function App() {
   };
 
   const processContaFiles = async (files) => {
-    console.log('=== CONTA FILES PROCESSING STARTED ===');
     console.log('Number of files to process:', files?.length);
     try {
       setStatus('Processing conta files...');
       const processedFiles = [];
       
       for (const file of files) {
-        console.log(`Processing file: ${file.name || file.filePath}`);
         const fileType = detectFileType(file);
-        console.log(`File type detected: ${fileType}`);
         
         if (fileType === 'single-account') {
           const accountNumber = extractAccountFromFilename(file.filePath);
-          console.log(`Extracted account number: ${accountNumber}`);
           if (accountNumber) {
             const cleanedFile = cleanSingleAccountFile(file, accountNumber);
             processedFiles.push(cleanedFile);
           } else {
-            console.log(`No account number found for file: ${file.name || file.filePath}`);
           }
         } else if (fileType === 'multiple-accounts') {
-          console.log(`Processing as multiple accounts file`);
           const cleanedFile = cleanMultipleAccountsFile(file);
           processedFiles.push(cleanedFile);
         }
@@ -1108,7 +1086,6 @@ function App() {
       
       setProcessedContaFiles(processedFiles);
       setStatus(`Processed ${processedFiles.length} conta files`);
-      console.log('=== CONTA FILES PROCESSING COMPLETED ===');
       console.log('Total processed files:', processedFiles.length);
       
       // Auto-detect and set data column as date column
@@ -1187,17 +1164,11 @@ function App() {
     const end = endDate ? new Date(endDate + 'T23:59:59') : null;
     const config = getAccountConfig(account);
     
-    console.log(`Calculating sums for account: ${account}`, {
-      filterColumn: config.filterColumn,
-      filterValue: config.filterValue,
-      sumColumn: config.sumColumn,
-      filesCount: processedContaFiles.length,
-      dateRange: { start, end }
-    });
     
     for (const file of processedContaFiles) {
-      console.log(`Processing file: ${file.name}, rows: ${file.data.length}, accountNumber: ${file.accountNumber}`);
-      for (const row of file.data) {
+      
+      for (let i = 0; i < file.data.length; i++) {
+        const row = file.data[i];
         const rowAccount = row[3]; // cont column (now at index 3)
         
         // Apply filtering based on account configuration (config already defined above)
@@ -1233,13 +1204,8 @@ function App() {
           rowMatches = filterValue && filterValue.toString().includes(targetFilterValue);
         }
         
+        
         if (rowMatches) {
-          console.log(`Row matches for account ${account}:`, { 
-            filterColumn: config.filterColumn, 
-            filterValue: filterValue, 
-            targetAccount: account,
-            rowData: row.slice(0, 8) // First 8 columns for debugging
-          });
           // Parse the date from the row
           const rowDateValue = row[0]; // data column
           let rowDate = null;
@@ -1248,9 +1214,14 @@ function App() {
             // Handle different date formats
             if (rowDateValue instanceof Date) {
               rowDate = rowDateValue;
+            } else if (typeof rowDateValue === 'number') {
+              // Excel serial date - convert from Excel serial number to JavaScript date
+              // Excel serial date 1 = January 1, 1900 (with leap year bug adjustment)
+              rowDate = new Date((rowDateValue - 25569) * 86400 * 1000);
             } else {
               rowDate = new Date(rowDateValue);
             }
+            
             
             // Skip invalid dates
             if (isNaN(rowDate.getTime())) {
@@ -1260,8 +1231,12 @@ function App() {
           
           // Check date range (only if both rowDate and range dates are valid)
           if (rowDate) {
-            if (start && rowDate < start) continue;
-            if (end && rowDate > end) continue;
+            if (start && rowDate < start) {
+              continue;
+            }
+            if (end && rowDate > end) {
+              continue;
+            }
           }
           
           // Apply sum rules based on account configuration (config already defined above)
@@ -1492,15 +1467,8 @@ function App() {
         // Extract column names from Contabilitate files
         await extractContabilitateColumnNames();
         
-        console.log('=== ABOUT TO CALL PROCESSCONTAFILES ===');
-        console.log('append:', append);
-        console.log('contabilitateFiles.length:', contabilitateFiles.length);
-        console.log('newData.length:', newData.length);
-        
         // Process conta files for uniform structure (use the correct data)
         await processContaFiles(append ? [...contabilitateFiles, ...newData] : newData);
-        
-        console.log('=== AFTER PROCESSCONTAFILES CALL ===');
       }
     } catch (error) {
       setStatus(`Error selecting files: ${error.message}`);
