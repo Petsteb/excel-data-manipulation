@@ -306,6 +306,14 @@ function App() {
           setNormalModeViewPosition(settings.normalModeViewPosition);
         }
         
+        // Load saved conta date range
+        if (settings.contaStartDate) {
+          setStartDate(settings.contaStartDate);
+        }
+        if (settings.contaEndDate) {
+          setEndDate(settings.contaEndDate);
+        }
+        
         // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
           updateWorkspaceBounds();
@@ -1088,6 +1096,34 @@ function App() {
         ? prev.filter(a => a !== account)
         : [...prev, account]
     );
+  };
+
+  const handleStartDateChange = async (newStartDate) => {
+    setStartDate(newStartDate);
+    
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        contaStartDate: newStartDate
+      });
+    } catch (error) {
+      console.error('Failed to save start date:', error);
+    }
+  };
+
+  const handleEndDateChange = async (newEndDate) => {
+    setEndDate(newEndDate);
+    
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        contaEndDate: newEndDate
+      });
+    } catch (error) {
+      console.error('Failed to save end date:', error);
+    }
   };
 
   const handleDateRangeChange = (start, end) => {
@@ -3202,7 +3238,7 @@ function App() {
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px',
@@ -3217,7 +3253,7 @@ function App() {
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px',
