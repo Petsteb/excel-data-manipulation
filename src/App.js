@@ -966,6 +966,14 @@ function App() {
     
     const cleanedData = [];
     const data = fileData.data;
+    
+    // Debug: Show sample rows from different parts of the file
+    console.log(`Sample rows from file:`);
+    for (let i = 0; i < Math.min(data.length, 20); i += 5) {
+      if (data[i] && data[i].length > 0) {
+        console.log(`Row ${i}:`, data[i].slice(0, 8)); // First 8 columns
+      }
+    }
     let startIndex = 10; // Skip first 10 rows
     
     for (let i = startIndex; i < data.length; i++) {
