@@ -4110,17 +4110,30 @@ function App() {
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
-                      backgroundColor: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
-                                     'var(--glass-highlight, rgba(255, 255, 255, 0.3))' : 'transparent'
+                      background: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
+                        'var(--glass-bg, rgba(255, 255, 255, 0.85))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                      backdropFilter: 'blur(15px)',
+                      WebkitBackdropFilter: 'blur(15px)',
+                      border: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
+                        '1px solid var(--glass-border, rgba(0, 0, 0, 0.2))' : '1px solid transparent',
+                      boxShadow: getAccountConfig(contextMenu.account).filterColumn === option.value ? 
+                        `0 2px 8px var(--glass-shadow, rgba(0, 0, 0, 0.1)),
+                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8))` : 'none',
+                      margin: '2px',
+                      transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
                       if (getAccountConfig(contextMenu.account).filterColumn !== option.value) {
-                        e.target.style.backgroundColor = 'var(--glass-lowlight, rgba(0, 0, 0, 0.05))';
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.75))';
+                        e.target.style.border = '1px solid var(--glass-border, rgba(0, 0, 0, 0.15))';
+                        e.target.style.boxShadow = '0 1px 4px var(--glass-shadow, rgba(0, 0, 0, 0.08))';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (getAccountConfig(contextMenu.account).filterColumn !== option.value) {
-                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.6))';
+                        e.target.style.border = '1px solid transparent';
+                        e.target.style.boxShadow = 'none';
                       }
                     }}
                   >
@@ -4209,17 +4222,30 @@ function App() {
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
-                      backgroundColor: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
-                                     'var(--glass-highlight, rgba(255, 255, 255, 0.3))' : 'transparent'
+                      background: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
+                        'var(--glass-bg, rgba(255, 255, 255, 0.85))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                      backdropFilter: 'blur(15px)',
+                      WebkitBackdropFilter: 'blur(15px)',
+                      border: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
+                        '1px solid var(--glass-border, rgba(0, 0, 0, 0.2))' : '1px solid transparent',
+                      boxShadow: getAccountConfig(contextMenu.account).sumColumn === option.value ? 
+                        `0 2px 8px var(--glass-shadow, rgba(0, 0, 0, 0.1)),
+                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8))` : 'none',
+                      margin: '2px',
+                      transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
                       if (getAccountConfig(contextMenu.account).sumColumn !== option.value) {
-                        e.target.style.backgroundColor = 'var(--glass-lowlight, rgba(0, 0, 0, 0.05))';
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.75))';
+                        e.target.style.border = '1px solid var(--glass-border, rgba(0, 0, 0, 0.15))';
+                        e.target.style.boxShadow = '0 1px 4px var(--glass-shadow, rgba(0, 0, 0, 0.08))';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (getAccountConfig(contextMenu.account).sumColumn !== option.value) {
-                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.6))';
+                        e.target.style.border = '1px solid transparent';
+                        e.target.style.boxShadow = 'none';
                       }
                     }}
                   >
