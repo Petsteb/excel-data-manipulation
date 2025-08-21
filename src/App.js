@@ -1078,15 +1078,21 @@ function App() {
       const processedFiles = [];
       
       for (const file of files) {
+        console.log(`Processing file: ${file.name || file.filePath}`);
         const fileType = detectFileType(file);
+        console.log(`File type detected: ${fileType}`);
         
         if (fileType === 'single-account') {
           const accountNumber = extractAccountFromFilename(file.filePath);
+          console.log(`Extracted account number: ${accountNumber}`);
           if (accountNumber) {
             const cleanedFile = cleanSingleAccountFile(file, accountNumber);
             processedFiles.push(cleanedFile);
+          } else {
+            console.log(`No account number found for file: ${file.name || file.filePath}`);
           }
         } else if (fileType === 'multiple-accounts') {
+          console.log(`Processing as multiple accounts file`);
           const cleanedFile = cleanMultipleAccountsFile(file);
           processedFiles.push(cleanedFile);
         }
