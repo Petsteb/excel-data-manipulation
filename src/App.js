@@ -1019,29 +1019,61 @@ function App() {
     if (!processedContaFiles.length) return 0;
     
     let sum = 0;
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const end = endDate ? new Date(endDate + 'T23:59:59') : null;
     
     for (const file of processedContaFiles) {
       for (const row of file.data) {
         const rowAccount = row[7]; // cont column
-        const rowDate = new Date(row[0]); // data column
         
+        // Handle account matching for both exact and partial matches
+        let accountMatches = false;
         if (rowAccount === account) {
-          // Check date range
-          if (start && rowDate < start) continue;
-          if (end && rowDate > end) continue;
+          accountMatches = true;
+        } else if (file.accountNumber) {
+          // For single account files, also check if this account matches the file's account
+          accountMatches = (file.accountNumber === account) || 
+                          (account.startsWith(file.accountNumber + '.'));
+        }
+        
+        if (accountMatches) {
+          // Parse the date from the row
+          const rowDateValue = row[0]; // data column
+          let rowDate = null;
+          
+          if (rowDateValue) {
+            // Handle different date formats
+            if (rowDateValue instanceof Date) {
+              rowDate = rowDateValue;
+            } else {
+              rowDate = new Date(rowDateValue);
+            }
+            
+            // Skip invalid dates
+            if (isNaN(rowDate.getTime())) {
+              continue;
+            }
+          }
+          
+          // Check date range (only if both rowDate and range dates are valid)
+          if (rowDate) {
+            if (start && rowDate < start) continue;
+            if (end && rowDate > end) continue;
+          }
           
           // Apply sum rules based on account
           if (account === '4423') {
             // SUMA_C column (index 5)
-            sum += parseFloat(row[5]) || 0;
+            const value = parseFloat(row[5]) || 0;
+            sum += value;
           } else if (account === '4424') {
             // SUMA_D column (index 4)
-            sum += parseFloat(row[4]) || 0;
+            const value = parseFloat(row[4]) || 0;
+            sum += value;
           } else if (account.startsWith('44') || account.startsWith('43')) {
             // SUMA_C column (index 5)
-            sum += parseFloat(row[5]) || 0;
+            const value = parseFloat(row[5]) || 0;
+            sum += value;
           }
         }
       }
@@ -1080,7 +1112,10 @@ function App() {
       ...newSums
     });
     
-    setStatus(`Calculated sums for ${selectedAccounts.length} account(s)`);
+    const dateRangeInfo = (startDate || endDate) 
+      ? ` (${startDate || 'start'} → ${endDate || 'end'})` 
+      : '';
+    setStatus(`Calculated sums for ${selectedAccounts.length} account(s)${dateRangeInfo}`);
   };
 
   const handleSelectContabilitateFiles = async (append = false) => {
@@ -3201,8 +3236,14 @@ function App() {
                 onClick={handleCalculateSums}
                 disabled={selectedAccounts.length === 0 || isProcessing}
                 style={{ width: '100%', marginTop: '10px' }}
+                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied'}
               >
                 Calculate Sums ({selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''})
+                {(startDate || endDate) && (
+                  <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
+                    📅
+                  </span>
+                )}
               </button>
             </div>
           </div>
