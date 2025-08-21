@@ -1230,6 +1230,15 @@ function App() {
     setSelectedAnafFileIndices(new Set());
   };
 
+  const selectAllFiles = () => {
+    const allIndices = new Set(contabilitateFiles.map((_, index) => index));
+    setSelectedFileIndices(allIndices);
+  };
+
+  const deselectAllFiles = () => {
+    setSelectedFileIndices(new Set());
+  };
+
   const handleGenerateSummary = async () => {
     if (anafFiles.length === 0) {
       setStatus('Please select ANAF files first');
