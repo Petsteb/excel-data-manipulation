@@ -909,16 +909,39 @@ function App() {
   const detectFileType = (fileData) => {
     if (!fileData.data || fileData.data.length === 0) return 'unknown';
     
-    const firstRow = fileData.data[0];
-    let nonNullCount = 0;
-    
-    for (let i = 0; i < Math.min(firstRow.length, 12); i++) {
-      if (firstRow[i] !== null && firstRow[i] !== undefined && firstRow[i] !== '') {
-        nonNullCount++;
+    // Look for the actual header row by checking for standard column names
+    for (let rowIndex = 0; rowIndex < Math.min(fileData.data.length, 5); rowIndex++) {
+      const row = fileData.data[rowIndex];
+      if (!row || row.length === 0) continue;
+      
+      // Check if this row contains standard column names
+      const hasStandardColumns = row.some(cell => 
+        cell && typeof cell === 'string' && 
+        ['data', 'ndp', 'explicatie', 'cont', 'suma_c', 'suma_d', 'sold'].some(col => 
+          cell.toLowerCase().includes(col.toLowerCase())
+        )
+      );
+      
+      if (hasStandardColumns) {
+        const nonNullCount = row.filter(cell => 
+          cell !== null && cell !== undefined && cell !== ''
+        ).length;
+        
+        console.log(`File type detection: Found header row at index ${rowIndex} with ${nonNullCount} columns`);
+        
+        if (nonNullCount >= 12) {
+          console.log('Detected as multiple-accounts file');
+          return 'multiple-accounts';
+        } else {
+          console.log('Detected as single-account file');
+          return 'single-account';
+        }
       }
     }
     
-    return nonNullCount === 12 ? 'multiple-accounts' : 'single-account';
+    // If no header found, assume single-account (most files have company header first)
+    console.log('No standard header found - defaulting to single-account file');
+    return 'single-account';
   };
 
   const extractAccountFromFilename = (filePath) => {
@@ -938,6 +961,9 @@ function App() {
   };
 
   const cleanSingleAccountFile = (fileData, accountNumber) => {
+    console.log(`Cleaning single account file for account: ${accountNumber}`);
+    console.log(`Original data length: ${fileData.data.length}`);
+    
     const cleanedData = [];
     const data = fileData.data;
     let startIndex = 10; // Skip first 10 rows
@@ -985,6 +1011,11 @@ function App() {
       }
     }
     
+    console.log(`Cleaned data for account ${accountNumber}: ${cleanedData.length} rows`);
+    if (cleanedData.length > 0) {
+      console.log('Sample cleaned row:', cleanedData[0]);
+    }
+    
     return {
       ...fileData,
       data: cleanedData,
@@ -994,6 +1025,9 @@ function App() {
   };
 
   const cleanMultipleAccountsFile = (fileData) => {
+    console.log(`Cleaning multiple accounts file`);
+    console.log(`Original data length: ${fileData.data.length}`);
+    
     const cleanedData = [];
     const data = fileData.data;
     
@@ -1015,6 +1049,11 @@ function App() {
         ];
         cleanedData.push(standardizedRow);
       }
+    }
+    
+    console.log(`Cleaned multiple accounts data: ${cleanedData.length} rows`);
+    if (cleanedData.length > 0) {
+      console.log('Sample cleaned row:', cleanedData[0]);
     }
     
     return {
