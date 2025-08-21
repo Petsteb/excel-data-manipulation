@@ -1239,6 +1239,10 @@ function App() {
     setSelectedFileIndices(new Set());
   };
 
+  const handleDeleteSelected = () => {
+    handleDeleteSelectedContabilitate();
+  };
+
   const handleGenerateSummary = async () => {
     if (anafFiles.length === 0) {
       setStatus('Please select ANAF files first');
