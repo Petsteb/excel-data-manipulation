@@ -190,7 +190,8 @@ function App() {
   
   // Conta processing state
   const [processedContaFiles, setProcessedContaFiles] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState('');
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [availableAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [accountSums, setAccountSums] = useState({});
@@ -1049,8 +1050,12 @@ function App() {
     return sum;
   };
 
-  const handleAccountSelection = (account) => {
-    setSelectedAccount(account);
+  const handleAccountToggle = (account) => {
+    setSelectedAccounts(prev => 
+      prev.includes(account) 
+        ? prev.filter(a => a !== account)
+        : [...prev, account]
+    );
   };
 
   const handleDateRangeChange = (start, end) => {
@@ -1059,18 +1064,23 @@ function App() {
   };
 
   const handleCalculateSums = () => {
-    if (!selectedAccount) {
-      setStatus('Please select an account first');
+    if (selectedAccounts.length === 0) {
+      setStatus('Please select at least one account first');
       return;
     }
     
-    const sum = calculateAccountSums(selectedAccount, startDate, endDate);
-    setAccountSums({
-      ...accountSums,
-      [selectedAccount]: sum
+    const newSums = {};
+    selectedAccounts.forEach(account => {
+      const sum = calculateAccountSums(account, startDate, endDate);
+      newSums[account] = sum;
     });
     
-    setStatus(`Sum for account ${selectedAccount}: ${sum}`);
+    setAccountSums({
+      ...accountSums,
+      ...newSums
+    });
+    
+    setStatus(`Calculated sums for ${selectedAccounts.length} account(s)`);
   };
 
   const handleSelectContabilitateFiles = async (append = false) => {
@@ -1382,9 +1392,9 @@ function App() {
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
     } else if (elementId === 'conta-account-selection-panel') {
-      // Account selection dropdown, date inputs, and calculate button
-      minWidth = Math.max(minWidth, 260);
-      minHeight = Math.max(minHeight, 220);
+      // Account selection chips, date inputs, and calculate button
+      minWidth = Math.max(minWidth, 300);
+      minHeight = Math.max(minHeight, 240);
     } else if (elementId === 'conta-sums-panel') {
       // Account sum display and clear button
       minWidth = Math.max(minWidth, 240);
@@ -3071,83 +3081,101 @@ function App() {
                 conta-account-selection-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>Account Selection</h3>
-            {processedContaFiles.length > 0 ? (
-              <div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Select Account:</label>
-                  <select
-                    value={selectedAccount}
-                    onChange={(e) => handleAccountSelection(e.target.value)}
+            <div>
+              {/* Account Selection Section */}
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Account Selection</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                  {availableAccounts.map(account => (
+                    <button
+                      key={account}
+                      onClick={() => handleAccountToggle(account)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '16px',
+                        border: '1px solid var(--theme-border-color)',
+                        backgroundColor: selectedAccounts.includes(account) 
+                          ? 'var(--theme-primary, #4f46e5)' 
+                          : 'var(--theme-button-bg)',
+                        color: selectedAccounts.includes(account) 
+                          ? 'white' 
+                          : 'var(--theme-text-color)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        minWidth: 'fit-content'
+                      }}
+                    >
+                      {account}
+                    </button>
+                  ))}
+                  <button
                     style={{
-                      width: '100%',
-                      padding: '5px',
-                      backgroundColor: 'var(--theme-input-bg)',
+                      padding: '6px 10px',
+                      borderRadius: '50%',
+                      border: '1px solid var(--theme-border-color)',
+                      backgroundColor: 'var(--theme-button-bg)',
                       color: 'var(--theme-text-color)',
-                      border: '1px solid var(--theme-border-color)'
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
+                    title="Add more accounts"
                   >
-                    <option value="">Select an account...</option>
-                    <option value="4423">4423</option>
-                    <option value="4424">4424</option>
-                    {Array.from(new Set(
-                      processedContaFiles.flatMap(file => 
-                        file.data.map(row => row[7])
-                      ).filter(account => 
-                        account && 
-                        (account.toString().startsWith('44') || account.toString().startsWith('43')) &&
-                        account !== '4423' && account !== '4424'
-                      )
-                    )).map(account => (
-                      <option key={account} value={account}>{account}</option>
-                    ))}
-                  </select>
+                    +
+                  </button>
                 </div>
-                
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
+              </div>
+
+              {/* Date Selection Section */}
+              <div style={{ marginBottom: '15px' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Date Selection</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     style={{
-                      width: '100%',
-                      padding: '5px',
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--theme-border-color)',
                       backgroundColor: 'var(--theme-input-bg)',
                       color: 'var(--theme-text-color)',
-                      border: '1px solid var(--theme-border-color)'
+                      fontSize: '14px'
                     }}
                   />
-                </div>
-                
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
+                  <span style={{ color: 'var(--theme-text-color)', fontSize: '14px' }}>→</span>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     style={{
-                      width: '100%',
-                      padding: '5px',
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--theme-border-color)',
                       backgroundColor: 'var(--theme-input-bg)',
                       color: 'var(--theme-text-color)',
-                      border: '1px solid var(--theme-border-color)'
+                      fontSize: '14px'
                     }}
                   />
                 </div>
-                
-                <button
-                  className="btn btn-primary"
-                  onClick={handleCalculateSums}
-                  disabled={!selectedAccount || isProcessing}
-                  style={{ width: '100%' }}
-                >
-                  Calculate Sum
-                </button>
               </div>
-            ) : (
-              <p style={{ textAlign: 'center' }}>Process conta files to select accounts</p>
-            )}
+
+              <button
+                className="btn btn-primary"
+                onClick={handleCalculateSums}
+                disabled={selectedAccounts.length === 0 || isProcessing}
+                style={{ width: '100%', marginTop: '10px' }}
+              >
+                Calculate Sums ({selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''})
+              </button>
+            </div>
           </div>
         </div>
         
