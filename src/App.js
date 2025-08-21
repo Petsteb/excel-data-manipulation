@@ -198,6 +198,7 @@ function App() {
   const [showAccountInput, setShowAccountInput] = useState(false);
   const [newAccountInput, setNewAccountInput] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const [accountConfigs, setAccountConfigs] = useState({});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [accountSums, setAccountSums] = useState({});
@@ -335,6 +336,11 @@ function App() {
         const customAccs = settings.customAccounts || [];
         const activeDefaults = baseDefaults.filter(acc => !removedDefaults.includes(acc));
         setAvailableAccounts([...activeDefaults, ...customAccs]);
+        
+        // Load account configurations
+        if (settings.accountConfigs) {
+          setAccountConfigs(settings.accountConfigs);
+        }
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
@@ -1058,6 +1064,23 @@ function App() {
     setContabilitateAutoDetectedDateColumns([0]);
   };
 
+  const getDefaultAccountConfig = (account) => {
+    // Default configurations based on conta anaf relation.txt
+    if (account === '4423') {
+      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+    } else if (account === '4424') {
+      return { filterColumn: 'cont', sumColumn: 'suma_d' };
+    } else if (account.startsWith('44') || account.startsWith('43')) {
+      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+    } else {
+      return { filterColumn: 'cont', sumColumn: 'suma_c' };
+    }
+  };
+
+  const getAccountConfig = (account) => {
+    return accountConfigs[account] || getDefaultAccountConfig(account);
+  };
+
   const autoSelectFoundAccounts = (files) => {
     const foundAccounts = [];
     
@@ -1137,20 +1160,24 @@ function App() {
             if (end && rowDate > end) continue;
           }
           
-          // Apply sum rules based on account
-          if (account === '4423') {
-            // SUMA_C column (index 5)
-            const value = parseFloat(row[5]) || 0;
-            sum += value;
-          } else if (account === '4424') {
-            // SUMA_D column (index 4)
-            const value = parseFloat(row[4]) || 0;
-            sum += value;
-          } else if (account.startsWith('44') || account.startsWith('43')) {
-            // SUMA_C column (index 5)
-            const value = parseFloat(row[5]) || 0;
-            sum += value;
+          // Apply sum rules based on account configuration
+          const config = getAccountConfig(account);
+          let columnIndex;
+          
+          // Map column names to indices in standardized row format
+          // Row format: [data, ndp, explicatie, cd, suma_d, suma_c, sold, cont]
+          if (config.sumColumn === 'suma_c') {
+            columnIndex = 5;
+          } else if (config.sumColumn === 'suma_d') {
+            columnIndex = 4;
+          } else if (config.sumColumn === 'sold') {
+            columnIndex = 6;
+          } else {
+            columnIndex = 5; // Default to suma_c
           }
+          
+          const value = parseFloat(row[columnIndex]) || 0;
+          sum += value;
         }
       }
     }
@@ -1265,6 +1292,27 @@ function App() {
 
   const saveCustomAccounts = async (accounts) => {
     await saveAccountSettings(accounts, removedDefaultAccounts);
+  };
+
+  const saveAccountConfigs = async (configs) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        accountConfigs: configs
+      });
+      setAccountConfigs(configs);
+    } catch (error) {
+      console.error('Failed to save account configurations:', error);
+    }
+  };
+
+  const updateAccountConfig = (account, config) => {
+    const newConfigs = {
+      ...accountConfigs,
+      [account]: config
+    };
+    saveAccountConfigs(newConfigs);
   };
 
   // Close context menu when clicking elsewhere
@@ -3951,7 +3999,7 @@ function App() {
         {renderMinimap()}
       </main>
 
-      {/* Context Menu for Account Deletion */}
+      {/* Context Menu for Account Configuration */}
       {contextMenu && (
         <div
           style={{
@@ -3963,17 +4011,77 @@ function App() {
             borderRadius: '4px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             zIndex: 10000,
-            minWidth: '120px'
+            minWidth: '200px',
+            padding: '8px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+            Account: {contextMenu.account}
+          </div>
+          
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+              Filter Column:
+            </label>
+            <select
+              value={getAccountConfig(contextMenu.account).filterColumn}
+              onChange={(e) => updateAccountConfig(contextMenu.account, {
+                ...getAccountConfig(contextMenu.account),
+                filterColumn: e.target.value
+              })}
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: 'var(--theme-input-bg)',
+                color: 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px'
+              }}
+            >
+              <option value="cont">cont (Account)</option>
+              <option value="data">data (Date)</option>
+              <option value="explicatie">explicatie (Description)</option>
+              <option value="ndp">ndp (Document Number)</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+              Sum Column:
+            </label>
+            <select
+              value={getAccountConfig(contextMenu.account).sumColumn}
+              onChange={(e) => updateAccountConfig(contextMenu.account, {
+                ...getAccountConfig(contextMenu.account),
+                sumColumn: e.target.value
+              })}
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: 'var(--theme-input-bg)',
+                color: 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px'
+              }}
+            >
+              <option value="suma_c">suma_c (Credit)</option>
+              <option value="suma_d">suma_d (Debit)</option>
+              <option value="sold">sold (Balance)</option>
+            </select>
+          </div>
+
           <div
             style={{
               padding: '8px 12px',
               cursor: 'pointer',
               fontSize: '14px',
               color: '#ef4444',
-              borderRadius: '4px'
+              borderRadius: '4px',
+              textAlign: 'center',
+              border: '1px solid #ef4444'
             }}
             onClick={handleDeleteAccount}
             onMouseEnter={(e) => {
@@ -3983,7 +4091,7 @@ function App() {
               e.target.style.backgroundColor = 'transparent';
             }}
           >
-            Delete "{contextMenu.account}"
+            Delete Account
           </div>
         </div>
       )}
