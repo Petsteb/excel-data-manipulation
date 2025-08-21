@@ -191,8 +191,10 @@ function App() {
   // Conta processing state
   const [processedContaFiles, setProcessedContaFiles] = useState([]);
   const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [defaultAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
   const [availableAccounts, setAvailableAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
   const [customAccounts, setCustomAccounts] = useState([]);
+  const [removedDefaultAccounts, setRemovedDefaultAccounts] = useState([]);
   const [showAccountInput, setShowAccountInput] = useState(false);
   const [newAccountInput, setNewAccountInput] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
@@ -318,11 +320,21 @@ function App() {
           setEndDate(settings.contaEndDate);
         }
         
-        // Load saved custom accounts
+        // Load saved custom accounts and removed default accounts
         if (settings.customAccounts && Array.isArray(settings.customAccounts)) {
           setCustomAccounts(settings.customAccounts);
-          setAvailableAccounts(prev => [...prev, ...settings.customAccounts]);
         }
+        
+        if (settings.removedDefaultAccounts && Array.isArray(settings.removedDefaultAccounts)) {
+          setRemovedDefaultAccounts(settings.removedDefaultAccounts);
+        }
+        
+        // Build available accounts: defaults minus removed ones, plus custom ones
+        const baseDefaults = ['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV'];
+        const removedDefaults = settings.removedDefaultAccounts || [];
+        const customAccs = settings.customAccounts || [];
+        const activeDefaults = baseDefaults.filter(acc => !removedDefaults.includes(acc));
+        setAvailableAccounts([...activeDefaults, ...customAccs]);
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
@@ -1206,41 +1218,53 @@ function App() {
 
   const handleAccountRightClick = (e, account) => {
     e.preventDefault();
-    // Only allow deletion of custom accounts
-    if (customAccounts.includes(account)) {
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        account: account
-      });
-    }
+    // Allow deletion of any account (both custom and default)
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      account: account
+    });
   };
 
   const handleDeleteAccount = () => {
     if (contextMenu && contextMenu.account) {
       const accountToDelete = contextMenu.account;
-      const updatedCustomAccounts = customAccounts.filter(acc => acc !== accountToDelete);
       const updatedAvailableAccounts = availableAccounts.filter(acc => acc !== accountToDelete);
       const updatedSelectedAccounts = selectedAccounts.filter(acc => acc !== accountToDelete);
       
-      setCustomAccounts(updatedCustomAccounts);
       setAvailableAccounts(updatedAvailableAccounts);
       setSelectedAccounts(updatedSelectedAccounts);
-      saveCustomAccounts(updatedCustomAccounts);
+      
+      if (customAccounts.includes(accountToDelete)) {
+        // It's a custom account - remove from custom accounts list
+        const updatedCustomAccounts = customAccounts.filter(acc => acc !== accountToDelete);
+        setCustomAccounts(updatedCustomAccounts);
+        saveAccountSettings(updatedCustomAccounts, removedDefaultAccounts);
+      } else if (defaultAccounts.includes(accountToDelete)) {
+        // It's a default account - add to removed list
+        const updatedRemovedDefaults = [...removedDefaultAccounts, accountToDelete];
+        setRemovedDefaultAccounts(updatedRemovedDefaults);
+        saveAccountSettings(customAccounts, updatedRemovedDefaults);
+      }
     }
     setContextMenu(null);
   };
 
-  const saveCustomAccounts = async (accounts) => {
+  const saveAccountSettings = async (customAccts, removedDefaultAccts) => {
     try {
       const settings = await window.electronAPI.loadSettings();
       await window.electronAPI.saveSettings({
         ...settings,
-        customAccounts: accounts
+        customAccounts: customAccts,
+        removedDefaultAccounts: removedDefaultAccts
       });
     } catch (error) {
-      console.error('Failed to save custom accounts:', error);
+      console.error('Failed to save account settings:', error);
     }
+  };
+
+  const saveCustomAccounts = async (accounts) => {
+    await saveAccountSettings(accounts, removedDefaultAccounts);
   };
 
   // Close context menu when clicking elsewhere
