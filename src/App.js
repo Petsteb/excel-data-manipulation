@@ -1122,22 +1122,61 @@ function App() {
     let sum = 0;
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end = endDate ? new Date(endDate + 'T23:59:59') : null;
+    const config = getAccountConfig(account);
+    
+    console.log(`Calculating sums for account: ${account}`, {
+      filterColumn: config.filterColumn,
+      filterValue: config.filterValue,
+      sumColumn: config.sumColumn,
+      filesCount: processedContaFiles.length,
+      dateRange: { start, end }
+    });
     
     for (const file of processedContaFiles) {
+      console.log(`Processing file: ${file.name}, rows: ${file.data.length}, accountNumber: ${file.accountNumber}`);
       for (const row of file.data) {
         const rowAccount = row[7]; // cont column
         
-        // Handle account matching for both exact and partial matches
-        let accountMatches = false;
-        if (rowAccount === account) {
-          accountMatches = true;
-        } else if (file.accountNumber) {
-          // For single account files, also check if this account matches the file's account
-          accountMatches = (file.accountNumber === account) || 
-                          (account.startsWith(file.accountNumber + '.'));
+        // Apply filtering based on account configuration (config already defined above)
+        let rowMatches = false;
+        
+        // Get the value from the row based on the filter column
+        let filterValue;
+        if (config.filterColumn === 'cont') {
+          filterValue = row[7]; // cont column
+        } else if (config.filterColumn === 'data') {
+          filterValue = row[0]; // data column
+        } else if (config.filterColumn === 'explicatie') {
+          filterValue = row[2]; // explicatie column
+        } else if (config.filterColumn === 'ndp') {
+          filterValue = row[1]; // ndp column
+        } else {
+          filterValue = row[7]; // default to cont
         }
         
-        if (accountMatches) {
+        // Check if the row matches the filter criteria
+        if (config.filterColumn === 'cont') {
+          // For account filtering, use the existing logic
+          if (filterValue === account) {
+            rowMatches = true;
+          } else if (file.accountNumber) {
+            // For single account files, also check if this account matches the file's account
+            rowMatches = (file.accountNumber === account) || 
+                        (account.startsWith(file.accountNumber + '.'));
+          }
+        } else {
+          // For other filter columns, check if the value matches the configured filter value
+          const targetFilterValue = config.filterValue || '';
+          rowMatches = filterValue && filterValue.toString().includes(targetFilterValue);
+        }
+        
+        if (rowMatches) {
+          console.log(`Row matches for account ${account}:`, { 
+            filterColumn: config.filterColumn, 
+            filterValue: filterValue, 
+            targetAccount: account,
+            rowData: row.slice(0, 8) // First 8 columns for debugging
+          });
           // Parse the date from the row
           const rowDateValue = row[0]; // data column
           let rowDate = null;
@@ -1162,8 +1201,7 @@ function App() {
             if (end && rowDate > end) continue;
           }
           
-          // Apply sum rules based on account configuration
-          const config = getAccountConfig(account);
+          // Apply sum rules based on account configuration (config already defined above)
           let columnIndex;
           
           // Map column names to indices in standardized row format
