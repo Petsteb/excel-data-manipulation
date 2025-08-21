@@ -909,38 +909,41 @@ function App() {
   const detectFileType = (fileData) => {
     if (!fileData.data || fileData.data.length === 0) return 'unknown';
     
-    // Look for the actual header row by checking for standard column names
-    for (let rowIndex = 0; rowIndex < Math.min(fileData.data.length, 5); rowIndex++) {
-      const row = fileData.data[rowIndex];
-      if (!row || row.length === 0) continue;
-      
-      // Check if this row contains standard column names
-      const hasStandardColumns = row.some(cell => 
-        cell && typeof cell === 'string' && 
-        ['data', 'ndp', 'explicatie', 'cont', 'suma_c', 'suma_d', 'sold'].some(col => 
-          cell.toLowerCase().includes(col.toLowerCase())
+    const firstRow = fileData.data[0];
+    
+    // Check if first row is empty (all cells are null, undefined, or empty string)
+    const isFirstRowEmpty = !firstRow || firstRow.every(cell => 
+      cell === null || cell === undefined || cell === ''
+    );
+    
+    if (isFirstRowEmpty) {
+      console.log('Detected empty first row format - single-account file');
+      return 'single-account';
+    }
+    
+    // Check if first row has exactly 12 values with the expected headers
+    const expectedHeaders = ['data', 'ndp', 'explicatie', 'cont', 'cd', 'suma_d', 'suma_c', 'sold', 'validat', 'categorie', 'id_nota', 'fel_d'];
+    const nonEmptyCount = firstRow.filter(cell => 
+      cell !== null && cell !== undefined && cell !== ''
+    ).length;
+    
+    if (nonEmptyCount >= 12) {
+      // Check if it actually contains the expected header values
+      const hasExpectedHeaders = expectedHeaders.some(header => 
+        firstRow.some(cell => 
+          cell && typeof cell === 'string' && 
+          cell.toLowerCase().includes(header.toLowerCase())
         )
       );
       
-      if (hasStandardColumns) {
-        const nonNullCount = row.filter(cell => 
-          cell !== null && cell !== undefined && cell !== ''
-        ).length;
-        
-        console.log(`File type detection: Found header row at index ${rowIndex} with ${nonNullCount} columns`);
-        
-        if (nonNullCount >= 12) {
-          console.log('Detected as multiple-accounts file');
-          return 'multiple-accounts';
-        } else {
-          console.log('Detected as single-account file');
-          return 'single-account';
-        }
+      if (hasExpectedHeaders) {
+        console.log('Detected 12-column header format - multiple-accounts file');
+        return 'multiple-accounts';
       }
     }
     
-    // If no header found, assume single-account (most files have company header first)
-    console.log('No standard header found - defaulting to single-account file');
+    // Default to single-account if unclear
+    console.log('Unclear format - defaulting to single-account file');
     return 'single-account';
   };
 
@@ -974,7 +977,9 @@ function App() {
         console.log(`Row ${i}:`, data[i].slice(0, 8)); // First 8 columns
       }
     }
-    let startIndex = 10; // Skip first 10 rows
+    
+    // Skip first 10 rows as per specification
+    let startIndex = 10;
     
     for (let i = startIndex; i < data.length; i++) {
       const row = data[i];
@@ -990,21 +995,20 @@ function App() {
           data[i + 1] && 
           data[i + 1][0] && 
           data[i + 1][0].toString().includes('Fisa contului')) {
+        console.log(`Skipping "Fisa contului" group starting at row ${i}`);
         i += 6; // Skip the next 6 rows (total 7 rows)
         continue;
       }
       
-      // Check if row has data in first 7 columns
-      let hasData = true;
-      for (let col = 0; col < 7; col++) {
-        if (!row[col] || row[col] === '') {
-          hasData = false;
-          break;
-        }
-      }
+      // Check if row has exactly 7 values (non-empty cells)
+      const nonEmptyValues = row.filter(cell => 
+        cell !== null && cell !== undefined && cell !== ''
+      );
       
-      if (hasData) {
-        // Create standardized row: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
+      if (nonEmptyValues.length === 7) {
+        // Insert 'cont' column between 3rd and 4th column (after explicatie, before cd)
+        // Original format: data, ndp, explicatie, cd, suma_d, suma_c, sold
+        // Target format: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
         const standardizedRow = [
           row[0], // data
           row[1], // ndp
@@ -1013,7 +1017,7 @@ function App() {
           row[4], // suma_d
           row[5], // suma_c
           row[6], // sold
-          accountNumber // cont
+          accountNumber // cont (added at end)
         ];
         cleanedData.push(standardizedRow);
       }
@@ -1039,21 +1043,23 @@ function App() {
     const cleanedData = [];
     const data = fileData.data;
     
-    // Skip first row and process rest
+    // Skip first row (header) and process rest
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
-      if (row && row.length >= 8) {
-        // Extract first 8 columns: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold
+      if (row && row.length >= 12) {
+        // Format: data, ndp, explicatie, cont, cd, suma_d, suma_c, sold, validat, categorie, id_nota, fel_d, isred
+        // We ignore the last 4 columns (validat, categorie, id_nota, fel_d) and use first 8
+        // Standard format: data, ndp, explicatie, cd, suma_d, suma_c, sold, cont
         const standardizedRow = [
           row[0], // data
           row[1], // ndp
           row[2], // explicatie
-          row[4], // cd (was column 4)
+          row[4], // cd
           row[5], // suma_d
           row[6], // suma_c
           row[7], // sold
-          row[3]  // cont (was column 3)
+          row[3]  // cont
         ];
         cleanedData.push(standardizedRow);
       }
