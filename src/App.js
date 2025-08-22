@@ -1614,6 +1614,53 @@ function App() {
     setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s)`);
   };
 
+  // Unified calculation for both Conta and ANAF accounts
+  const handleCalculateAllSums = () => {
+    let totalCalculated = 0;
+    
+    // Calculate Conta sums if any conta accounts are selected
+    if (selectedAccounts.length > 0) {
+      const newContaSums = {};
+      selectedAccounts.forEach(account => {
+        const sum = calculateAccountSums(account, startDate, endDate);
+        newContaSums[account] = sum;
+        totalCalculated++;
+      });
+      setAccountSums(newContaSums);
+    }
+    
+    // Calculate ANAF sums if any ANAF accounts are selected
+    if (selectedAnafAccounts.length > 0) {
+      const newAnafSums = {};
+      selectedAnafAccounts.forEach(account => {
+        const config = anafAccountConfigs[account] || {};
+        const sum = calculateAnafAccountSums(account, startDate, endDate, config);
+        newAnafSums[account] = sum;
+        totalCalculated++;
+      });
+      setAnafAccountSums(newAnafSums);
+    }
+    
+    if (totalCalculated === 0) {
+      setStatus('Please select at least one account (Conta or ANAF) first');
+      return;
+    }
+    
+    const contaCount = selectedAccounts.length;
+    const anafCount = selectedAnafAccounts.length;
+    let statusMessage = `Calculated sums for `;
+    
+    if (contaCount > 0 && anafCount > 0) {
+      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''}`;
+    } else if (contaCount > 0) {
+      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''}`;
+    } else {
+      statusMessage += `${anafCount} ANAF account${anafCount !== 1 ? 's' : ''}`;
+    }
+    
+    setStatus(statusMessage);
+  };
+
   // Close context menu when clicking elsewhere
   const handleDocumentClick = () => {
     if (contextMenu) {
@@ -3819,61 +3866,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Date Selection Section */}
-              <div style={{ marginBottom: '15px' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Date Selection</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="text"
-                    value={startDate}
-                    onChange={(e) => handleStartDateChange(e.target.value)}
-                    placeholder="DD/MM/YYYY"
-                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--theme-border-color)',
-                      backgroundColor: 'var(--theme-input-bg)',
-                      color: 'var(--theme-text-color)',
-                      fontSize: '14px'
-                    }}
-                  />
-                  <span style={{ color: 'var(--theme-text-color)', fontSize: '14px' }}>→</span>
-                  <input
-                    type="text"
-                    value={endDate}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
-                    placeholder="DD/MM/YYYY"
-                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--theme-border-color)',
-                      backgroundColor: 'var(--theme-input-bg)',
-                      color: 'var(--theme-text-color)',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <button
-                className="btn btn-primary"
-                onClick={handleCalculateSums}
-                disabled={selectedAccounts.length === 0 || isProcessing}
-                style={{ width: '100%', marginTop: '10px' }}
-                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied'}
-              >
-                Calculate Sums ({selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''})
-                {(startDate || endDate) && (
-                  <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                    📅
-                  </span>
-                )}
-              </button>
-
               {/* ANAF Account Selection Section */}
               <div style={{ marginTop: '30px', marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>ANAF Account Selection</h3>
@@ -4015,14 +4007,56 @@ function App() {
                 </div>
               </div>
 
+              {/* Date Selection Section */}
+              <div style={{ marginTop: '30px', marginBottom: '15px' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Date Selection</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="text"
+                    value={startDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    placeholder="DD/MM/YYYY"
+                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--theme-border-color)',
+                      backgroundColor: 'var(--theme-input-bg)',
+                      color: 'var(--theme-text-color)',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <span style={{ color: 'var(--theme-text-color)', fontSize: '14px' }}>→</span>
+                  <input
+                    type="text"
+                    value={endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    placeholder="DD/MM/YYYY"
+                    pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$"
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--theme-border-color)',
+                      backgroundColor: 'var(--theme-input-bg)',
+                      color: 'var(--theme-text-color)',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Unified Calculate Button */}
               <button
                 className="btn btn-primary"
-                onClick={handleCalculateAnafSums}
-                disabled={selectedAnafAccounts.length === 0 || isProcessing}
-                style={{ width: '100%', marginTop: '10px', backgroundColor: 'var(--theme-secondary, #10b981)', borderColor: 'var(--theme-secondary, #10b981)' }}
-                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied (uses TERM_PLATA column)'}
+                onClick={handleCalculateAllSums}
+                disabled={(selectedAccounts.length === 0 && selectedAnafAccounts.length === 0) || isProcessing}
+                style={{ width: '100%', marginTop: '10px' }}
+                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied'}
               >
-                Calculate ANAF Sums ({selectedAnafAccounts.length} account{selectedAnafAccounts.length !== 1 ? 's' : ''})
+                Calculate All Sums 
+                ({selectedAccounts.length} Conta + {selectedAnafAccounts.length} ANAF account{(selectedAccounts.length + selectedAnafAccounts.length) !== 1 ? 's' : ''})
                 {(startDate || endDate) && (
                   <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
                     📅
