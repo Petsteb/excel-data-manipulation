@@ -207,6 +207,17 @@ function App() {
   const [anafSelectedDateColumns, setAnafSelectedDateColumns] = useState([]);
   const [anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns] = useState([]);
   const [anafDateColumnsWithTime, setAnafDateColumnsWithTime] = useState([]);
+
+  // ANAF accounts management
+  const [selectedAnafAccounts, setSelectedAnafAccounts] = useState([]);
+  const [defaultAnafAccounts] = useState(['1', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
+  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
+  const [customAnafAccounts, setCustomAnafAccounts] = useState([]);
+  const [showAnafAccountInput, setShowAnafAccountInput] = useState(false);
+  const [newAnafAccountInput, setNewAnafAccountInput] = useState('');
+  const [anafAccountSums, setAnafAccountSums] = useState({});
+  const [anafContextMenu, setAnafContextMenu] = useState(null);
+  const [anafAccountConfigs, setAnafAccountConfigs] = useState({});
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
@@ -216,8 +227,9 @@ function App() {
     'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-account-selection-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
@@ -238,8 +250,9 @@ function App() {
     { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
-    { id: 'conta-account-selection-panel', name: 'Conta Account Selection Panel', type: 'panel', active: true },
-    { id: 'conta-sums-panel', name: 'Conta Sums Panel', type: 'panel', active: true },
+    { id: 'account-selection-panel', name: 'Conta Account Selection Panel', type: 'panel', active: true },
+    { id: 'anaf-account-selection-panel', name: 'ANAF Account Selection Panel', type: 'panel', active: true },
+    { id: 'sums-panel', name: 'Account Sums Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
@@ -288,8 +301,9 @@ function App() {
             'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'conta-account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'conta-sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'anaf-account-selection-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
             'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
           };
@@ -1441,12 +1455,154 @@ function App() {
     saveAccountConfigs(newConfigs);
   };
 
+  // ANAF Account handlers
+  const handleAnafAccountToggle = (account) => {
+    setSelectedAnafAccounts(prev => 
+      prev.includes(account) 
+        ? prev.filter(a => a !== account)
+        : [...prev, account]
+    );
+  };
+
+  const handleAnafAccountRightClick = (e, account) => {
+    e.preventDefault();
+    setAnafContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      account: account
+    });
+  };
+
+  const handleAddAnafAccountClick = () => {
+    setShowAnafAccountInput(true);
+    setNewAnafAccountInput('');
+  };
+
+  const handleAnafAccountInputSubmit = () => {
+    const accountName = newAnafAccountInput.trim();
+    if (accountName && !availableAnafAccounts.includes(accountName) && !customAnafAccounts.includes(accountName)) {
+      const updatedCustomAnafAccounts = [...customAnafAccounts, accountName];
+      setCustomAnafAccounts(updatedCustomAnafAccounts);
+      setAvailableAnafAccounts([...availableAnafAccounts, accountName]);
+      // Save to settings if needed
+    }
+    setShowAnafAccountInput(false);
+    setNewAnafAccountInput('');
+  };
+
+  const handleAnafAccountInputCancel = () => {
+    setShowAnafAccountInput(false);
+    setNewAnafAccountInput('');
+  };
+
+  const calculateAnafAccountSums = (account, startDate, endDate, config = {}) => {
+    const { ctgSume, atributPl, column = 'SUMA_PLATA', subtractConfig } = config;
+    let sum = 0;
+    let subtractSum = 0;
+
+    processedAnafFiles.forEach(file => {
+      if (file.data && Array.isArray(file.data)) {
+        file.data.forEach((row, index) => {
+          // Skip header row
+          if (index === 0) return;
+
+          const termPlataValue = row[6]; // TERM_PLATA column
+          const ctgSumeValue = row[7]; // CTG_SUME column
+          const atributPlValue = row[13]; // ATRIBUT_PL column
+          const sumaPlataValue = parseFloat(row[9]) || 0; // SUMA_PLATA column
+          const incasariValue = parseFloat(row[14]) || 0; // INCASARI column
+
+          // Filter by account (this would need to be implemented based on your account matching logic)
+          // For now, assuming account matching is handled elsewhere
+
+          // Date filtering using TERM_PLATA
+          const rowDate = parseDate(termPlataValue);
+          const startDateObj = parseDate(startDate);
+          const endDateObj = parseDate(endDate);
+
+          if (startDate && rowDate < startDateObj) return;
+          if (endDate && rowDate > endDateObj) return;
+
+          // Filter by CTG_SUME if specified
+          if (ctgSume && ctgSumeValue !== ctgSume) return;
+
+          // Filter by ATRIBUT_PL if specified
+          if (atributPl && atributPlValue !== atributPl) return;
+
+          // Add to sum based on selected column
+          if (column === 'SUMA_PLATA') {
+            sum += sumaPlataValue;
+          } else if (column === 'INCASARI') {
+            sum += incasariValue;
+          }
+        });
+      }
+    });
+
+    // Calculate subtraction if configured
+    if (subtractConfig) {
+      processedAnafFiles.forEach(file => {
+        if (file.data && Array.isArray(file.data)) {
+          file.data.forEach((row, index) => {
+            if (index === 0) return;
+
+            const termPlataValue = row[6];
+            const ctgSumeValue = row[7];
+            const atributPlValue = row[13];
+            const sumaPlataValue = parseFloat(row[9]) || 0;
+            const incasariValue = parseFloat(row[14]) || 0;
+
+            // Date filtering
+            const rowDate = parseDate(termPlataValue);
+            const startDateObj = parseDate(startDate);
+            const endDateObj = parseDate(endDate);
+
+            if (startDate && rowDate < startDateObj) return;
+            if (endDate && rowDate > endDateObj) return;
+
+            // Filter by subtraction config
+            if (subtractConfig.ctgSume && ctgSumeValue !== subtractConfig.ctgSume) return;
+            if (subtractConfig.atributPl && atributPlValue !== subtractConfig.atributPl) return;
+
+            if (subtractConfig.column === 'SUMA_PLATA') {
+              subtractSum += sumaPlataValue;
+            } else if (subtractConfig.column === 'INCASARI') {
+              subtractSum += incasariValue;
+            }
+          });
+        }
+      });
+    }
+
+    return sum - subtractSum;
+  };
+
+  const handleCalculateAnafSums = () => {
+    if (selectedAnafAccounts.length === 0) {
+      setStatus('Please select at least one ANAF account first');
+      return;
+    }
+    
+    const newSums = {};
+    selectedAnafAccounts.forEach(account => {
+      const config = anafAccountConfigs[account] || {};
+      const sum = calculateAnafAccountSums(account, startDate, endDate, config);
+      newSums[account] = sum;
+    });
+    
+    setAnafAccountSums(newSums);
+    setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s)`);
+  };
+
   // Close context menu when clicking elsewhere
   const handleDocumentClick = () => {
     if (contextMenu) {
       setContextMenu(null);
       setFilterDropdownOpen(false);
       setSumDropdownOpen(false);
+    }
+    if (anafContextMenu) {
+      setAnafContextMenu(null);
     }
   };
 
@@ -1794,11 +1950,15 @@ function App() {
       // Date column buttons need space for multiple columns
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
-    } else if (elementId === 'conta-account-selection-panel') {
+    } else if (elementId === 'account-selection-panel') {
       // Account selection chips, date inputs, and calculate button
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 240);
-    } else if (elementId === 'conta-sums-panel') {
+    } else if (elementId === 'anaf-account-selection-panel') {
+      // ANAF account selection chips and calculate button
+      minWidth = Math.max(minWidth, 300);
+      minHeight = Math.max(minHeight, 200);
+    } else if (elementId === 'sums-panel') {
       // Account sum display and clear button
       minWidth = Math.max(minWidth, 240);
       minHeight = Math.max(minHeight, 180);
@@ -3463,16 +3623,16 @@ function App() {
         {/* Panel 9 - Conta Account Selection */}
         <div 
           className="conta-account-selection panel"
-          data-panel="conta-account-selection-panel"
+          data-panel="account-selection-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'conta-account-selection-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'account-selection-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('conta-account-selection-panel').x}px`,
-            top: `${getVisualPosition('conta-account-selection-panel').y}px`,
-            width: `${getVisualPosition('conta-account-selection-panel').width}px`,
-            height: `${getVisualPosition('conta-account-selection-panel').height}px`,
+            left: `${getVisualPosition('account-selection-panel').x}px`,
+            top: `${getVisualPosition('account-selection-panel').y}px`,
+            width: `${getVisualPosition('account-selection-panel').width}px`,
+            height: `${getVisualPosition('account-selection-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -3480,7 +3640,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'conta-account-selection-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'account-selection-panel')}
             />
           )}
           <div className="panel-content">
@@ -3495,13 +3655,13 @@ function App() {
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}>
-                conta-account-selection-panel
+                account-selection-panel
               </div>
             )}
             <div>
               {/* Account Selection Section */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Account Selection</h3>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Conta Account Selection</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAccounts.map(account => {
                     const isSelected = selectedAccounts.includes(account);
@@ -3701,19 +3861,19 @@ function App() {
           </div>
         </div>
         
-        {/* Panel 10 - Conta Sums Display */}
+        {/* Panel 10 - ANAF Account Selection */}
         <div 
-          className="conta-sums panel"
-          data-panel="conta-sums-panel"
+          className="anaf-account-selection panel"
+          data-panel="anaf-account-selection-panel"
           draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'conta-sums-panel', type: 'panel' })}
+          onDragStart={(e) => handleDragStart(e, { id: 'anaf-account-selection-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
             position: 'absolute',
-            left: `${getVisualPosition('conta-sums-panel').x}px`,
-            top: `${getVisualPosition('conta-sums-panel').y}px`,
-            width: `${getVisualPosition('conta-sums-panel').width}px`,
-            height: `${getVisualPosition('conta-sums-panel').height}px`,
+            left: `${getVisualPosition('anaf-account-selection-panel').x}px`,
+            top: `${getVisualPosition('anaf-account-selection-panel').y}px`,
+            width: `${getVisualPosition('anaf-account-selection-panel').width}px`,
+            height: `${getVisualPosition('anaf-account-selection-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10
           }}
@@ -3721,7 +3881,7 @@ function App() {
           {isLayoutMode && (
             <div 
               className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'conta-sums-panel')}
+              onMouseDown={(e) => handleResizeStart(e, 'anaf-account-selection-panel')}
             />
           )}
           <div className="panel-content">
@@ -3736,12 +3896,207 @@ function App() {
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}>
-                conta-sums-panel
+                anaf-account-selection-panel
+              </div>
+            )}
+            <div>
+              {/* ANAF Account Selection Section */}
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>ANAF Account Selection</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                  {availableAnafAccounts.map(account => {
+                    const isSelected = selectedAnafAccounts.includes(account);
+                    const isFoundInFiles = processedAnafFiles.some(file => {
+                      // Check if account exists in ANAF files
+                      return file.data && file.data.some(row => 
+                        row.some(cell => cell && cell.toString().includes(account))
+                      );
+                    });
+                    
+                    return (
+                      <button
+                        key={account}
+                        onClick={() => handleAnafAccountToggle(account)}
+                        onContextMenu={(e) => handleAnafAccountRightClick(e, account)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '16px',
+                          border: isFoundInFiles 
+                            ? '2px solid #10b981' 
+                            : '1px solid var(--theme-border-color)',
+                          backgroundColor: isSelected 
+                            ? 'var(--theme-primary, #4f46e5)' 
+                            : 'var(--theme-button-bg)',
+                          color: isSelected 
+                            ? 'white' 
+                            : 'var(--theme-text-color)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          minWidth: 'fit-content',
+                          boxShadow: isFoundInFiles ? '0 0 0 1px rgba(16, 185, 129, 0.1)' : 'none'
+                        }}
+                        title={isFoundInFiles ? `Found in uploaded ANAF files` : `Not found in uploaded ANAF files`}
+                      >
+                        {account}
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Add ANAF Account Input Field */}
+                  {showAnafAccountInput ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="text"
+                        value={newAnafAccountInput}
+                        onChange={(e) => setNewAnafAccountInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAnafAccountInputSubmit();
+                          } else if (e.key === 'Escape') {
+                            handleAnafAccountInputCancel();
+                          }
+                        }}
+                        placeholder="Account name"
+                        autoFocus
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          border: '1px solid var(--theme-border-color)',
+                          backgroundColor: 'var(--theme-input-bg)',
+                          color: 'var(--theme-text-color)',
+                          fontSize: '12px',
+                          width: '80px'
+                        }}
+                      />
+                      <button
+                        onClick={handleAnafAccountInputSubmit}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '50%',
+                          border: '1px solid #10b981',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Add ANAF account"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={handleAnafAccountInputCancel}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '50%',
+                          border: '1px solid #ef4444',
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleAddAnafAccountClick}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '50%',
+                        border: '1px solid var(--theme-border-color)',
+                        backgroundColor: 'var(--theme-button-bg)',
+                        color: 'var(--theme-text-color)',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Add custom ANAF account"
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleCalculateAnafSums}
+                disabled={selectedAnafAccounts.length === 0 || isProcessing}
+                style={{ width: '100%', marginTop: '10px' }}
+                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied (uses TERM_PLATA column)'}
+              >
+                Calculate ANAF Sums ({selectedAnafAccounts.length} account{selectedAnafAccounts.length !== 1 ? 's' : ''})
+                {(startDate || endDate) && (
+                  <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
+                    📅
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Panel 11 - Account Sums Display */}
+        <div 
+          className="conta-sums panel"
+          data-panel="sums-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'sums-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('sums-panel').x}px`,
+            top: `${getVisualPosition('sums-panel').y}px`,
+            width: `${getVisualPosition('sums-panel').width}px`,
+            height: `${getVisualPosition('sums-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'sums-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                opacity: 0.7,
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}>
+                sums-panel
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>Account Sums</h3>
-            {Object.keys(accountSums).length > 0 ? (
-              <div>
+            
+            {/* Conta Sums Section */}
+            {Object.keys(accountSums).length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--theme-primary, #4f46e5)' }}>Conta Accounts</h4>
                 {Object.entries(accountSums).map(([account, sum]) => (
                   <div key={account} style={{
                     padding: '10px',
@@ -3755,14 +4110,51 @@ function App() {
                     <strong>{sum.toFixed(2)}</strong>
                   </div>
                 ))}
-                
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setAccountSums({})}
-                  style={{ width: '100%', marginTop: '10px' }}
-                >
-                  Clear All Sums
-                </button>
+              </div>
+            )}
+
+            {/* ANAF Sums Section */}
+            {Object.keys(anafAccountSums).length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--theme-secondary, #10b981)' }}>ANAF Accounts</h4>
+                {Object.entries(anafAccountSums).map(([account, sum]) => (
+                  <div key={`anaf-${account}`} style={{
+                    padding: '10px',
+                    margin: '5px 0',
+                    backgroundColor: 'var(--theme-button-bg)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    border: '1px solid var(--theme-secondary, #10b981)'
+                  }}>
+                    <span>ANAF {account}:</span>
+                    <strong>{sum.toFixed(2)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {(Object.keys(accountSums).length > 0 || Object.keys(anafAccountSums).length > 0) ? (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {Object.keys(accountSums).length > 0 && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setAccountSums({})}
+                    style={{ flex: 1, fontSize: '12px' }}
+                  >
+                    Clear Conta
+                  </button>
+                )}
+                {Object.keys(anafAccountSums).length > 0 && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setAnafAccountSums({})}
+                    style={{ flex: 1, fontSize: '12px' }}
+                  >
+                    Clear ANAF
+                  </button>
+                )}
               </div>
             ) : (
               <p style={{ textAlign: 'center' }}>No sums calculated yet</p>
@@ -4447,6 +4839,208 @@ function App() {
             }}
           >
             Delete Account
+          </div>
+        </div>
+      )}
+
+      {anafContextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left: anafContextMenu.x,
+            top: anafContextMenu.y,
+            background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+            backdropFilter: 'blur(25px)',
+            WebkitBackdropFilter: 'blur(25px)',
+            borderRadius: '12px',
+            border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+            boxShadow: `
+              0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+              inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+              inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+            `,
+            zIndex: 99999,
+            minWidth: '250px',
+            padding: '12px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-text-color)' }}>
+            ANAF Account: {anafContextMenu.account}
+          </div>
+          
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+              CTG_SUME Filter:
+            </label>
+            <input
+              type="text"
+              placeholder="Enter CTG_SUME value"
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: 'var(--theme-input-bg)',
+                color: 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px'
+              }}
+              onChange={(e) => {
+                const config = anafAccountConfigs[anafContextMenu.account] || {};
+                setAnafAccountConfigs({
+                  ...anafAccountConfigs,
+                  [anafContextMenu.account]: { ...config, ctgSume: e.target.value }
+                });
+              }}
+              value={anafAccountConfigs[anafContextMenu.account]?.ctgSume || ''}
+            />
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+              ATRIBUT_PL Filter:
+            </label>
+            <input
+              type="text"
+              placeholder="Enter ATRIBUT_PL value"
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: 'var(--theme-input-bg)',
+                color: 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px'
+              }}
+              onChange={(e) => {
+                const config = anafAccountConfigs[anafContextMenu.account] || {};
+                setAnafAccountConfigs({
+                  ...anafAccountConfigs,
+                  [anafContextMenu.account]: { ...config, atributPl: e.target.value }
+                });
+              }}
+              value={anafAccountConfigs[anafContextMenu.account]?.atributPl || ''}
+            />
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+              Sum Column:
+            </label>
+            <select
+              style={{
+                width: '100%',
+                padding: '4px',
+                fontSize: '12px',
+                backgroundColor: 'var(--theme-input-bg)',
+                color: 'var(--theme-text-color)',
+                border: '1px solid var(--theme-border-color)',
+                borderRadius: '2px'
+              }}
+              onChange={(e) => {
+                const config = anafAccountConfigs[anafContextMenu.account] || {};
+                setAnafAccountConfigs({
+                  ...anafAccountConfigs,
+                  [anafContextMenu.account]: { ...config, column: e.target.value }
+                });
+              }}
+              value={anafAccountConfigs[anafContextMenu.account]?.column || 'SUMA_PLATA'}
+            >
+              <option value="SUMA_PLATA">SUMA_PLATA</option>
+              <option value="INCASARI">INCASARI</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+              Subtract Configuration:
+            </label>
+            <div style={{ border: '1px solid var(--theme-border-color)', borderRadius: '4px', padding: '8px', background: 'rgba(0,0,0,0.05)' }}>
+              <div style={{ marginBottom: '4px' }}>
+                <input
+                  type="text"
+                  placeholder="CTG_SUME for subtraction"
+                  style={{
+                    width: '100%',
+                    padding: '3px',
+                    fontSize: '11px',
+                    backgroundColor: 'var(--theme-input-bg)',
+                    color: 'var(--theme-text-color)',
+                    border: '1px solid var(--theme-border-color)',
+                    borderRadius: '2px',
+                    marginBottom: '2px'
+                  }}
+                  onChange={(e) => {
+                    const config = anafAccountConfigs[anafContextMenu.account] || {};
+                    const subtractConfig = config.subtractConfig || {};
+                    setAnafAccountConfigs({
+                      ...anafAccountConfigs,
+                      [anafContextMenu.account]: { 
+                        ...config, 
+                        subtractConfig: { ...subtractConfig, ctgSume: e.target.value }
+                      }
+                    });
+                  }}
+                  value={anafAccountConfigs[anafContextMenu.account]?.subtractConfig?.ctgSume || ''}
+                />
+              </div>
+              <div style={{ marginBottom: '4px' }}>
+                <input
+                  type="text"
+                  placeholder="ATRIBUT_PL for subtraction"
+                  style={{
+                    width: '100%',
+                    padding: '3px',
+                    fontSize: '11px',
+                    backgroundColor: 'var(--theme-input-bg)',
+                    color: 'var(--theme-text-color)',
+                    border: '1px solid var(--theme-border-color)',
+                    borderRadius: '2px',
+                    marginBottom: '2px'
+                  }}
+                  onChange={(e) => {
+                    const config = anafAccountConfigs[anafContextMenu.account] || {};
+                    const subtractConfig = config.subtractConfig || {};
+                    setAnafAccountConfigs({
+                      ...anafAccountConfigs,
+                      [anafContextMenu.account]: { 
+                        ...config, 
+                        subtractConfig: { ...subtractConfig, atributPl: e.target.value }
+                      }
+                    });
+                  }}
+                  value={anafAccountConfigs[anafContextMenu.account]?.subtractConfig?.atributPl || ''}
+                />
+              </div>
+              <div>
+                <select
+                  style={{
+                    width: '100%',
+                    padding: '3px',
+                    fontSize: '11px',
+                    backgroundColor: 'var(--theme-input-bg)',
+                    color: 'var(--theme-text-color)',
+                    border: '1px solid var(--theme-border-color)',
+                    borderRadius: '2px'
+                  }}
+                  onChange={(e) => {
+                    const config = anafAccountConfigs[anafContextMenu.account] || {};
+                    const subtractConfig = config.subtractConfig || {};
+                    setAnafAccountConfigs({
+                      ...anafAccountConfigs,
+                      [anafContextMenu.account]: { 
+                        ...config, 
+                        subtractConfig: { ...subtractConfig, column: e.target.value }
+                      }
+                    });
+                  }}
+                  value={anafAccountConfigs[anafContextMenu.account]?.subtractConfig?.column || 'SUMA_PLATA'}
+                >
+                  <option value="SUMA_PLATA">SUMA_PLATA</option>
+                  <option value="INCASARI">INCASARI</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       )}
