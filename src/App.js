@@ -1986,6 +1986,28 @@ function App() {
     }
   }), []);
 
+  // Optimized ANAF account button styling function 
+  const getAnafAccountButtonStyle = useCallback((isSelected, isFoundInFiles) => ({
+    padding: '6px 12px',
+    borderRadius: '16px',
+    border: isFoundInFiles 
+      ? '2px solid #10b981' 
+      : '1px solid var(--theme-border-color)',
+    backgroundColor: isSelected 
+      ? 'var(--theme-secondary, #10b981)' 
+      : 'var(--theme-button-bg)',
+    color: isSelected 
+      ? 'white' 
+      : 'var(--theme-text-color)',
+    fontSize: '12px',
+    cursor: 'pointer',
+    // Only transition specific properties to avoid unwanted visual effects
+    transition: 'background-color 0.1s ease, border-color 0.1s ease, transform 0.1s ease',
+    minWidth: 'fit-content',
+    boxShadow: isFoundInFiles ? '0 0 0 1px rgba(16, 185, 129, 0.1)' : 'none',
+    userSelect: 'none' // Prevent text selection that can cause visual artifacts
+  }), []);
+
   // Optimized input event handlers
   const handleAnafInputKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {
@@ -4744,24 +4766,7 @@ function App() {
                         key={account}
                         onClick={() => handleAnafAccountToggle(account)}
                         onContextMenu={(e) => handleAnafAccountRightClick(e, account)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '16px',
-                          border: isFoundInFiles 
-                            ? '2px solid #10b981' 
-                            : '1px solid var(--theme-border-color)',
-                          backgroundColor: isSelected 
-                            ? 'var(--theme-secondary, #10b981)' 
-                            : 'var(--theme-button-bg)',
-                          color: isSelected 
-                            ? 'white' 
-                            : 'var(--theme-text-color)',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          minWidth: 'fit-content',
-                          boxShadow: isFoundInFiles ? '0 0 0 1px rgba(16, 185, 129, 0.1)' : 'none'
-                        }}
+                        style={getAnafAccountButtonStyle(isSelected, isFoundInFiles)}
                         title={isFoundInFiles ? `Found in uploaded ANAF files` : `Not found in uploaded ANAF files`}
                       >
                         {account}
