@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
@@ -1878,12 +1878,12 @@ function App() {
     });
   };
 
-  const handleAddAnafAccountClick = () => {
+  const handleAddAnafAccountClick = useCallback(() => {
     setShowAnafAccountInput(true);
     setNewAnafAccountInput('');
-  };
+  }, []);
 
-  const sortAnafAccounts = (accounts) => {
+  const sortAnafAccounts = useCallback((accounts) => {
     const priorityAccounts = ['1/4423', '1/4424'];
     const otherAccounts = accounts
       .filter(acc => !priorityAccounts.includes(acc))
@@ -1894,9 +1894,9 @@ function App() {
       });
     
     return [...priorityAccounts.filter(acc => accounts.includes(acc)), ...otherAccounts];
-  };
+  }, []);
 
-  const handleAnafAccountInputSubmit = () => {
+  const handleAnafAccountInputSubmit = useCallback(() => {
     const accountName = newAnafAccountInput.trim();
     if (accountName && !availableAnafAccounts.includes(accountName) && !customAnafAccounts.includes(accountName)) {
       const updatedCustomAnafAccounts = [...customAnafAccounts, accountName];
@@ -1910,12 +1910,104 @@ function App() {
     }
     setShowAnafAccountInput(false);
     setNewAnafAccountInput('');
-  };
+  }, [newAnafAccountInput, availableAnafAccounts, customAnafAccounts, sortAnafAccounts]);
 
-  const handleAnafAccountInputCancel = () => {
+  const handleAnafAccountInputCancel = useCallback(() => {
     setShowAnafAccountInput(false);
     setNewAnafAccountInput('');
-  };
+  }, []);
+
+  // Memoized style objects for ANAF input to prevent re-creation on every render
+  const anafInputStyles = useMemo(() => ({
+    container: {
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '4px',
+      animation: 'fadeIn 0.2s ease-in'
+    },
+    input: {
+      padding: '4px 8px',
+      borderRadius: '12px',
+      border: '1px solid var(--theme-border-color)',
+      backgroundColor: 'var(--theme-input-bg)',
+      color: 'var(--theme-text-color)',
+      fontSize: '12px',
+      width: '80px',
+      outline: 'none',
+      transition: 'border-color 0.1s ease'
+    },
+    submitButton: {
+      padding: '0',
+      borderRadius: '50%',
+      border: '1px solid #10b981',
+      backgroundColor: '#10b981',
+      color: 'white',
+      fontSize: '12px',
+      cursor: 'pointer',
+      width: '20px',
+      height: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'background-color 0.1s ease'
+    },
+    cancelButton: {
+      padding: '0',
+      borderRadius: '50%',
+      border: '1px solid #ef4444',
+      backgroundColor: '#ef4444',
+      color: 'white',
+      fontSize: '12px',
+      cursor: 'pointer',
+      width: '20px',
+      height: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'background-color 0.1s ease'
+    },
+    addButton: {
+      padding: '0',
+      borderRadius: '50%',
+      border: '1px solid var(--theme-border-color)',
+      backgroundColor: 'var(--theme-button-bg)',
+      color: 'var(--theme-text-color)',
+      fontSize: '14px',
+      cursor: 'pointer',
+      width: '28px',
+      height: '28px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'background-color 0.1s ease'
+    }
+  }), []);
+
+  // Optimized input event handlers
+  const handleAnafInputKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAnafAccountInputSubmit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleAnafAccountInputCancel();
+    }
+  }, [handleAnafAccountInputSubmit, handleAnafAccountInputCancel]);
+
+  const handleAnafInputChange = useCallback((e) => {
+    setNewAnafAccountInput(e.target.value);
+  }, []);
+
+  const handleAnafInputFocus = useCallback((e) => {
+    e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+  }, []);
+
+  const handleAnafInputBlur = useCallback((e) => {
+    e.target.style.borderColor = 'var(--theme-border-color)';
+  }, []);
 
   // Account mapping functions
   const handleContaAccountMapping = (contaAccount) => {
@@ -4679,66 +4771,28 @@ function App() {
                   
                   {/* Add ANAF Account Input Field */}
                   {showAnafAccountInput ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={anafInputStyles.container}>
                       <input
                         type="text"
                         value={newAnafAccountInput}
-                        onChange={(e) => setNewAnafAccountInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleAnafAccountInputSubmit();
-                          } else if (e.key === 'Escape') {
-                            handleAnafAccountInputCancel();
-                          }
-                        }}
+                        onChange={handleAnafInputChange}
+                        onKeyDown={handleAnafInputKeyDown}
                         placeholder="Account name"
                         autoFocus
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          border: '1px solid var(--theme-border-color)',
-                          backgroundColor: 'var(--theme-input-bg)',
-                          color: 'var(--theme-text-color)',
-                          fontSize: '12px',
-                          width: '80px'
-                        }}
+                        style={anafInputStyles.input}
+                        onFocus={handleAnafInputFocus}
+                        onBlur={handleAnafInputBlur}
                       />
                       <button
                         onClick={handleAnafAccountInputSubmit}
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: '50%',
-                          border: '1px solid #10b981',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          width: '20px',
-                          height: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
+                        style={anafInputStyles.submitButton}
                         title="Add ANAF account"
                       >
                         ✓
                       </button>
                       <button
                         onClick={handleAnafAccountInputCancel}
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: '50%',
-                          border: '1px solid #ef4444',
-                          backgroundColor: '#ef4444',
-                          color: 'white',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          width: '20px',
-                          height: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
+                        style={anafInputStyles.cancelButton}
                         title="Cancel"
                       >
                         ✕
@@ -4747,20 +4801,7 @@ function App() {
                   ) : (
                     <button
                       onClick={handleAddAnafAccountClick}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '50%',
-                        border: '1px solid var(--theme-border-color)',
-                        backgroundColor: 'var(--theme-button-bg)',
-                        color: 'var(--theme-text-color)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
+                      style={anafInputStyles.addButton}
                       title="Add custom ANAF account"
                     >
                       +
