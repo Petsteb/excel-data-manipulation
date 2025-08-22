@@ -1811,13 +1811,23 @@ function App() {
           const sumaNEValue = parseFloat(row[10]) || 0; // SUMA_NEACHITATA column
           const rambursariValue = parseFloat(row[15]) || 0; // RAMBURSARI column
 
-          // Date filtering using TERM_PLATA
-          const rowDate = parseDate(termPlataValue);
-          const startDateObj = parseDate(startDate);
-          const endDateObj = parseDate(endDate);
+          // Date filtering using TERM_PLATA - same approach as conta files
+          const startISO = parseDDMMYYYY(startDate);
+          const endISO = parseDDMMYYYY(endDate);
+          const start = startISO ? new Date(startISO + 'T00:00:00') : null;
+          const end = endISO ? new Date(endISO + 'T23:59:59') : null;
 
-          if (startDate && rowDate < startDateObj) return;
-          if (endDate && rowDate > endDateObj) return;
+          // Parse row date
+          let rowDate = null;
+          if (termPlataValue) {
+            const rowISO = parseDDMMYYYY(termPlataValue);
+            if (rowISO) {
+              rowDate = new Date(rowISO + 'T12:00:00');
+            }
+          }
+
+          if (start && rowDate && rowDate < start) return;
+          if (end && rowDate && rowDate > end) return;
 
           // Apply filter based on selected filter column
           if (filterValue) {
@@ -1890,13 +1900,17 @@ function App() {
             const sumaNEValue = parseFloat(row[10]) || 0;
             const rambursariValue = parseFloat(row[15]) || 0;
 
-            // Date filtering
-            const rowDate = parseDate(termPlataValue);
-            const startDateObj = parseDate(startDate);
-            const endDateObj = parseDate(endDate);
+            // Date filtering - same approach as main calculation
+            let rowDate = null;
+            if (termPlataValue) {
+              const rowISO = parseDDMMYYYY(termPlataValue);
+              if (rowISO) {
+                rowDate = new Date(rowISO + 'T12:00:00');
+              }
+            }
 
-            if (startDate && rowDate < startDateObj) return;
-            if (endDate && rowDate > endDateObj) return;
+            if (start && rowDate && rowDate < start) return;
+            if (end && rowDate && rowDate > end) return;
 
             // Apply subtraction filter based on selected filter column
             let matchesSubtractFilter = false;
