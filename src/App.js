@@ -1464,7 +1464,13 @@ function App() {
 
   // ANAF Account config helpers
   const getAnafAccountConfig = (account) => {
-    return anafAccountConfigs[account] || {
+    // If user has custom config, use that
+    if (anafAccountConfigs[account]) {
+      return anafAccountConfigs[account];
+    }
+
+    // Apply automatic configuration based on conta anaf relation.txt
+    let defaultConfig = {
       filterColumn: 'CTG_SUME',
       filterValue: '',
       sumColumn: 'SUMA_PLATA',
@@ -1474,6 +1480,52 @@ function App() {
         sumColumn: 'SUMA_PLATA'
       }
     };
+
+    // Account 4423: CTG_SUME=D, SUMA_PLATA
+    if (account === '4423') {
+      defaultConfig = {
+        filterColumn: 'CTG_SUME',
+        filterValue: 'D',
+        sumColumn: 'SUMA_PLATA',
+        subtractConfig: {
+          filterColumn: 'CTG_SUME',
+          filterValue: '',
+          sumColumn: 'SUMA_PLATA'
+        }
+      };
+    }
+    // Account 4424: ATRIBUT_PL=DRA, INCASARI
+    else if (account === '4424') {
+      defaultConfig = {
+        filterColumn: 'ATRIBUT_PL',
+        filterValue: 'DRA',
+        sumColumn: 'INCASARI',
+        subtractConfig: {
+          filterColumn: 'ATRIBUT_PL',
+          filterValue: '',
+          sumColumn: 'INCASARI'
+        }
+      };
+    }
+    // Accounts 44xx and 43xx (except 4423 and 4424): CTG_SUME=D, SUMA_PLATA with subtraction ATRIBUT_PL=DIM, INCASARI
+    else if ((account.startsWith('44') && account !== '4423' && account !== '4424') || account.startsWith('43')) {
+      defaultConfig = {
+        filterColumn: 'CTG_SUME',
+        filterValue: 'D',
+        sumColumn: 'SUMA_PLATA',
+        subtractConfig: {
+          filterColumn: 'ATRIBUT_PL',
+          filterValue: 'DIM',
+          sumColumn: 'INCASARI'
+        }
+      };
+      // Auto-enable subtraction for these accounts
+      if (!anafSubtractionEnabled.hasOwnProperty(account)) {
+        setAnafSubtractionEnabled(prev => ({ ...prev, [account]: true }));
+      }
+    }
+
+    return defaultConfig;
   };
 
   const isAnafSubtractionEnabled = (account) => {
