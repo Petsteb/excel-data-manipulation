@@ -1814,6 +1814,32 @@ function App() {
     setSelectedFileIndices(newSelected);
   };
 
+  const handleAnafFileClick = (index, event) => {
+    const newSelected = new Set(selectedAnafFileIndices);
+    
+    if (event.ctrlKey || event.metaKey) {
+      if (newSelected.has(index)) {
+        newSelected.delete(index);
+      } else {
+        newSelected.add(index);
+      }
+    } else if (event.shiftKey && selectedAnafFileIndices.size > 0) {
+      const indices = Array.from(selectedAnafFileIndices);
+      const lastSelected = Math.max(...indices);
+      const start = Math.min(lastSelected, index);
+      const end = Math.max(lastSelected, index);
+      
+      for (let i = start; i <= end; i++) {
+        newSelected.add(i);
+      }
+    } else {
+      newSelected.clear();
+      newSelected.add(index);
+    }
+    
+    setSelectedAnafFileIndices(newSelected);
+  };
+
   const handleDeleteSelectedContabilitate = () => {
     if (selectedFileIndices.size === 0) return;
     
@@ -1853,12 +1879,30 @@ function App() {
   };
 
   const selectAllFiles = () => {
-    const allIndices = new Set(contabilitateFiles.map((_, index) => index));
-    setSelectedFileIndices(allIndices);
+    // Select all conta files
+    const allContaIndices = new Set(contabilitateFiles.map((_, index) => index));
+    setSelectedFileIndices(allContaIndices);
+    
+    // Select all ANAF files  
+    const allAnafIndices = new Set(anafFiles.map((_, index) => index));
+    setSelectedAnafFileIndices(allAnafIndices);
   };
 
   const deselectAllFiles = () => {
     setSelectedFileIndices(new Set());
+    setSelectedAnafFileIndices(new Set());
+  };
+
+  const handleDeleteAllSelected = () => {
+    // Delete selected conta files
+    if (selectedFileIndices.size > 0) {
+      handleDeleteSelectedContabilitate();
+    }
+    
+    // Delete selected ANAF files
+    if (selectedAnafFileIndices.size > 0) {
+      handleDeleteSelectedAnaf();
+    }
   };
 
   const handleDeleteSelected = () => {
@@ -4357,25 +4401,84 @@ function App() {
               </div>
               <div className="popup-body">
                 <div className="file-list-detailed">
-                  {contabilitateFiles.map((fileData, index) => (
-                    <div 
-                      key={index} 
-                      className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
-                      onClick={(e) => handleFileClick(index, e)}
-                    >
-                      <div className="file-name-detailed">{fileData.fileName}</div>
-                      <div className="file-info">
-                        <span className="file-rows">{fileData.rowCount} rows</span>
-                        <span className="file-path">{fileData.filePath}</span>
+                  {/* Conta Files Section */}
+                  {contabilitateFiles.length > 0 && (
+                    <>
+                      <div style={{ 
+                        padding: '10px 0 5px 0', 
+                        borderBottom: '1px solid var(--theme-border-color)', 
+                        marginBottom: '10px',
+                        fontWeight: 'bold',
+                        color: 'var(--theme-primary, #4f46e5)'
+                      }}>
+                        Conta Files ({contabilitateFiles.length})
                       </div>
+                      {contabilitateFiles.map((fileData, index) => (
+                        <div 
+                          key={`conta-${index}`} 
+                          className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
+                          onClick={(e) => handleFileClick(index, e)}
+                        >
+                          <div className="file-name-detailed">{fileData.fileName}</div>
+                          <div className="file-info">
+                            <span className="file-rows">{fileData.rowCount} rows</span>
+                            <span className="file-path">{fileData.filePath}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  
+                  {/* ANAF Files Section */}
+                  {anafFiles.length > 0 && (
+                    <>
+                      <div style={{ 
+                        padding: '10px 0 5px 0', 
+                        borderBottom: '1px solid var(--theme-border-color)', 
+                        marginBottom: '10px',
+                        marginTop: contabilitateFiles.length > 0 ? '20px' : '0',
+                        fontWeight: 'bold',
+                        color: 'var(--theme-secondary, #10b981)'
+                      }}>
+                        ANAF Files ({anafFiles.length})
+                      </div>
+                      {anafFiles.map((fileData, index) => (
+                        <div 
+                          key={`anaf-${index}`} 
+                          className={`file-item-detailed ${selectedAnafFileIndices.has(index) ? 'selected' : ''}`}
+                          onClick={(e) => handleAnafFileClick(index, e)}
+                        >
+                          <div className="file-name-detailed">{fileData.fileName}</div>
+                          <div className="file-info">
+                            <span className="file-rows">{fileData.rowCount} rows</span>
+                            <span className="file-path">{fileData.filePath}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  
+                  {/* Empty State */}
+                  {contabilitateFiles.length === 0 && anafFiles.length === 0 && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px 20px', 
+                      color: 'var(--theme-text-color)', 
+                      opacity: 0.6 
+                    }}>
+                      No files uploaded yet
                     </div>
-                  ))}
+                  )}
                 </div>
                 <div className="file-controls">
                   <button className="btn btn-secondary" onClick={selectAllFiles}>Select All</button>
                   <button className="btn btn-secondary" onClick={deselectAllFiles}>Deselect All</button>
-                  <button className="btn btn-danger" onClick={handleDeleteSelected} disabled={selectedFileIndices.size === 0}>
-                    Delete Selected ({selectedFileIndices.size})
+                  <button 
+                    className="btn btn-danger" 
+                    onClick={handleDeleteAllSelected} 
+                    disabled={selectedFileIndices.size === 0 && selectedAnafFileIndices.size === 0}
+                  >
+                    Delete Selected ({selectedFileIndices.size + selectedAnafFileIndices.size})
                   </button>
                 </div>
               </div>
