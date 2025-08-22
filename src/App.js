@@ -4894,23 +4894,9 @@ function App() {
                         justifyContent: 'space-between',
                         marginBottom: '8px'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
-                            {contaAccount}
-                          </strong>
-                          {JSON.stringify(mappedAnafAccounts.sort()) === JSON.stringify((defaultAccountMappings[contaAccount] || []).sort()) && (
-                            <span style={{
-                              fontSize: '8px',
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              padding: '2px 4px',
-                              borderRadius: '8px',
-                              opacity: 0.7
-                            }} title="Using default mappings from conta anaf.txt">
-                              DEFAULT
-                            </span>
-                          )}
-                        </div>
+                        <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
+                          {contaAccount}
+                        </strong>
                       </div>
                       
                       <div>
@@ -4991,36 +4977,58 @@ function App() {
               
               {/* Add New Conta Relation Section */}
               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--theme-border-color)' }}>
-                <button
-                  onClick={handleShowContaAccountSelection}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '2px dashed var(--theme-border-color)',
-                    backgroundColor: 'transparent',
-                    color: 'var(--theme-text-color)',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                  title="Add new conta account relation"
-                  onMouseOver={(e) => {
-                    e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
-                    e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderColor = 'var(--theme-border-color)';
-                  }}
-                >
-                  <span style={{ fontSize: '18px' }}>+</span>
-                  Add New Conta Account Relation
-                </button>
+                {(() => {
+                  const unmappedContaAccounts = availableAccounts.filter(account => 
+                    !accountMappings.hasOwnProperty(account)
+                  );
+                  const hasAvailableAccounts = unmappedContaAccounts.length > 0;
+                  
+                  return (
+                    <button
+                      onClick={hasAvailableAccounts ? handleShowContaAccountSelection : undefined}
+                      disabled={!hasAvailableAccounts}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: `2px dashed ${hasAvailableAccounts ? 'var(--theme-border-color)' : '#ccc'}`,
+                        backgroundColor: 'transparent',
+                        color: hasAvailableAccounts ? 'var(--theme-text-color)' : '#999',
+                        fontSize: '14px',
+                        cursor: hasAvailableAccounts ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                        opacity: hasAvailableAccounts ? 1 : 0.5
+                      }}
+                      title={hasAvailableAccounts 
+                        ? "Add new conta account relation" 
+                        : "All available conta accounts are already mapped. Add new accounts in the Account Selection panel first."}
+                      onMouseOver={(e) => {
+                        if (hasAvailableAccounts) {
+                          e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+                          e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (hasAvailableAccounts) {
+                          e.target.style.backgroundColor = 'transparent';
+                          e.target.style.borderColor = 'var(--theme-border-color)';
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>+</span>
+                      Add New Conta Account Relation
+                      {!hasAvailableAccounts && (
+                        <span style={{ fontSize: '12px', marginLeft: '8px' }}>
+                          (No available accounts)
+                        </span>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
               
               {Object.keys(accountMappings).length === 0 && (
@@ -6745,7 +6753,21 @@ function App() {
                   e.target.style.borderColor = 'transparent';
                 }}
               >
-                {anafAccount}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  {anafAccount}
+                  {defaultAccountMappings[modalContaAccount] && defaultAccountMappings[modalContaAccount].includes(anafAccount) && (
+                    <span style={{
+                      fontSize: '6px',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      padding: '1px 3px',
+                      borderRadius: '6px',
+                      opacity: 0.8
+                    }} title="Default mapping from conta anaf.txt">
+                      DEFAULT
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
