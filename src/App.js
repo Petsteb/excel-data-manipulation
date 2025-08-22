@@ -1782,6 +1782,12 @@ function App() {
     let sum = 0;
     let subtractSum = 0;
 
+    // Parse dates at function level so both main and subtraction calculations can use them
+    const startISO = parseDDMMYYYY(startDate);
+    const endISO = parseDDMMYYYY(endDate);
+    const start = startISO ? new Date(startISO + 'T00:00:00') : null;
+    const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+
     anafFiles.forEach(file => {
       if (file.data && Array.isArray(file.data)) {
         // First check if this file matches the account we're calculating for
@@ -1811,13 +1817,7 @@ function App() {
           const sumaNEValue = parseFloat(row[10]) || 0; // SUMA_NEACHITATA column
           const rambursariValue = parseFloat(row[15]) || 0; // RAMBURSARI column
 
-          // Date filtering using TERM_PLATA - same approach as conta files
-          const startISO = parseDDMMYYYY(startDate);
-          const endISO = parseDDMMYYYY(endDate);
-          const start = startISO ? new Date(startISO + 'T00:00:00') : null;
-          const end = endISO ? new Date(endISO + 'T23:59:59') : null;
-
-          // Parse row date
+          // Date filtering using TERM_PLATA - parse row date
           let rowDate = null;
           if (termPlataValue) {
             const rowISO = parseDDMMYYYY(termPlataValue);
