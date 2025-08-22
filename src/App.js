@@ -217,8 +217,8 @@ function App() {
 
   // ANAF accounts management
   const [selectedAnafAccounts, setSelectedAnafAccounts] = useState([]);
-  const [defaultAnafAccounts] = useState(['1', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
-  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
+  const [defaultAnafAccounts] = useState(['1/4423', '1/4424', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
+  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1/4423', '1/4424', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
   const [customAnafAccounts, setCustomAnafAccounts] = useState([]);
   const [showAnafAccountInput, setShowAnafAccountInput] = useState(false);
   const [newAnafAccountInput, setNewAnafAccountInput] = useState('');
@@ -1223,6 +1223,10 @@ function App() {
         if (account.startsWith(fileAccount + '.')) {
           return true;
         }
+        // Special case for 1/4423 and 1/4424 accounts that should match files with account '1'
+        if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+          return true;
+        }
         return false;
       });
       
@@ -1782,13 +1786,14 @@ function App() {
     let sum = 0;
     let subtractSum = 0;
 
+
     // Parse dates at function level so both main and subtraction calculations can use them
     const startISO = parseDDMMYYYY(startDate);
     const endISO = parseDDMMYYYY(endDate);
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
 
-    anafFiles.forEach(file => {
+    anafFiles.forEach((file, fileIndex) => {
       if (file.data && Array.isArray(file.data)) {
         // First check if this file matches the account we're calculating for
         const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
@@ -1798,24 +1803,29 @@ function App() {
           fileMatches = true;
         } else if (account.startsWith(fileAccount + '.')) {
           fileMatches = true;
+        } else if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+          fileMatches = true;
         }
         
         // Skip this file if it doesn't match the account
         if (!fileMatches) return;
         
+        let processedRows = 0;
+        
         file.data.forEach((row, index) => {
-          // Skip header row
-          if (index === 0) return;
+          // Skip company info row (0) and column header row (1)
+          if (index === 0 || index === 1) return;
 
-          const termPlataValue = row[6]; // TERM_PLATA column
-          const ctgSumeValue = row[7]; // CTG_SUME column
-          const atributPlValue = row[13]; // ATRIBUT_PL column
-          const imeCodeValue = row[1]; // IME_COD_IMPOZIT column
-          const denumireValue = row[2]; // DENUMIRE_IMPOZIT column
-          const sumaPlataValue = parseFloat(row[9]) || 0; // SUMA_PLATA column
-          const incasariValue = parseFloat(row[14]) || 0; // INCASARI column
-          const sumaNEValue = parseFloat(row[10]) || 0; // SUMA_NEACHITATA column
-          const rambursariValue = parseFloat(row[15]) || 0; // RAMBURSARI column
+          const termPlataValue = row[5]; // TERM_PLATA column (based on debug output)
+          const ctgSumeValue = row[6]; // CTG_SUME column (based on debug output)
+          const atributPlValue = row[12]; // ATRIBUT_PL column (based on debug output)
+          const imeCodeValue = row[0]; // IME_COD_IMPOZIT column (based on debug output)
+          const denumireValue = row[1]; // DENUMIRE_IMPOZIT column (based on debug output)
+          const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column (based on debug output)
+          const incasariValue = parseFloat(row[13]) || 0; // INCASARI column (based on debug output)
+          const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column (based on debug output)
+          const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
+
 
           // Date filtering using TERM_PLATA - parse row date
           let rowDate = null;
@@ -1855,15 +1865,19 @@ function App() {
           switch (sumColumn) {
             case 'SUMA_PLATA':
               sum += sumaPlataValue;
+              processedRows++;
               break;
             case 'INCASARI':
               sum += incasariValue;
+              processedRows++;
               break;
             case 'SUMA_NEACHITATA':
               sum += sumaNEValue;
+              processedRows++;
               break;
             case 'RAMBURSARI':
               sum += rambursariValue;
+              processedRows++;
               break;
           }
         });
@@ -1882,23 +1896,26 @@ function App() {
             fileMatches = true;
           } else if (account.startsWith(fileAccount + '.')) {
             fileMatches = true;
+          } else if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+            fileMatches = true;
           }
           
           // Skip this file if it doesn't match the account
           if (!fileMatches) return;
           
           file.data.forEach((row, index) => {
-            if (index === 0) return;
+            // Skip company info row (0) and column header row (1)
+            if (index === 0 || index === 1) return;
 
-            const termPlataValue = row[6];
-            const ctgSumeValue = row[7];
-            const atributPlValue = row[13];
-            const imeCodeValue = row[1];
-            const denumireValue = row[2];
-            const sumaPlataValue = parseFloat(row[9]) || 0;
-            const incasariValue = parseFloat(row[14]) || 0;
-            const sumaNEValue = parseFloat(row[10]) || 0;
-            const rambursariValue = parseFloat(row[15]) || 0;
+            const termPlataValue = row[5]; // TERM_PLATA column (based on debug output)
+            const ctgSumeValue = row[6]; // CTG_SUME column (based on debug output)
+            const atributPlValue = row[12]; // ATRIBUT_PL column (based on debug output)
+            const imeCodeValue = row[0]; // IME_COD_IMPOZIT column (based on debug output)
+            const denumireValue = row[1]; // DENUMIRE_IMPOZIT column (based on debug output)
+            const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column (based on debug output)
+            const incasariValue = parseFloat(row[13]) || 0; // INCASARI column (based on debug output)
+            const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column (based on debug output)
+            const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
             // Date filtering - same approach as main calculation
             let rowDate = null;
