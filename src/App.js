@@ -255,8 +255,6 @@ function App() {
   ]);
   const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
   const [uploadedFilesPopupOrigin, setUploadedFilesPopupOrigin] = useState('conta'); // 'conta' or 'anaf'
-  const [currentScrollSection, setCurrentScrollSection] = useState('conta'); // Track which section user is currently in
-  const [scrollBarrierCount, setScrollBarrierCount] = useState(0); // Track scroll attempts at section boundaries
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
   const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
@@ -1917,56 +1915,6 @@ function App() {
     handleDeleteSelectedContabilitate();
   };
 
-  // Popup scroll positioning and barrier logic
-  const handlePopupScroll = (e) => {
-    const scrollTop = e.target.scrollTop;
-    const scrollHeight = e.target.scrollHeight;
-    const clientHeight = e.target.clientHeight;
-    
-    const contaSection = contaFilesRef.current;
-    const anafSection = anafFilesRef.current;
-    
-    if (!contaSection || !anafSection) return;
-    
-    const contaSectionTop = contaSection.offsetTop;
-    const anafSectionTop = anafSection.offsetTop;
-    
-    // Determine which section the user is currently viewing
-    let newSection = 'conta';
-    if (scrollTop >= anafSectionTop - 50) { // 50px buffer for smooth transition
-      newSection = 'anaf';
-    }
-    
-    // If trying to scroll beyond current section boundaries
-    const isAtTop = scrollTop <= 10;
-    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-    
-    if (currentScrollSection !== newSection) {
-      setCurrentScrollSection(newSection);
-      setScrollBarrierCount(0); // Reset barrier count when entering new section
-    }
-    
-    // Handle scroll barriers
-    if (currentScrollSection === 'conta' && scrollTop >= anafSectionTop - 100) {
-      // User is trying to scroll from conta to anaf
-      if (scrollBarrierCount < 1) {
-        e.preventDefault();
-        setScrollBarrierCount(prev => prev + 1);
-        // Stay at the boundary
-        e.target.scrollTop = anafSectionTop - 100;
-        return;
-      }
-    } else if (currentScrollSection === 'anaf' && scrollTop <= contaSectionTop + 100) {
-      // User is trying to scroll from anaf to conta
-      if (scrollBarrierCount < 1) {
-        e.preventDefault();
-        setScrollBarrierCount(prev => prev + 1);
-        // Stay at the boundary
-        e.target.scrollTop = anafSectionTop - 50;
-        return;
-      }
-    }
-  };
 
   // Position popup scroll based on origin
   useEffect(() => {
@@ -1978,16 +1926,13 @@ function App() {
             behavior: 'instant', 
             block: 'start' 
           });
-          setCurrentScrollSection('anaf');
         } else if (uploadedFilesPopupOrigin === 'conta' && contaFilesRef.current) {
           // Scroll to Conta section (top)
           contaFilesRef.current.scrollIntoView({ 
             behavior: 'instant', 
             block: 'start' 
           });
-          setCurrentScrollSection('conta');
         }
-        setScrollBarrierCount(0); // Reset barrier count
       }, 100); // Small delay to ensure DOM is ready
     }
   }, [showUploadedFilesPopup, uploadedFilesPopupOrigin]);
@@ -4491,7 +4436,6 @@ function App() {
               <div 
                 className="popup-body"
                 ref={popupBodyRef}
-                onScroll={handlePopupScroll}
               >
                 <div className="file-list-detailed">
                   {/* Conta Files Section */}
