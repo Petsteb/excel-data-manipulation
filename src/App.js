@@ -1915,12 +1915,19 @@ function App() {
           const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
 
-          // Date filtering using TERM_PLATA - parse row date
+          // Date filtering using selected date columns - parse row date from first available date column
           let rowDate = null;
-          if (termPlataValue) {
-            const rowISO = parseDDMMYYYY(termPlataValue);
-            if (rowISO) {
-              rowDate = new Date(rowISO + 'T12:00:00');
+          if (anafSelectedDateColumns.length > 0) {
+            // Try each selected date column until we find a valid date
+            for (const dateColumnIndex of anafSelectedDateColumns) {
+              const dateValue = row[dateColumnIndex];
+              if (dateValue) {
+                const rowISO = parseDDMMYYYY(dateValue);
+                if (rowISO) {
+                  rowDate = new Date(rowISO + 'T12:00:00');
+                  break; // Use the first valid date found
+                }
+              }
             }
           }
 
@@ -2009,12 +2016,19 @@ function App() {
             const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column (based on debug output)
             const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
-            // Date filtering - same approach as main calculation
+            // Date filtering - same approach as main calculation using selected date columns
             let rowDate = null;
-            if (termPlataValue) {
-              const rowISO = parseDDMMYYYY(termPlataValue);
-              if (rowISO) {
-                rowDate = new Date(rowISO + 'T12:00:00');
+            if (anafSelectedDateColumns.length > 0) {
+              // Try each selected date column until we find a valid date
+              for (const dateColumnIndex of anafSelectedDateColumns) {
+                const dateValue = row[dateColumnIndex];
+                if (dateValue) {
+                  const rowISO = parseDDMMYYYY(dateValue);
+                  if (rowISO) {
+                    rowDate = new Date(rowISO + 'T12:00:00');
+                    break; // Use the first valid date found
+                  }
+                }
               }
             }
 
