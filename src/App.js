@@ -5622,7 +5622,7 @@ function App() {
               }}>
                 {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).filterColumn).map((option, index, arr) => (
                   <div
-                    key={option.value || 'empty'}
+                    key={option.value || `empty-${index}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       updateAnafAccountConfig(anafContextMenu.account, {
@@ -5986,7 +5986,7 @@ function App() {
                   }}>
                     {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterColumn || 'CTG_SUME').map((option, index, arr) => (
                       <div
-                        key={option.value || 'empty'}
+                        key={option.value || `empty-${index}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           const config = getAnafAccountConfig(anafContextMenu.account);
