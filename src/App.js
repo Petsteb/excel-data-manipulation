@@ -225,6 +225,10 @@ function App() {
   const [anafAccountSums, setAnafAccountSums] = useState({});
   const [anafContextMenu, setAnafContextMenu] = useState(null);
   const [anafAccountConfigs, setAnafAccountConfigs] = useState({});
+  
+  // Account mapping state (1 conta account to multiple anaf accounts)
+  const [accountMappings, setAccountMappings] = useState({});
+  
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
@@ -235,6 +239,7 @@ function App() {
     'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
@@ -257,6 +262,7 @@ function App() {
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
     { id: 'account-selection-panel', name: 'Account Selection Panel', type: 'panel', active: true },
+    { id: 'account-mapping-panel', name: 'Account Mapping Panel', type: 'panel', active: true },
     { id: 'sums-panel', name: 'Account Sums Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
@@ -312,6 +318,7 @@ function App() {
             'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
             'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
@@ -375,6 +382,11 @@ function App() {
         // Load ANAF subtraction enabled states
         if (settings.anafSubtractionEnabled) {
           setAnafSubtractionEnabled(settings.anafSubtractionEnabled);
+        }
+        
+        // Load account mappings (conta to anaf)
+        if (settings.accountMappings) {
+          setAccountMappings(settings.accountMappings);
         }
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
@@ -1875,6 +1887,80 @@ function App() {
     setNewAnafAccountInput('');
   };
 
+  // Account mapping functions
+  const handleContaAccountMapping = async (contaAccount) => {
+    const currentMappings = accountMappings[contaAccount] || [];
+    const availableAnafForMapping = availableAnafAccounts.filter(anaf => 
+      !currentMappings.includes(anaf)
+    );
+    
+    if (availableAnafForMapping.length === 0) {
+      alert(`All ANAF accounts are already mapped to ${contaAccount}`);
+      return;
+    }
+
+    const selectedAnaf = prompt(
+      `Select ANAF account to map to "${contaAccount}":\n\nAvailable ANAF accounts:\n${availableAnafForMapping.join('\n')}\n\nEnter ANAF account name:`
+    );
+    
+    if (selectedAnaf && availableAnafForMapping.includes(selectedAnaf)) {
+      const newMappings = {
+        ...accountMappings,
+        [contaAccount]: [...currentMappings, selectedAnaf]
+      };
+      setAccountMappings(newMappings);
+      
+      // Save to settings
+      try {
+        const settings = await window.electronAPI.loadSettings();
+        await window.electronAPI.saveSettings({
+          ...settings,
+          accountMappings: newMappings
+        });
+      } catch (error) {
+        console.error('Failed to save account mappings:', error);
+      }
+    } else if (selectedAnaf) {
+      alert(`"${selectedAnaf}" is not available for mapping`);
+    }
+  };
+
+  const handleRemoveMapping = async (contaAccount, anafAccount) => {
+    const newMappings = {
+      ...accountMappings,
+      [contaAccount]: (accountMappings[contaAccount] || []).filter(anaf => anaf !== anafAccount)
+    };
+    setAccountMappings(newMappings);
+    
+    // Save to settings
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        accountMappings: newMappings
+      });
+    } catch (error) {
+      console.error('Failed to save account mappings:', error);
+    }
+  };
+
+  const handleClearAllMappings = async (contaAccount) => {
+    const newMappings = { ...accountMappings };
+    delete newMappings[contaAccount];
+    setAccountMappings(newMappings);
+    
+    // Save to settings
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        accountMappings: newMappings
+      });
+    } catch (error) {
+      console.error('Failed to save account mappings:', error);
+    }
+  };
+
   const calculateAnafAccountSums = (account, startDate, endDate, config = {}) => {
     const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
     let sum = 0;
@@ -2546,6 +2632,10 @@ function App() {
       // Account selection chips for both Conta and ANAF, date inputs, and calculate buttons
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 400);
+    } else if (elementId === 'account-mapping-panel') {
+      // Account mapping interface with conta to anaf mappings
+      minWidth = Math.max(minWidth, 350);
+      minHeight = Math.max(minHeight, 300);
     } else if (elementId === 'sums-panel') {
       // Account sum display and clear button
       minWidth = Math.max(minWidth, 240);
@@ -4588,6 +4678,174 @@ function App() {
                   </span>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Account Mapping Panel - Map Conta to ANAF accounts */}
+        <div 
+          className="account-mapping panel"
+          data-panel="account-mapping-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'account-mapping-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('account-mapping-panel').x}px`,
+            top: `${getVisualPosition('account-mapping-panel').y}px`,
+            width: `${getVisualPosition('account-mapping-panel').width}px`,
+            height: `${getVisualPosition('account-mapping-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'account-mapping-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '2px', 
+                right: '8px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                opacity: 0.7,
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}>
+                account-mapping-panel
+              </div>
+            )}
+            <div>
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Account Mapping</h3>
+              <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--theme-text-secondary)' }}>
+                Map each Conta account to multiple ANAF accounts
+              </p>
+              
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {availableAccounts.map(contaAccount => {
+                  const mappedAnafAccounts = accountMappings[contaAccount] || [];
+                  const isContaSelected = selectedAccounts.includes(contaAccount);
+                  
+                  return (
+                    <div key={contaAccount} style={{ 
+                      marginBottom: '15px', 
+                      padding: '10px', 
+                      border: `1px solid ${isContaSelected ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-border-color)'}`,
+                      borderRadius: '8px',
+                      backgroundColor: isContaSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--theme-panel-bg)'
+                    }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        marginBottom: '8px'
+                      }}>
+                        <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
+                          {contaAccount}
+                        </strong>
+                        <button
+                          onClick={() => handleContaAccountMapping(contaAccount)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--theme-primary, #4f46e5)',
+                            backgroundColor: 'var(--theme-primary, #4f46e5)',
+                            color: 'white',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                          title="Add ANAF mapping"
+                        >
+                          + ANAF
+                        </button>
+                      </div>
+                      
+                      {mappedAnafAccounts.length > 0 ? (
+                        <div>
+                          <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', marginBottom: '5px' }}>
+                            Mapped ANAF accounts:
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {mappedAnafAccounts.map(anafAccount => (
+                              <span
+                                key={anafAccount}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'var(--theme-secondary, #10b981)',
+                                  color: 'white',
+                                  fontSize: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                {anafAccount}
+                                <button
+                                  onClick={() => handleRemoveMapping(contaAccount, anafAccount)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '10px',
+                                    padding: '0',
+                                    width: '12px',
+                                    height: '12px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  title="Remove mapping"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => handleClearAllMappings(contaAccount)}
+                            style={{
+                              marginTop: '5px',
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              border: '1px solid #ef4444',
+                              backgroundColor: 'transparent',
+                              color: '#ef4444',
+                              fontSize: '9px',
+                              cursor: 'pointer'
+                            }}
+                            title="Clear all mappings for this conta account"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', fontStyle: 'italic' }}>
+                          No ANAF accounts mapped
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {availableAccounts.length === 0 && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '20px', 
+                  color: 'var(--theme-text-secondary)', 
+                  fontSize: '12px' 
+                }}>
+                  No Conta accounts available for mapping
+                </div>
+              )}
             </div>
           </div>
         </div>
