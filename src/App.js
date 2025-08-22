@@ -1237,10 +1237,10 @@ function App() {
     
     setSelectedAnafAccounts(foundAnafAccounts);
     
-    // Auto-enable subtraction for 44xx and 43xx accounts that need it
+    // Auto-enable subtraction for all accounts except 1/4423 and 1/4424
     const newSubtractionStates = { ...anafSubtractionEnabled };
     foundAnafAccounts.forEach(anafAccount => {
-      if ((anafAccount.startsWith('44') && anafAccount !== '4423' && anafAccount !== '4424') || anafAccount.startsWith('43')) {
+      if (anafAccount !== '1/4423' && anafAccount !== '1/4424') {
         newSubtractionStates[anafAccount] = true;
       }
     });
@@ -1595,6 +1595,7 @@ function App() {
     }
 
     // Apply automatic configuration based on conta anaf relation.txt
+    // Default config for account 412 and others (with subtraction enabled)
     let defaultConfig = {
       filterColumn: 'CTG_SUME',
       filterValue: '',
@@ -1645,6 +1646,13 @@ function App() {
         }
       };
       // Auto-enable subtraction for these accounts
+      if (!anafSubtractionEnabled.hasOwnProperty(account)) {
+        setAnafSubtractionEnabled(prev => ({ ...prev, [account]: true }));
+      }
+    }
+
+    // Auto-enable subtraction for all accounts except 1/4423 and 1/4424
+    if (account !== '1/4423' && account !== '1/4424') {
       if (!anafSubtractionEnabled.hasOwnProperty(account)) {
         setAnafSubtractionEnabled(prev => ({ ...prev, [account]: true }));
       }
@@ -2418,15 +2426,11 @@ function App() {
     // Clear Conta processing state
     setProcessedContaFiles([]);
     setSelectedAccounts([]);
-    // Clear ANAF account selections and state
+    // Clear ANAF account selections and state (but preserve configurations)
     setSelectedAnafAccounts([]);
     setAnafAccountSums({});
-    setAnafAccountConfigs({});
-    setAnafSubtractionEnabled({});
     setAnafContextMenu(null);
-    // Save cleared ANAF states to localStorage
-    saveAnafAccountConfigs({});
-    saveAnafSubtractionEnabled({});
+    // Note: Keep anafAccountConfigs and anafSubtractionEnabled to preserve filter settings
     // Preserve date selection - don't reset startDate and endDate
     setAccountSums({});
     setShowAccountInput(false);
