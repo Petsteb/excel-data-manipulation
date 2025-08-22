@@ -4016,7 +4016,7 @@ function App() {
                   alignItems: 'center',
                   marginBottom: '20px'
                 }}>
-                  <p style={{ 
+                  <div style={{ 
                     margin: 0,
                     display: 'flex',
                     alignItems: 'center',
@@ -4024,7 +4024,7 @@ function App() {
                   }}>
                     Found {anafSelectedDateColumns.length} date columns
                     <Tooltip content="Columns that will be automatically changed to date type. You can see beneath the column name an example of the data in that column. You can select and deselect more columns by clicking on the '+' button. By default the merge process takes all of the data as general and you can't sort the dates if they are not of date type." />
-                  </p>
+                  </div>
                 </div>
                 <div className="date-column-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   {anafSelectedDateColumns.slice(0, 6).map((colIndex) => {
