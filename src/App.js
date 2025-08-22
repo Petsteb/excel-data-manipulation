@@ -1547,7 +1547,7 @@ function App() {
     });
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (contextMenu && contextMenu.account) {
       const accountToDelete = contextMenu.account;
       const updatedAvailableAccounts = availableAccounts.filter(acc => acc !== accountToDelete);
@@ -1555,6 +1555,24 @@ function App() {
       
       setAvailableAccounts(updatedAvailableAccounts);
       setSelectedAccounts(updatedSelectedAccounts);
+      
+      // Remove deleted conta account from mapping panel
+      const updatedMappings = { ...accountMappings };
+      if (updatedMappings[accountToDelete]) {
+        delete updatedMappings[accountToDelete];
+        setAccountMappings(updatedMappings);
+        
+        // Save updated mappings to settings
+        try {
+          const settings = await window.electronAPI.loadSettings();
+          await window.electronAPI.saveSettings({
+            ...settings,
+            accountMappings: updatedMappings
+          });
+        } catch (error) {
+          console.error('Error saving mapping settings after conta account deletion:', error);
+        }
+      }
       
       if (customAccounts.includes(accountToDelete)) {
         // It's a custom account - remove from custom accounts list
@@ -1842,7 +1860,7 @@ function App() {
     saveAnafAccountConfigs(newConfigs);
   };
 
-  const handleDeleteAnafAccount = () => {
+  const handleDeleteAnafAccount = async () => {
     if (anafContextMenu && anafContextMenu.account) {
       const accountToDelete = anafContextMenu.account;
       const updatedAvailableAnafAccounts = availableAnafAccounts.filter(acc => acc !== accountToDelete);
@@ -1850,6 +1868,35 @@ function App() {
       
       setAvailableAnafAccounts(updatedAvailableAnafAccounts);
       setSelectedAnafAccounts(updatedSelectedAnafAccounts);
+      
+      // Remove deleted ANAF account from all mappings in mapping panel
+      const updatedMappings = { ...accountMappings };
+      let mappingsChanged = false;
+      
+      Object.keys(updatedMappings).forEach(contaAccount => {
+        const anafAccounts = updatedMappings[contaAccount];
+        const filteredAnafAccounts = anafAccounts.filter(anaf => anaf !== accountToDelete);
+        
+        if (filteredAnafAccounts.length !== anafAccounts.length) {
+          updatedMappings[contaAccount] = filteredAnafAccounts;
+          mappingsChanged = true;
+        }
+      });
+      
+      if (mappingsChanged) {
+        setAccountMappings(updatedMappings);
+        
+        // Save updated mappings to settings
+        try {
+          const settings = await window.electronAPI.loadSettings();
+          await window.electronAPI.saveSettings({
+            ...settings,
+            accountMappings: updatedMappings
+          });
+        } catch (error) {
+          console.error('Error saving mapping settings after ANAF account deletion:', error);
+        }
+      }
       
       // Remove from config
       const updatedConfigs = { ...anafAccountConfigs };
