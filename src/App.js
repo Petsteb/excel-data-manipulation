@@ -204,6 +204,8 @@ function App() {
   const [anafSumDropdownOpen, setAnafSumDropdownOpen] = useState(false);
   const [anafSubtractFilterDropdownOpen, setAnafSubtractFilterDropdownOpen] = useState(false);
   const [anafSubtractSumDropdownOpen, setAnafSubtractSumDropdownOpen] = useState(false);
+  const [anafFilterValueDropdownOpen, setAnafFilterValueDropdownOpen] = useState(false);
+  const [anafSubtractFilterValueDropdownOpen, setAnafSubtractFilterValueDropdownOpen] = useState(false);
   const [anafSubtractionEnabled, setAnafSubtractionEnabled] = useState({});
   const [accountConfigs, setAccountConfigs] = useState({});
   const [startDate, setStartDate] = useState('01/01/2001');
@@ -363,6 +365,16 @@ function App() {
         // Load account configurations
         if (settings.accountConfigs) {
           setAccountConfigs(settings.accountConfigs);
+        }
+        
+        // Load ANAF account configurations
+        if (settings.anafAccountConfigs) {
+          setAnafAccountConfigs(settings.anafAccountConfigs);
+        }
+        
+        // Load ANAF subtraction enabled states
+        if (settings.anafSubtractionEnabled) {
+          setAnafSubtractionEnabled(settings.anafSubtractionEnabled);
         }
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
@@ -1454,6 +1466,32 @@ function App() {
     }
   };
 
+  const saveAnafAccountConfigs = async (configs) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        anafAccountConfigs: configs
+      });
+      setAnafAccountConfigs(configs);
+    } catch (error) {
+      console.error('Failed to save ANAF account configurations:', error);
+    }
+  };
+
+  const saveAnafSubtractionEnabled = async (enabledStates) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        anafSubtractionEnabled: enabledStates
+      });
+      setAnafSubtractionEnabled(enabledStates);
+    } catch (error) {
+      console.error('Failed to save ANAF subtraction states:', error);
+    }
+  };
+
   const updateAccountConfig = (account, config) => {
     const newConfigs = {
       ...accountConfigs,
@@ -1533,17 +1571,35 @@ function App() {
   };
 
   const toggleAnafSubtraction = (account) => {
-    setAnafSubtractionEnabled({
+    const newEnabledStates = {
       ...anafSubtractionEnabled,
       [account]: !isAnafSubtractionEnabled(account)
-    });
+    };
+    saveAnafSubtractionEnabled(newEnabledStates);
+  };
+
+  // Get available filter values based on the selected filter column
+  const getAnafFilterValueOptions = (filterColumn) => {
+    switch (filterColumn) {
+      case 'CTG_SUME':
+        return [{ value: 'D', label: 'D' }, { value: '', label: '(No filter)' }];
+      case 'ATRIBUT_PL':
+        return [{ value: 'DRA', label: 'DRA' }, { value: 'DIM', label: 'DIM' }, { value: '', label: '(No filter)' }];
+      case 'IME_COD_IMPOZIT':
+        return [{ value: '1', label: '1' }, { value: '', label: '(No filter)' }];
+      case 'DENUMIRE_IMPOZIT':
+        return [{ value: '', label: '(No filter)' }];
+      default:
+        return [{ value: '', label: '(No filter)' }];
+    }
   };
 
   const updateAnafAccountConfig = (account, config) => {
-    setAnafAccountConfigs({
+    const newConfigs = {
       ...anafAccountConfigs,
       [account]: config
-    });
+    };
+    saveAnafAccountConfigs(newConfigs);
   };
 
   const handleDeleteAnafAccount = () => {
@@ -1846,6 +1902,8 @@ function App() {
       setAnafSumDropdownOpen(false);
       setAnafSubtractFilterDropdownOpen(false);
       setAnafSubtractSumDropdownOpen(false);
+      setAnafFilterValueDropdownOpen(false);
+      setAnafSubtractFilterValueDropdownOpen(false);
     }
   };
 
@@ -5283,27 +5341,109 @@ function App() {
             )}
           </div>
 
-          <div style={{ marginBottom: '8px' }}>
+          <div style={{ marginBottom: '8px', position: 'relative' }}>
             <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Filter Value:
             </label>
-            <input
-              type="text"
-              value={getAnafAccountConfig(anafContextMenu.account).filterValue || ''}
-              onChange={(e) => updateAnafAccountConfig(anafContextMenu.account, {
-                ...getAnafAccountConfig(anafContextMenu.account),
-                filterValue: e.target.value
-              })}
+            <div
+              onClick={() => {
+                setAnafFilterValueDropdownOpen(!anafFilterValueDropdownOpen);
+                setAnafFilterDropdownOpen(false);
+                setAnafSumDropdownOpen(false);
+              }}
               style={{
                 width: '100%',
-                padding: '4px',
+                padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
                 color: 'var(--theme-text-color)',
                 border: '1px solid var(--theme-border-color)',
-                borderRadius: '2px'
+                borderRadius: '2px',
+                cursor: 'pointer',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
               }}
-            />
+            >
+              <span>
+                {(() => {
+                  const value = getAnafAccountConfig(anafContextMenu.account).filterValue || '';
+                  return value || '(No filter)';
+                })()}
+              </span>
+              <span style={{ transform: anafFilterValueDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+            </div>
+            {anafFilterValueDropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '0',
+                right: '0',
+                background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+                backdropFilter: 'blur(25px)',
+                WebkitBackdropFilter: 'blur(25px)',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+                boxShadow: `
+                  0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                  inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                  inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+                `,
+                zIndex: 100001,
+                marginTop: '2px'
+              }}>
+                {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).filterColumn).map((option, index, arr) => (
+                  <div
+                    key={option.value || 'empty'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateAnafAccountConfig(anafContextMenu.account, {
+                        ...getAnafAccountConfig(anafContextMenu.account),
+                        filterValue: option.value
+                      });
+                      setAnafFilterValueDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      color: 'var(--theme-text-color)',
+                      cursor: 'pointer',
+                      borderRadius: index === 0 ? '8px 8px 0 0' : 
+                                  index === arr.length - 1 ? '0 0 8px 8px' : '0',
+                      background: getAnafAccountConfig(anafContextMenu.account).filterValue === option.value ? 
+                        'linear-gradient(135deg, var(--glass-bg, rgba(255, 255, 255, 0.95)), var(--glass-bg, rgba(255, 255, 255, 0.85)))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                      backdropFilter: 'blur(15px)',
+                      WebkitBackdropFilter: 'blur(15px)',
+                      border: getAnafAccountConfig(anafContextMenu.account).filterValue === option.value ? 
+                        '2px solid var(--theme-accent, #10b981)' : '1px solid transparent',
+                      boxShadow: getAnafAccountConfig(anafContextMenu.account).filterValue === option.value ? 
+                        `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                         inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
+                         0 0 0 1px var(--theme-accent, rgba(16, 185, 129, 0.3))` : 'none',
+                      margin: '2px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (getAnafAccountConfig(anafContextMenu.account).filterValue !== option.value) {
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.75))';
+                        e.target.style.border = '1px solid var(--glass-border, rgba(0, 0, 0, 0.15))';
+                        e.target.style.boxShadow = '0 1px 4px var(--glass-shadow, rgba(0, 0, 0, 0.08))';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (getAnafAccountConfig(anafContextMenu.account).filterValue !== option.value) {
+                        e.target.style.background = 'var(--glass-bg, rgba(255, 255, 255, 0.6))';
+                        e.target.style.border = '1px solid transparent';
+                        e.target.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: '8px', position: 'relative' }}>
@@ -5563,33 +5703,99 @@ function App() {
                 )}
               </div>
 
-              <div style={{ marginBottom: '8px' }}>
+              <div style={{ marginBottom: '8px', position: 'relative' }}>
                 <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
                   Filter Value:
                 </label>
-                <input
-                  type="text"
-                  value={getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterValue || ''}
-                  onChange={(e) => {
-                    const config = getAnafAccountConfig(anafContextMenu.account);
-                    const subtractConfig = config.subtractConfig || {};
-                    updateAnafAccountConfig(anafContextMenu.account, {
-                      ...config,
-                      subtractConfig: { ...subtractConfig, filterValue: e.target.value }
-                    });
+                <div
+                  onClick={() => {
+                    if (isAnafSubtractionEnabled(anafContextMenu.account)) {
+                      setAnafSubtractFilterValueDropdownOpen(!anafSubtractFilterValueDropdownOpen);
+                      setAnafSubtractFilterDropdownOpen(false);
+                      setAnafSubtractSumDropdownOpen(false);
+                    }
                   }}
-                  disabled={!isAnafSubtractionEnabled(anafContextMenu.account)}
                   style={{
                     width: '100%',
-                    padding: '4px',
+                    padding: '4px 20px 4px 4px',
                     fontSize: '12px',
                     backgroundColor: 'var(--theme-input-bg)',
                     color: 'var(--theme-text-color)',
                     border: '1px solid var(--theme-border-color)',
                     borderRadius: '2px',
-                    cursor: isAnafSubtractionEnabled(anafContextMenu.account) ? 'text' : 'not-allowed'
+                    cursor: isAnafSubtractionEnabled(anafContextMenu.account) ? 'pointer' : 'not-allowed',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}
-                />
+                >
+                  <span>
+                    {(() => {
+                      const value = getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterValue || '';
+                      return value || '(No filter)';
+                    })()}
+                  </span>
+                  <span style={{ transform: anafSubtractFilterValueDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                </div>
+                {anafSubtractFilterValueDropdownOpen && isAnafSubtractionEnabled(anafContextMenu.account) && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '0',
+                    right: '0',
+                    background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+                    backdropFilter: 'blur(25px)',
+                    WebkitBackdropFilter: 'blur(25px)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+                    boxShadow: `
+                      0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                      inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                      inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+                    `,
+                    zIndex: 100001,
+                    marginTop: '2px'
+                  }}>
+                    {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterColumn || 'CTG_SUME').map((option, index, arr) => (
+                      <div
+                        key={option.value || 'empty'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const config = getAnafAccountConfig(anafContextMenu.account);
+                          const subtractConfig = config.subtractConfig || {};
+                          updateAnafAccountConfig(anafContextMenu.account, {
+                            ...config,
+                            subtractConfig: { ...subtractConfig, filterValue: option.value }
+                          });
+                          setAnafSubtractFilterValueDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          color: 'var(--theme-text-color)',
+                          cursor: 'pointer',
+                          borderRadius: index === 0 ? '8px 8px 0 0' : 
+                                      index === arr.length - 1 ? '0 0 8px 8px' : '0',
+                          background: (getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterValue || '') === option.value ? 
+                            'linear-gradient(135deg, var(--glass-bg, rgba(255, 255, 255, 0.95)), var(--glass-bg, rgba(255, 255, 255, 0.85)))' : 'var(--glass-bg, rgba(255, 255, 255, 0.6))',
+                          backdropFilter: 'blur(15px)',
+                          WebkitBackdropFilter: 'blur(15px)',
+                          border: (getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterValue || '') === option.value ? 
+                            '2px solid var(--theme-accent, #10b981)' : '1px solid transparent',
+                          boxShadow: (getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterValue || '') === option.value ? 
+                            `0 4px 12px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                             inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.9)),
+                             0 0 0 1px var(--theme-accent, rgba(16, 185, 129, 0.3))` : 'none',
+                          margin: '2px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '8px', position: 'relative' }}>
