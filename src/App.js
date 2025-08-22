@@ -217,8 +217,8 @@ function App() {
 
   // ANAF accounts management
   const [selectedAnafAccounts, setSelectedAnafAccounts] = useState([]);
-  const [defaultAnafAccounts] = useState(['1/4423', '1/4424', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
-  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1/4423', '1/4424', '412', '451', '458', '483', '432', '459', '461', '2', '9', '480', '3', '14', '7', '628', '33']);
+  const [defaultAnafAccounts] = useState(['1/4423', '1/4424', '2', '3', '7', '9', '14', '33', '412', '432', '451', '458', '459', '461', '480', '483', '628']);
+  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1/4423', '1/4424', '2', '3', '7', '9', '14', '33', '412', '432', '451', '458', '459', '461', '480', '483', '628']);
   const [customAnafAccounts, setCustomAnafAccounts] = useState([]);
   const [showAnafAccountInput, setShowAnafAccountInput] = useState(false);
   const [newAnafAccountInput, setNewAnafAccountInput] = useState('');
@@ -1835,12 +1835,29 @@ function App() {
     setNewAnafAccountInput('');
   };
 
+  const sortAnafAccounts = (accounts) => {
+    const priorityAccounts = ['1/4423', '1/4424'];
+    const otherAccounts = accounts
+      .filter(acc => !priorityAccounts.includes(acc))
+      .sort((a, b) => {
+        const numA = parseFloat(a) || 0;
+        const numB = parseFloat(b) || 0;
+        return numA - numB;
+      });
+    
+    return [...priorityAccounts.filter(acc => accounts.includes(acc)), ...otherAccounts];
+  };
+
   const handleAnafAccountInputSubmit = () => {
     const accountName = newAnafAccountInput.trim();
     if (accountName && !availableAnafAccounts.includes(accountName) && !customAnafAccounts.includes(accountName)) {
       const updatedCustomAnafAccounts = [...customAnafAccounts, accountName];
       setCustomAnafAccounts(updatedCustomAnafAccounts);
-      setAvailableAnafAccounts([...availableAnafAccounts, accountName]);
+      
+      // Add account and sort properly with 1/4423 and 1/4424 first
+      const newAccounts = [...availableAnafAccounts, accountName];
+      const sortedAccounts = sortAnafAccounts(newAccounts);
+      setAvailableAnafAccounts(sortedAccounts);
       // Save to settings if needed
     }
     setShowAnafAccountInput(false);
