@@ -1924,11 +1924,12 @@ function App() {
             }
           }
 
-          // Skip rows with no valid date when date filtering is active
-          if ((start || end) && !rowDate) return;
-          
+          // Apply date filtering only if we have valid start/end dates and the row has a valid date
           if (start && rowDate && rowDate < start) return;
           if (end && rowDate && rowDate > end) return;
+          
+          // Skip rows with no valid date only if we have date constraints and the row date is required
+          // For now, allow rows with no date to pass through
 
           // Apply filter based on selected filter column
           if (filterValue) {
@@ -2017,11 +2018,12 @@ function App() {
               }
             }
 
-            // Skip rows with no valid date when date filtering is active
-            if ((start || end) && !rowDate) return;
-
+            // Apply date filtering only if we have valid start/end dates and the row has a valid date
             if (start && rowDate && rowDate < start) return;
             if (end && rowDate && rowDate > end) return;
+            
+            // Skip rows with no valid date only if we have date constraints and the row date is required
+            // For now, allow rows with no date to pass through
 
             // Apply subtraction filter based on selected filter column
             let matchesSubtractFilter = false;
