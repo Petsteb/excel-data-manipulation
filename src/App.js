@@ -228,7 +228,6 @@ function App() {
     'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-account-selection-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
@@ -250,8 +249,7 @@ function App() {
     { id: 'anaf-summary-panel', name: 'ANAF Summary Panel', type: 'panel', active: true },
     { id: 'anaf-header-panel', name: 'ANAF Header Panel', type: 'panel', active: true },
     { id: 'anaf-date-panel', name: 'ANAF Date Panel', type: 'panel', active: true },
-    { id: 'account-selection-panel', name: 'Conta Account Selection Panel', type: 'panel', active: true },
-    { id: 'anaf-account-selection-panel', name: 'ANAF Account Selection Panel', type: 'panel', active: true },
+    { id: 'account-selection-panel', name: 'Account Selection Panel', type: 'panel', active: true },
     { id: 'sums-panel', name: 'Account Sums Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
@@ -302,7 +300,6 @@ function App() {
             'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-account-selection-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
             'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
@@ -1951,13 +1948,9 @@ function App() {
       minWidth = Math.max(minWidth, 300);
       minHeight = Math.max(minHeight, 200);
     } else if (elementId === 'account-selection-panel') {
-      // Account selection chips, date inputs, and calculate button
+      // Account selection chips for both Conta and ANAF, date inputs, and calculate buttons
       minWidth = Math.max(minWidth, 300);
-      minHeight = Math.max(minHeight, 240);
-    } else if (elementId === 'anaf-account-selection-panel') {
-      // ANAF account selection chips and calculate button
-      minWidth = Math.max(minWidth, 300);
-      minHeight = Math.max(minHeight, 200);
+      minHeight = Math.max(minHeight, 400);
     } else if (elementId === 'sums-panel') {
       // Account sum display and clear button
       minWidth = Math.max(minWidth, 240);
@@ -3857,51 +3850,9 @@ function App() {
                   </span>
                 )}
               </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Panel 10 - ANAF Account Selection */}
-        <div 
-          className="anaf-account-selection panel"
-          data-panel="anaf-account-selection-panel"
-          draggable={isLayoutMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'anaf-account-selection-panel', type: 'panel' })}
-          onDragEnd={handleDragEnd}
-          style={{
-            position: 'absolute',
-            left: `${getVisualPosition('anaf-account-selection-panel').x}px`,
-            top: `${getVisualPosition('anaf-account-selection-panel').y}px`,
-            width: `${getVisualPosition('anaf-account-selection-panel').width}px`,
-            height: `${getVisualPosition('anaf-account-selection-panel').height}px`,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
-          }}
-        >
-          {isLayoutMode && (
-            <div 
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'anaf-account-selection-panel')}
-            />
-          )}
-          <div className="panel-content">
-            {isDeveloperMode && (
-              <div style={{ 
-                position: 'absolute', 
-                top: '4px', 
-                right: '4px', 
-                fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                opacity: 0.7,
-                userSelect: 'none',
-                pointerEvents: 'none'
-              }}>
-                anaf-account-selection-panel
-              </div>
-            )}
-            <div>
+
               {/* ANAF Account Selection Section */}
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginTop: '30px', marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>ANAF Account Selection</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAnafAccounts.map(account => {
@@ -3925,7 +3876,7 @@ function App() {
                             ? '2px solid #10b981' 
                             : '1px solid var(--theme-border-color)',
                           backgroundColor: isSelected 
-                            ? 'var(--theme-primary, #4f46e5)' 
+                            ? 'var(--theme-secondary, #10b981)' 
                             : 'var(--theme-button-bg)',
                           color: isSelected 
                             ? 'white' 
@@ -4039,7 +3990,7 @@ function App() {
                 className="btn btn-primary"
                 onClick={handleCalculateAnafSums}
                 disabled={selectedAnafAccounts.length === 0 || isProcessing}
-                style={{ width: '100%', marginTop: '10px' }}
+                style={{ width: '100%', marginTop: '10px', backgroundColor: 'var(--theme-secondary, #10b981)', borderColor: 'var(--theme-secondary, #10b981)' }}
                 title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied (uses TERM_PLATA column)'}
               >
                 Calculate ANAF Sums ({selectedAnafAccounts.length} account{selectedAnafAccounts.length !== 1 ? 's' : ''})
@@ -4053,7 +4004,7 @@ function App() {
           </div>
         </div>
         
-        {/* Panel 11 - Account Sums Display */}
+        {/* Panel 10 - Account Sums Display */}
         <div 
           className="conta-sums panel"
           data-panel="sums-panel"
