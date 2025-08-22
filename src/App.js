@@ -253,8 +253,8 @@ function App() {
     { id: 'sums-panel', name: 'Account Sums Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
-  const [showUploadedFilesPopup, setShowUploadedFilesPopup] = useState(false);
-  const [uploadedFilesPopupOrigin, setUploadedFilesPopupOrigin] = useState('conta'); // 'conta' or 'anaf'
+  const [showContaFilesPopup, setShowContaFilesPopup] = useState(false);
+  const [showAnafFilesPopup, setShowAnafFilesPopup] = useState(false);
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
   const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
@@ -270,10 +270,9 @@ function App() {
   });
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
-  // Refs for popup scroll positioning
-  const popupBodyRef = useRef(null);
-  const contaFilesRef = useRef(null);
-  const anafFilesRef = useRef(null);
+  // Refs for separate popups
+  const contaPopupBodyRef = useRef(null);
+  const anafPopupBodyRef = useRef(null);
 
   // Load settings on app start
   useEffect(() => {
@@ -1884,58 +1883,12 @@ function App() {
     setSelectedAnafFileIndices(new Set());
   };
 
-  const selectAllFiles = () => {
-    // Select all conta files
-    const allContaIndices = new Set(contabilitateFiles.map((_, index) => index));
-    setSelectedFileIndices(allContaIndices);
-    
-    // Select all ANAF files  
-    const allAnafIndices = new Set(anafFiles.map((_, index) => index));
-    setSelectedAnafFileIndices(allAnafIndices);
-  };
-
-  const deselectAllFiles = () => {
-    setSelectedFileIndices(new Set());
-    setSelectedAnafFileIndices(new Set());
-  };
-
-  const handleDeleteAllSelected = () => {
-    // Delete selected conta files
-    if (selectedFileIndices.size > 0) {
-      handleDeleteSelectedContabilitate();
-    }
-    
-    // Delete selected ANAF files
-    if (selectedAnafFileIndices.size > 0) {
-      handleDeleteSelectedAnaf();
-    }
-  };
 
   const handleDeleteSelected = () => {
     handleDeleteSelectedContabilitate();
   };
 
 
-  // Position popup scroll based on origin
-  useEffect(() => {
-    if (showUploadedFilesPopup && popupBodyRef.current) {
-      setTimeout(() => {
-        if (uploadedFilesPopupOrigin === 'anaf' && anafFilesRef.current) {
-          // Scroll to ANAF section
-          anafFilesRef.current.scrollIntoView({ 
-            behavior: 'instant', 
-            block: 'start' 
-          });
-        } else if (uploadedFilesPopupOrigin === 'conta' && contaFilesRef.current) {
-          // Scroll to Conta section (top)
-          contaFilesRef.current.scrollIntoView({ 
-            behavior: 'instant', 
-            block: 'start' 
-          });
-        }
-      }, 100); // Small delay to ensure DOM is ready
-    }
-  }, [showUploadedFilesPopup, uploadedFilesPopupOrigin]);
 
   const handleGenerateSummary = async () => {
     if (anafFiles.length === 0) {
@@ -3467,10 +3420,7 @@ function App() {
                 <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {contabilitateFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
                 <button 
                   className="btn btn-primary view-files-button" 
-                  onClick={() => {
-                    setUploadedFilesPopupOrigin('conta');
-                    setShowUploadedFilesPopup(true);
-                  }}
+                  onClick={() => setShowContaFilesPopup(true)}
                   style={{ 
                     flex: '0 0 auto',
                     minWidth: 'fit-content',
@@ -3543,10 +3493,7 @@ function App() {
                 <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {anafFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
                 <button 
                   className="btn btn-primary view-files-button" 
-                  onClick={() => {
-                    setUploadedFilesPopupOrigin('anaf');
-                    setShowUploadedFilesPopup(true);
-                  }}
+                  onClick={() => setShowAnafFilesPopup(true)}
                   style={{
                     flex: '0 0 auto',
                     fontSize: '11px',
@@ -4409,9 +4356,9 @@ function App() {
         )}
         
         
-        {/* Uploaded Files Popup */}
-        {showUploadedFilesPopup && (
-          <div className="popup-overlay" onClick={() => setShowUploadedFilesPopup(false)}>
+        {/* Conta Files Popup */}
+        {showContaFilesPopup && (
+          <div className="popup-overlay" onClick={() => setShowContaFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
               {isDeveloperMode && (
                 <div style={{ 
@@ -4426,96 +4373,122 @@ function App() {
                   fontFamily: 'monospace',
                   zIndex: 1000
                 }}>
-                  uploaded-files-popup
+                  conta-files-popup
                 </div>
               )}
               <div className="popup-header">
-                <h3>All Uploaded Files</h3>
-                <button className="close-btn" onClick={() => setShowUploadedFilesPopup(false)}>×</button>
+                <h3>Conta Files ({contabilitateFiles.length})</h3>
+                <button className="close-btn" onClick={() => setShowContaFilesPopup(false)}>×</button>
               </div>
               <div 
                 className="popup-body"
-                ref={popupBodyRef}
+                ref={contaPopupBodyRef}
               >
                 <div className="file-list-detailed">
-                  {/* Conta Files Section */}
-                  {contabilitateFiles.length > 0 && (
-                    <div ref={contaFilesRef}>
-                      <div style={{ 
-                        padding: '10px 0 5px 0', 
-                        borderBottom: '1px solid var(--theme-border-color)', 
-                        marginBottom: '10px',
-                        fontWeight: 'bold',
-                        color: 'var(--theme-primary, #4f46e5)'
-                      }}>
-                        Conta Files ({contabilitateFiles.length})
-                      </div>
-                      {contabilitateFiles.map((fileData, index) => (
-                        <div 
-                          key={`conta-${index}`} 
-                          className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
-                          onClick={(e) => handleFileClick(index, e)}
-                        >
-                          <div className="file-name-detailed">{fileData.fileName}</div>
-                          <div className="file-info">
-                            <span className="file-rows">{fileData.rowCount} rows</span>
-                            <span className="file-path">{fileData.filePath}</span>
-                          </div>
+                  {contabilitateFiles.length > 0 ? (
+                    contabilitateFiles.map((fileData, index) => (
+                      <div 
+                        key={`conta-${index}`} 
+                        className={`file-item-detailed ${selectedFileIndices.has(index) ? 'selected' : ''}`}
+                        onClick={(e) => handleFileClick(index, e)}
+                      >
+                        <div className="file-name-detailed">{fileData.fileName}</div>
+                        <div className="file-info">
+                          <span className="file-rows">{fileData.rowCount} rows</span>
+                          <span className="file-path">{fileData.filePath}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* ANAF Files Section */}
-                  {anafFiles.length > 0 && (
-                    <div ref={anafFilesRef}>
-                      <div style={{ 
-                        padding: '10px 0 5px 0', 
-                        borderBottom: '1px solid var(--theme-border-color)', 
-                        marginBottom: '10px',
-                        marginTop: contabilitateFiles.length > 0 ? '20px' : '0',
-                        fontWeight: 'bold',
-                        color: 'var(--theme-secondary, #10b981)'
-                      }}>
-                        ANAF Files ({anafFiles.length})
                       </div>
-                      {anafFiles.map((fileData, index) => (
-                        <div 
-                          key={`anaf-${index}`} 
-                          className={`file-item-detailed ${selectedAnafFileIndices.has(index) ? 'selected' : ''}`}
-                          onClick={(e) => handleAnafFileClick(index, e)}
-                        >
-                          <div className="file-name-detailed">{fileData.fileName}</div>
-                          <div className="file-info">
-                            <span className="file-rows">{fileData.rowCount} rows</span>
-                            <span className="file-path">{fileData.filePath}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Empty State */}
-                  {contabilitateFiles.length === 0 && anafFiles.length === 0 && (
+                    ))
+                  ) : (
                     <div style={{ 
                       textAlign: 'center', 
                       padding: '40px 20px', 
                       color: 'var(--theme-text-color)', 
                       opacity: 0.6 
                     }}>
-                      No files uploaded yet
+                      No Conta files uploaded yet
                     </div>
                   )}
                 </div>
                 <div className="file-controls">
-                  <button className="btn btn-secondary" onClick={selectAllFiles}>Select All</button>
-                  <button className="btn btn-secondary" onClick={deselectAllFiles}>Deselect All</button>
+                  <button className="btn btn-secondary" onClick={selectAllContabilitateFiles}>Select All</button>
+                  <button className="btn btn-secondary" onClick={deselectAllContabilitateFiles}>Deselect All</button>
                   <button 
                     className="btn btn-danger" 
-                    onClick={handleDeleteAllSelected} 
-                    disabled={selectedFileIndices.size === 0 && selectedAnafFileIndices.size === 0}
+                    onClick={handleDeleteSelectedContabilitate} 
+                    disabled={selectedFileIndices.size === 0}
                   >
-                    Delete Selected ({selectedFileIndices.size + selectedAnafFileIndices.size})
+                    Delete Selected ({selectedFileIndices.size})
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ANAF Files Popup */}
+        {showAnafFilesPopup && (
+          <div className="popup-overlay" onClick={() => setShowAnafFilesPopup(false)}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              {isDeveloperMode && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '4px', 
+                  right: '4px', 
+                  fontSize: '10px', 
+                  color: 'var(--theme-text-color, #666)', 
+                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  padding: '2px 4px', 
+                  borderRadius: '2px',
+                  fontFamily: 'monospace',
+                  zIndex: 1000
+                }}>
+                  anaf-files-popup
+                </div>
+              )}
+              <div className="popup-header">
+                <h3>ANAF Files ({anafFiles.length})</h3>
+                <button className="close-btn" onClick={() => setShowAnafFilesPopup(false)}>×</button>
+              </div>
+              <div 
+                className="popup-body"
+                ref={anafPopupBodyRef}
+              >
+                <div className="file-list-detailed">
+                  {anafFiles.length > 0 ? (
+                    anafFiles.map((fileData, index) => (
+                      <div 
+                        key={`anaf-${index}`} 
+                        className={`file-item-detailed ${selectedAnafFileIndices.has(index) ? 'selected' : ''}`}
+                        onClick={(e) => handleAnafFileClick(index, e)}
+                      >
+                        <div className="file-name-detailed">{fileData.fileName}</div>
+                        <div className="file-info">
+                          <span className="file-rows">{fileData.rowCount} rows</span>
+                          <span className="file-path">{fileData.filePath}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px 20px', 
+                      color: 'var(--theme-text-color)', 
+                      opacity: 0.6 
+                    }}>
+                      No ANAF files uploaded yet
+                    </div>
+                  )}
+                </div>
+                <div className="file-controls">
+                  <button className="btn btn-secondary" onClick={selectAllAnafFiles}>Select All</button>
+                  <button className="btn btn-secondary" onClick={deselectAllAnafFiles}>Deselect All</button>
+                  <button 
+                    className="btn btn-danger" 
+                    onClick={handleDeleteSelectedAnaf} 
+                    disabled={selectedAnafFileIndices.size === 0}
+                  >
+                    Delete Selected ({selectedAnafFileIndices.size})
                   </button>
                 </div>
               </div>
