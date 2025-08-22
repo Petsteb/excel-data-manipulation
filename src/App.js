@@ -1304,11 +1304,34 @@ function App() {
   };
 
   const handleAccountToggle = (account) => {
-    setSelectedAccounts(prev => 
-      prev.includes(account) 
+    setSelectedAccounts(prev => {
+      const isCurrentlySelected = prev.includes(account);
+      const newSelectedAccounts = isCurrentlySelected 
         ? prev.filter(a => a !== account)
-        : [...prev, account]
-    );
+        : [...prev, account];
+      
+      // Auto-select/deselect corresponding ANAF accounts
+      const correspondingAnafAccounts = getCorrespondingAnafAccounts(newSelectedAccounts);
+      
+      // Update ANAF selection to match corresponding accounts
+      const validAnafAccounts = correspondingAnafAccounts.filter(anafAccount => 
+        availableAnafAccounts.includes(anafAccount)
+      );
+      setSelectedAnafAccounts(validAnafAccounts);
+      
+      // Auto-enable subtraction for 44xx and 43xx accounts that need it
+      const newSubtractionStates = { ...anafSubtractionEnabled };
+      validAnafAccounts.forEach(anafAccount => {
+        if ((anafAccount.startsWith('44') && anafAccount !== '4423' && anafAccount !== '4424') || anafAccount.startsWith('43')) {
+          newSubtractionStates[anafAccount] = true;
+        }
+      });
+      if (JSON.stringify(newSubtractionStates) !== JSON.stringify(anafSubtractionEnabled)) {
+        saveAnafSubtractionEnabled(newSubtractionStates);
+      }
+      
+      return newSelectedAccounts;
+    });
   };
 
   // Helper function to parse DD/MM/YYYY format to ISO format (YYYY-MM-DD)
@@ -1594,6 +1617,40 @@ function App() {
     }
   };
 
+  // Parse conta anaf.txt mapping to get corresponding ANAF accounts for Conta accounts
+  const getContaAnafMapping = () => {
+    // Based on conta anaf.txt content
+    return {
+      '4423': ['1'],
+      '4424': ['1'], 
+      '4315': ['412', '451', '458', '483'],
+      '4316': ['432', '459', '461'],
+      '444': ['2', '9'],
+      '436': ['480'],
+      '4411': ['3'],
+      '4418': ['14'],
+      '446.DIV': ['7'],
+      '446.CHIRII': ['628'],
+      '446.CV': ['33']
+    };
+  };
+
+  // Get ANAF accounts that should be auto-selected based on selected Conta accounts
+  const getCorrespondingAnafAccounts = (selectedContaAccounts) => {
+    const mapping = getContaAnafMapping();
+    const anafAccounts = new Set();
+    
+    selectedContaAccounts.forEach(contaAccount => {
+      if (mapping[contaAccount]) {
+        mapping[contaAccount].forEach(anafAccount => {
+          anafAccounts.add(anafAccount);
+        });
+      }
+    });
+    
+    return Array.from(anafAccounts);
+  };
+
   const updateAnafAccountConfig = (account, config) => {
     const newConfigs = {
       ...anafAccountConfigs,
@@ -1861,7 +1918,7 @@ function App() {
     if (selectedAnafAccounts.length > 0) {
       const newAnafSums = {};
       selectedAnafAccounts.forEach(account => {
-        const config = anafAccountConfigs[account] || {};
+        const config = getAnafAccountConfig(account);
         const sum = calculateAnafAccountSums(account, startDate, endDate, config);
         newAnafSums[account] = sum;
         totalCalculated++;
