@@ -227,7 +227,21 @@ function App() {
   const [anafAccountConfigs, setAnafAccountConfigs] = useState({});
   
   // Account mapping state (1 conta account to multiple anaf accounts)
-  const [accountMappings, setAccountMappings] = useState({});
+  // Default mappings from conta anaf.txt
+  const defaultAccountMappings = {
+    '4423': ['1/4423'],
+    '4424': ['1/4424'],
+    '4315': ['412', '451', '458', '483'],
+    '4316': ['432', '459', '461'],
+    '444': ['2', '9'],
+    '436': ['480'],
+    '4411': ['3'],
+    '4418': ['14'],
+    '446.DIV': ['7'],
+    '446.CHIRII': ['628'],
+    '446.CV': ['33']
+  };
+  const [accountMappings, setAccountMappings] = useState(defaultAccountMappings);
   
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
@@ -384,9 +398,11 @@ function App() {
           setAnafSubtractionEnabled(settings.anafSubtractionEnabled);
         }
         
-        // Load account mappings (conta to anaf)
+        // Load account mappings (conta to anaf) - merge with defaults
         if (settings.accountMappings) {
-          setAccountMappings(settings.accountMappings);
+          // Merge saved mappings with defaults, prioritizing saved ones
+          const mergedMappings = { ...defaultAccountMappings, ...settings.accountMappings };
+          setAccountMappings(mergedMappings);
         }
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
@@ -1947,6 +1963,30 @@ function App() {
   const handleClearAllMappings = async (contaAccount) => {
     const newMappings = { ...accountMappings };
     delete newMappings[contaAccount];
+    setAccountMappings(newMappings);
+    
+    // Save to settings
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        accountMappings: newMappings
+      });
+    } catch (error) {
+      console.error('Failed to save account mappings:', error);
+    }
+  };
+
+  const handleResetToDefault = async (contaAccount) => {
+    if (!defaultAccountMappings[contaAccount]) {
+      alert(`No default mapping exists for ${contaAccount}`);
+      return;
+    }
+    
+    const newMappings = {
+      ...accountMappings,
+      [contaAccount]: [...defaultAccountMappings[contaAccount]]
+    };
     setAccountMappings(newMappings);
     
     // Save to settings
@@ -4745,9 +4785,23 @@ function App() {
                         justifyContent: 'space-between',
                         marginBottom: '8px'
                       }}>
-                        <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
-                          {contaAccount}
-                        </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
+                            {contaAccount}
+                          </strong>
+                          {JSON.stringify(mappedAnafAccounts.sort()) === JSON.stringify((defaultAccountMappings[contaAccount] || []).sort()) && (
+                            <span style={{
+                              fontSize: '8px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              padding: '2px 4px',
+                              borderRadius: '8px',
+                              opacity: 0.7
+                            }} title="Using default mappings from conta anaf.txt">
+                              DEFAULT
+                            </span>
+                          )}
+                        </div>
                         <button
                           onClick={() => handleContaAccountMapping(contaAccount)}
                           style={{
@@ -4809,22 +4863,38 @@ function App() {
                               </span>
                             ))}
                           </div>
-                          <button
-                            onClick={() => handleClearAllMappings(contaAccount)}
-                            style={{
-                              marginTop: '5px',
-                              padding: '2px 6px',
-                              borderRadius: '3px',
-                              border: '1px solid #ef4444',
-                              backgroundColor: 'transparent',
-                              color: '#ef4444',
-                              fontSize: '9px',
-                              cursor: 'pointer'
-                            }}
-                            title="Clear all mappings for this conta account"
-                          >
-                            Clear All
-                          </button>
+                          <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                            <button
+                              onClick={() => handleResetToDefault(contaAccount)}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                border: '1px solid #10b981',
+                                backgroundColor: 'transparent',
+                                color: '#10b981',
+                                fontSize: '9px',
+                                cursor: 'pointer'
+                              }}
+                              title="Reset to default mappings from conta anaf.txt"
+                            >
+                              Reset Default
+                            </button>
+                            <button
+                              onClick={() => handleClearAllMappings(contaAccount)}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                border: '1px solid #ef4444',
+                                backgroundColor: 'transparent',
+                                color: '#ef4444',
+                                fontSize: '9px',
+                                cursor: 'pointer'
+                              }}
+                              title="Clear all mappings for this conta account"
+                            >
+                              Clear All
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', fontStyle: 'italic' }}>
