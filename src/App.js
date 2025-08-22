@@ -1499,6 +1499,19 @@ function App() {
 
     anafFiles.forEach(file => {
       if (file.data && Array.isArray(file.data)) {
+        // First check if this file matches the account we're calculating for
+        const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+        let fileMatches = false;
+        
+        if (fileAccount === account) {
+          fileMatches = true;
+        } else if (account.startsWith(fileAccount + '.')) {
+          fileMatches = true;
+        }
+        
+        // Skip this file if it doesn't match the account
+        if (!fileMatches) return;
+        
         file.data.forEach((row, index) => {
           // Skip header row
           if (index === 0) return;
@@ -1508,9 +1521,6 @@ function App() {
           const atributPlValue = row[13]; // ATRIBUT_PL column
           const sumaPlataValue = parseFloat(row[9]) || 0; // SUMA_PLATA column
           const incasariValue = parseFloat(row[14]) || 0; // INCASARI column
-
-          // Filter by account (this would need to be implemented based on your account matching logic)
-          // For now, assuming account matching is handled elsewhere
 
           // Date filtering using TERM_PLATA
           const rowDate = parseDate(termPlataValue);
@@ -1540,6 +1550,19 @@ function App() {
     if (subtractConfig) {
       anafFiles.forEach(file => {
         if (file.data && Array.isArray(file.data)) {
+          // First check if this file matches the account we're calculating for
+          const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+          let fileMatches = false;
+          
+          if (fileAccount === account) {
+            fileMatches = true;
+          } else if (account.startsWith(fileAccount + '.')) {
+            fileMatches = true;
+          }
+          
+          // Skip this file if it doesn't match the account
+          if (!fileMatches) return;
+          
           file.data.forEach((row, index) => {
             if (index === 0) return;
 
@@ -3858,10 +3881,16 @@ function App() {
                   {availableAnafAccounts.map(account => {
                     const isSelected = selectedAnafAccounts.includes(account);
                     const isFoundInFiles = anafFiles.some(file => {
-                      // Check if account exists in ANAF files
-                      return file.data && file.data.some(row => 
-                        row.some(cell => cell && cell.toString().includes(account))
-                      );
+                      // Check if account exists in ANAF files by extracting from filename
+                      const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+                      if (fileAccount === account) {
+                        return true;
+                      }
+                      // Also check for partial matches like 446.DIV where file might be anaf_446.xls
+                      if (account.startsWith(fileAccount + '.')) {
+                        return true;
+                      }
+                      return false;
                     });
                     
                     return (
