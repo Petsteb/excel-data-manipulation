@@ -248,6 +248,12 @@ function App() {
   const [showNewContaInput, setShowNewContaInput] = useState(false);
   const [newContaInput, setNewContaInput] = useState('');
   
+  // ANAF account selection modal states
+  const [showAnafSelectionModal, setShowAnafSelectionModal] = useState(false);
+  const [modalContaAccount, setModalContaAccount] = useState('');
+  const [modalAvailableAnafAccounts, setModalAvailableAnafAccounts] = useState([]);
+  const [modalSelectedAnafAccount, setModalSelectedAnafAccount] = useState('');
+  
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
@@ -1909,7 +1915,7 @@ function App() {
   };
 
   // Account mapping functions
-  const handleContaAccountMapping = async (contaAccount) => {
+  const handleContaAccountMapping = (contaAccount) => {
     const currentMappings = accountMappings[contaAccount] || [];
     const availableAnafForMapping = availableAnafAccounts.filter(anaf => 
       !currentMappings.includes(anaf)
@@ -1920,30 +1926,50 @@ function App() {
       return;
     }
 
-    const selectedAnaf = prompt(
-      `Select ANAF account to map to "${contaAccount}":\n\nAvailable ANAF accounts:\n${availableAnafForMapping.join('\n')}\n\nEnter ANAF account name:`
-    );
-    
-    if (selectedAnaf && availableAnafForMapping.includes(selectedAnaf)) {
-      const newMappings = {
-        ...accountMappings,
-        [contaAccount]: [...currentMappings, selectedAnaf]
-      };
-      setAccountMappings(newMappings);
-      
-      // Save to settings
-      try {
-        const settings = await window.electronAPI.loadSettings();
-        await window.electronAPI.saveSettings({
-          ...settings,
-          accountMappings: newMappings
-        });
-      } catch (error) {
-        console.error('Failed to save account mappings:', error);
-      }
-    } else if (selectedAnaf) {
-      alert(`"${selectedAnaf}" is not available for mapping`);
+    // Show modal instead of prompt
+    setModalContaAccount(contaAccount);
+    setModalAvailableAnafAccounts(availableAnafForMapping);
+    setModalSelectedAnafAccount('');
+    setShowAnafSelectionModal(true);
+  };
+
+  // Modal handler functions
+  const handleModalConfirm = async () => {
+    if (!modalSelectedAnafAccount) {
+      alert('Please select an ANAF account');
+      return;
     }
+    
+    const currentMappings = accountMappings[modalContaAccount] || [];
+    const newMappings = {
+      ...accountMappings,
+      [modalContaAccount]: [...currentMappings, modalSelectedAnafAccount]
+    };
+    setAccountMappings(newMappings);
+    
+    // Save to settings
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        accountMappings: newMappings
+      });
+    } catch (error) {
+      console.error('Failed to save account mappings:', error);
+    }
+    
+    // Close modal
+    setShowAnafSelectionModal(false);
+    setModalContaAccount('');
+    setModalAvailableAnafAccounts([]);
+    setModalSelectedAnafAccount('');
+  };
+
+  const handleModalCancel = () => {
+    setShowAnafSelectionModal(false);
+    setModalContaAccount('');
+    setModalAvailableAnafAccounts([]);
+    setModalSelectedAnafAccount('');
   };
 
   const handleRemoveMapping = async (contaAccount, anafAccount) => {
@@ -2045,7 +2071,7 @@ function App() {
     setNewContaInput('');
   };
 
-  const handleAddMoreAnafAccounts = async (contaAccount) => {
+  const handleAddMoreAnafAccounts = (contaAccount) => {
     const currentMappings = accountMappings[contaAccount] || [];
     const availableAnafForMapping = availableAnafAccounts.filter(anaf => 
       !currentMappings.includes(anaf)
@@ -2056,30 +2082,11 @@ function App() {
       return;
     }
 
-    const selectedAnaf = prompt(
-      `Add ANAF account to "${contaAccount}":\n\nAvailable ANAF accounts:\n${availableAnafForMapping.join('\n')}\n\nEnter ANAF account name:`
-    );
-    
-    if (selectedAnaf && availableAnafForMapping.includes(selectedAnaf)) {
-      const newMappings = {
-        ...accountMappings,
-        [contaAccount]: [...currentMappings, selectedAnaf]
-      };
-      setAccountMappings(newMappings);
-      
-      // Save to settings
-      try {
-        const settings = await window.electronAPI.loadSettings();
-        await window.electronAPI.saveSettings({
-          ...settings,
-          accountMappings: newMappings
-        });
-      } catch (error) {
-        console.error('Failed to save account mappings:', error);
-      }
-    } else if (selectedAnaf) {
-      alert(`"${selectedAnaf}" is not available for mapping`);
-    }
+    // Show modal instead of prompt
+    setModalContaAccount(contaAccount);
+    setModalAvailableAnafAccounts(availableAnafForMapping);
+    setModalSelectedAnafAccount('');
+    setShowAnafSelectionModal(true);
   };
 
   const handleMappingRightClick = (e, contaAccount) => {
@@ -6790,6 +6797,147 @@ function App() {
             }}
           >
             Delete Relation
+          </div>
+        </div>
+      )}
+
+      {/* ANAF Account Selection Modal */}
+      {showAnafSelectionModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={handleModalCancel}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--theme-panel-bg)',
+              border: '1px solid var(--theme-border-color)',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              padding: '24px',
+              minWidth: '400px',
+              maxWidth: '500px',
+              maxHeight: '70vh',
+              overflow: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ 
+              margin: '0 0 16px 0', 
+              fontSize: '18px', 
+              color: 'var(--theme-text-color)',
+              textAlign: 'center'
+            }}>
+              Add ANAF Account to "{modalContaAccount}"
+            </h3>
+            
+            <p style={{ 
+              margin: '0 0 16px 0', 
+              fontSize: '14px', 
+              color: 'var(--theme-text-secondary)',
+              textAlign: 'center'
+            }}>
+              Select an ANAF account to add to this mapping:
+            </p>
+            
+            <div style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto',
+              border: '1px solid var(--theme-border-color)',
+              borderRadius: '8px',
+              padding: '8px'
+            }}>
+              {modalAvailableAnafAccounts.map(anafAccount => (
+                <div
+                  key={anafAccount}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    backgroundColor: modalSelectedAnafAccount === anafAccount 
+                      ? 'var(--theme-primary, #4f46e5)' 
+                      : 'transparent',
+                    color: modalSelectedAnafAccount === anafAccount 
+                      ? 'white' 
+                      : 'var(--theme-text-color)',
+                    marginBottom: '4px',
+                    border: '1px solid transparent',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setModalSelectedAnafAccount(anafAccount)}
+                  onMouseEnter={(e) => {
+                    if (modalSelectedAnafAccount !== anafAccount) {
+                      e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (modalSelectedAnafAccount !== anafAccount) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  {anafAccount}
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              gap: '12px', 
+              marginTop: '20px' 
+            }}>
+              <button
+                onClick={handleModalCancel}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--theme-border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--theme-text-color)',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleModalConfirm}
+                disabled={!modalSelectedAnafAccount}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--theme-primary, #4f46e5)',
+                  backgroundColor: modalSelectedAnafAccount 
+                    ? 'var(--theme-primary, #4f46e5)' 
+                    : 'var(--theme-disabled-bg, #ccc)',
+                  color: 'white',
+                  fontSize: '14px',
+                  cursor: modalSelectedAnafAccount ? 'pointer' : 'not-allowed',
+                  opacity: modalSelectedAnafAccount ? 1 : 0.6,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Add Account
+              </button>
+            </div>
           </div>
         </div>
       )}
