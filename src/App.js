@@ -1184,8 +1184,27 @@ function App() {
     
     setSelectedAccounts(foundAccounts);
     
+    // Auto-select corresponding ANAF accounts for the found Conta accounts
+    const correspondingAnafAccounts = getCorrespondingAnafAccounts(foundAccounts);
+    const validAnafAccounts = correspondingAnafAccounts.filter(anafAccount => 
+      availableAnafAccounts.includes(anafAccount)
+    );
+    setSelectedAnafAccounts(validAnafAccounts);
+    
+    // Auto-enable subtraction for 44xx and 43xx accounts that need it
+    const newSubtractionStates = { ...anafSubtractionEnabled };
+    validAnafAccounts.forEach(anafAccount => {
+      if ((anafAccount.startsWith('44') && anafAccount !== '4423' && anafAccount !== '4424') || anafAccount.startsWith('43')) {
+        newSubtractionStates[anafAccount] = true;
+      }
+    });
+    if (JSON.stringify(newSubtractionStates) !== JSON.stringify(anafSubtractionEnabled)) {
+      saveAnafSubtractionEnabled(newSubtractionStates);
+    }
+    
     if (foundAccounts.length > 0) {
-      setStatus(`Auto-selected ${foundAccounts.length} found account(s): ${foundAccounts.join(', ')}`);
+      const anafMessage = validAnafAccounts.length > 0 ? ` and ${validAnafAccounts.length} corresponding ANAF account(s): ${validAnafAccounts.join(', ')}` : '';
+      setStatus(`Auto-selected ${foundAccounts.length} found Conta account(s): ${foundAccounts.join(', ')}${anafMessage}`);
     }
   };
 
@@ -2286,6 +2305,15 @@ function App() {
     // Clear Conta processing state
     setProcessedContaFiles([]);
     setSelectedAccounts([]);
+    // Clear ANAF account selections and state
+    setSelectedAnafAccounts([]);
+    setAnafAccountSums({});
+    setAnafAccountConfigs({});
+    setAnafSubtractionEnabled({});
+    setAnafContextMenu(null);
+    // Save cleared ANAF states to localStorage
+    saveAnafAccountConfigs({});
+    saveAnafSubtractionEnabled({});
     // Preserve date selection - don't reset startDate and endDate
     setAccountSums({});
     setShowAccountInput(false);
