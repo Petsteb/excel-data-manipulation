@@ -1208,6 +1208,47 @@ function App() {
     }
   };
 
+  const autoSelectFoundAnafAccounts = (files) => {
+    const foundAnafAccounts = [];
+    
+    // Use current availableAnafAccounts to find accounts that exist in the files
+    for (const account of availableAnafAccounts) {
+      const isFoundInFiles = files.some(file => {
+        // Check if account exists in ANAF files by extracting from filename
+        const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+        if (fileAccount === account) {
+          return true;
+        }
+        // Also check for partial matches like 446.DIV where file might be anaf_446.xls
+        if (account.startsWith(fileAccount + '.')) {
+          return true;
+        }
+        return false;
+      });
+      
+      if (isFoundInFiles) {
+        foundAnafAccounts.push(account);
+      }
+    }
+    
+    setSelectedAnafAccounts(foundAnafAccounts);
+    
+    // Auto-enable subtraction for 44xx and 43xx accounts that need it
+    const newSubtractionStates = { ...anafSubtractionEnabled };
+    foundAnafAccounts.forEach(anafAccount => {
+      if ((anafAccount.startsWith('44') && anafAccount !== '4423' && anafAccount !== '4424') || anafAccount.startsWith('43')) {
+        newSubtractionStates[anafAccount] = true;
+      }
+    });
+    if (JSON.stringify(newSubtractionStates) !== JSON.stringify(anafSubtractionEnabled)) {
+      saveAnafSubtractionEnabled(newSubtractionStates);
+    }
+    
+    if (foundAnafAccounts.length > 0) {
+      setStatus(`Auto-selected ${foundAnafAccounts.length} found ANAF account(s): ${foundAnafAccounts.join(', ')}`);
+    }
+  };
+
   const calculateAccountSums = (account, startDate, endDate) => {
     if (!processedContaFiles.length) return 0;
     
@@ -2092,6 +2133,9 @@ function App() {
         
         // Extract column names from ANAF files (main processing batch)
         await extractAnafColumnNames();
+        
+        // Auto-select all found ANAF accounts
+        autoSelectFoundAnafAccounts(append ? [...anafFiles, ...newData] : newData);
       }
     } catch (error) {
       setStatus(`Error selecting ANAF files: ${error.message}`);
