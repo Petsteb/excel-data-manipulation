@@ -1500,7 +1500,7 @@ function App() {
     let sum = 0;
     let subtractSum = 0;
 
-    processedAnafFiles.forEach(file => {
+    anafFiles.forEach(file => {
       if (file.data && Array.isArray(file.data)) {
         file.data.forEach((row, index) => {
           // Skip header row
@@ -1541,7 +1541,7 @@ function App() {
 
     // Calculate subtraction if configured
     if (subtractConfig) {
-      processedAnafFiles.forEach(file => {
+      anafFiles.forEach(file => {
         if (file.data && Array.isArray(file.data)) {
           file.data.forEach((row, index) => {
             if (index === 0) return;
@@ -3906,7 +3906,7 @@ function App() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAnafAccounts.map(account => {
                     const isSelected = selectedAnafAccounts.includes(account);
-                    const isFoundInFiles = processedAnafFiles.some(file => {
+                    const isFoundInFiles = anafFiles.some(file => {
                       // Check if account exists in ANAF files
                       return file.data && file.data.some(row => 
                         row.some(cell => cell && cell.toString().includes(account))
