@@ -4971,6 +4971,23 @@ function App() {
                   const mappedAnafAccounts = accountMappings[contaAccount] || [];
                   const isContaSelected = selectedAccounts.includes(contaAccount);
                   
+                  // Check if this conta account has a calculated sum
+                  const contaSum = accountSums[contaAccount];
+                  const hasContaSum = contaSum !== undefined && contaSum !== null;
+                  
+                  // Calculate total ANAF sum for mapped accounts
+                  const anafSum = mappedAnafAccounts.reduce((total, anafAccount) => {
+                    const anafValue = anafAccountSums[anafAccount];
+                    return total + (anafValue || 0);
+                  }, 0);
+                  
+                  // Calculate difference (conta sum - anaf sum)
+                  const difference = hasContaSum ? (contaSum - anafSum) : null;
+                  const isBalanced = difference !== null && Math.abs(difference) < 0.01; // Consider balanced if difference is less than 1 cent
+                  
+                  // Determine if this relation should be grayed out
+                  const shouldGrayOut = !hasContaSum && (Object.keys(accountSums).length > 0 || Object.keys(anafAccountSums).length > 0);
+                  
                   return (
                     <div key={contaAccount} 
                       onContextMenu={(e) => handleMappingRightClick(e, contaAccount)}
@@ -4979,7 +4996,9 @@ function App() {
                         padding: '10px', 
                         border: `1px solid ${isContaSelected ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-border-color)'}`,
                         borderRadius: '8px',
-                        backgroundColor: isContaSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--theme-panel-bg)'
+                        backgroundColor: isContaSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--theme-panel-bg)',
+                        opacity: shouldGrayOut ? 0.4 : 1,
+                        transition: 'opacity 0.2s ease'
                       }}>
                       <div style={{ 
                         display: 'flex', 
@@ -4990,7 +5009,54 @@ function App() {
                         <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
                           {contaAccount}
                         </strong>
+                        {shouldGrayOut && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            color: 'var(--theme-text-secondary)', 
+                            fontStyle: 'italic' 
+                          }}>
+                            No sum calculated
+                          </span>
+                        )}
                       </div>
+                      
+                      {/* Sum Comparison Section */}
+                      {hasContaSum && mappedAnafAccounts.length > 0 && (
+                        <div style={{
+                          padding: '8px',
+                          marginBottom: '8px',
+                          backgroundColor: 'rgba(0,0,0,0.05)',
+                          borderRadius: '6px',
+                          border: `2px solid ${isBalanced ? '#10b981' : '#ef4444'}`,
+                          fontSize: '11px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--theme-text-color)' }}>
+                              <strong>Sum1 (Conta):</strong> {contaSum?.toFixed(2) || '0.00'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ color: 'var(--theme-text-color)' }}>
+                              <strong>Sum2 (ANAF):</strong> {anafSum?.toFixed(2) || '0.00'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px', borderTop: '1px solid var(--theme-border-color)' }}>
+                            <span style={{ 
+                              color: isBalanced ? '#10b981' : '#ef4444',
+                              fontWeight: 'bold'
+                            }}>
+                              <strong>Diff:</strong> {difference?.toFixed(2) || '0.00'}
+                            </span>
+                            <span style={{ 
+                              color: isBalanced ? '#10b981' : '#ef4444',
+                              fontWeight: 'bold',
+                              fontSize: '10px'
+                            }}>
+                              {isBalanced ? '✓ BALANCED' : '⚠ UNBALANCED'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       
                       <div>
                         {mappedAnafAccounts.length > 0 && (
