@@ -1936,7 +1936,6 @@ function App() {
   // Modal handler functions
   const handleModalConfirm = async () => {
     if (!modalSelectedAnafAccount) {
-      alert('Please select an ANAF account');
       return;
     }
     
@@ -1959,10 +1958,7 @@ function App() {
     }
     
     // Close modal
-    setShowAnafSelectionModal(false);
-    setModalContaAccount('');
-    setModalAvailableAnafAccounts([]);
-    setModalSelectedAnafAccount('');
+    handleModalCancel();
   };
 
   const handleModalCancel = () => {
@@ -1991,46 +1987,6 @@ function App() {
     }
   };
 
-  const handleClearAllMappings = async (contaAccount) => {
-    const newMappings = { ...accountMappings };
-    delete newMappings[contaAccount];
-    setAccountMappings(newMappings);
-    
-    // Save to settings
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        accountMappings: newMappings
-      });
-    } catch (error) {
-      console.error('Failed to save account mappings:', error);
-    }
-  };
-
-  const handleResetToDefault = async (contaAccount) => {
-    if (!defaultAccountMappings[contaAccount]) {
-      alert(`No default mapping exists for ${contaAccount}`);
-      return;
-    }
-    
-    const newMappings = {
-      ...accountMappings,
-      [contaAccount]: [...defaultAccountMappings[contaAccount]]
-    };
-    setAccountMappings(newMappings);
-    
-    // Save to settings
-    try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        accountMappings: newMappings
-      });
-    } catch (error) {
-      console.error('Failed to save account mappings:', error);
-    }
-  };
 
   // Enhanced mapping functions for new UI
   const handleAddNewContaRelation = async () => {
@@ -4926,21 +4882,6 @@ function App() {
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleContaAccountMapping(contaAccount)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--theme-primary, #4f46e5)',
-                            backgroundColor: 'var(--theme-primary, #4f46e5)',
-                            color: 'white',
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                          title="Add ANAF mapping"
-                        >
-                          + ANAF
-                        </button>
                       </div>
                       
                       {mappedAnafAccounts.length > 0 ? (
@@ -5005,38 +4946,6 @@ function App() {
                               title="Add more ANAF accounts to this mapping"
                             >
                               +
-                            </button>
-                          </div>
-                          <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
-                            <button
-                              onClick={() => handleResetToDefault(contaAccount)}
-                              style={{
-                                padding: '2px 6px',
-                                borderRadius: '3px',
-                                border: '1px solid #10b981',
-                                backgroundColor: 'transparent',
-                                color: '#10b981',
-                                fontSize: '9px',
-                                cursor: 'pointer'
-                              }}
-                              title="Reset to default mappings from conta anaf.txt"
-                            >
-                              Reset Default
-                            </button>
-                            <button
-                              onClick={() => handleClearAllMappings(contaAccount)}
-                              style={{
-                                padding: '2px 6px',
-                                borderRadius: '3px',
-                                border: '1px solid #ef4444',
-                                backgroundColor: 'transparent',
-                                color: '#ef4444',
-                                fontSize: '9px',
-                                cursor: 'pointer'
-                              }}
-                              title="Clear all mappings for this conta account"
-                            >
-                              Clear All
                             </button>
                           </div>
                         </div>
@@ -6810,7 +6719,7 @@ function App() {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -6820,124 +6729,53 @@ function App() {
         >
           <div
             style={{
-              backgroundColor: 'var(--theme-panel-bg)',
-              border: '1px solid var(--theme-border-color)',
+              background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+              backdropFilter: 'blur(25px)',
+              WebkitBackdropFilter: 'blur(25px)',
               borderRadius: '12px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-              padding: '24px',
-              minWidth: '400px',
-              maxWidth: '500px',
+              border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+              boxShadow: `
+                0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+              `,
+              minWidth: '300px',
+              maxWidth: '400px',
               maxHeight: '70vh',
-              overflow: 'auto'
+              overflow: 'auto',
+              padding: '12px'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ 
-              margin: '0 0 16px 0', 
-              fontSize: '18px', 
-              color: 'var(--theme-text-color)',
-              textAlign: 'center'
-            }}>
-              Add ANAF Account to "{modalContaAccount}"
-            </h3>
-            
-            <p style={{ 
-              margin: '0 0 16px 0', 
-              fontSize: '14px', 
-              color: 'var(--theme-text-secondary)',
-              textAlign: 'center'
-            }}>
-              Select an ANAF account to add to this mapping:
-            </p>
-            
-            <div style={{ 
-              maxHeight: '300px', 
-              overflowY: 'auto',
-              border: '1px solid var(--theme-border-color)',
-              borderRadius: '8px',
-              padding: '8px'
-            }}>
-              {modalAvailableAnafAccounts.map(anafAccount => (
-                <div
-                  key={anafAccount}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    backgroundColor: modalSelectedAnafAccount === anafAccount 
-                      ? 'var(--theme-primary, #4f46e5)' 
-                      : 'transparent',
-                    color: modalSelectedAnafAccount === anafAccount 
-                      ? 'white' 
-                      : 'var(--theme-text-color)',
-                    marginBottom: '4px',
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setModalSelectedAnafAccount(anafAccount)}
-                  onMouseEnter={(e) => {
-                    if (modalSelectedAnafAccount !== anafAccount) {
-                      e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (modalSelectedAnafAccount !== anafAccount) {
-                      e.target.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  {anafAccount}
-                </div>
-              ))}
-            </div>
-            
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'flex-end', 
-              gap: '12px', 
-              marginTop: '20px' 
-            }}>
-              <button
-                onClick={handleModalCancel}
+            {modalAvailableAnafAccounts.map(anafAccount => (
+              <div
+                key={anafAccount}
                 style={{
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--theme-border-color)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--theme-text-color)',
-                  fontSize: '14px',
+                  padding: '8px 12px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  fontSize: '14px',
+                  color: 'var(--theme-text-color)',
+                  borderRadius: '4px',
+                  textAlign: 'center',
+                  border: '1px solid transparent',
+                  marginBottom: '4px'
+                }}
+                onClick={() => {
+                  setModalSelectedAnafAccount(anafAccount);
+                  handleModalConfirm();
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+                  e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
+                  e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = 'transparent';
+                  e.target.style.borderColor = 'transparent';
                 }}
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleModalConfirm}
-                disabled={!modalSelectedAnafAccount}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--theme-primary, #4f46e5)',
-                  backgroundColor: modalSelectedAnafAccount 
-                    ? 'var(--theme-primary, #4f46e5)' 
-                    : 'var(--theme-disabled-bg, #ccc)',
-                  color: 'white',
-                  fontSize: '14px',
-                  cursor: modalSelectedAnafAccount ? 'pointer' : 'not-allowed',
-                  opacity: modalSelectedAnafAccount ? 1 : 0.6,
-                  transition: 'all 0.2s'
-                }}
-              >
-                Add Account
-              </button>
-            </div>
+                {anafAccount}
+              </div>
+            ))}
           </div>
         </div>
       )}
