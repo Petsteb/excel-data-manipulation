@@ -1667,18 +1667,56 @@ function App() {
 
   // Get available filter values based on the selected filter column
   const getAnafFilterValueOptions = (filterColumn) => {
-    switch (filterColumn) {
-      case 'CTG_SUME':
-        return [{ value: 'D', label: 'D' }, { value: '', label: '(No filter)' }];
-      case 'ATRIBUT_PL':
-        return [{ value: 'DRA', label: 'DRA' }, { value: 'DIM', label: 'DIM' }, { value: '', label: '(No filter)' }];
-      case 'IME_COD_IMPOZIT':
-        return [{ value: '1', label: '1' }, { value: '', label: '(No filter)' }];
-      case 'DENUMIRE_IMPOZIT':
-        return [{ value: '', label: '(No filter)' }];
-      default:
-        return [{ value: '', label: '(No filter)' }];
-    }
+    const uniqueValues = new Set();
+    
+    // Extract unique values from all ANAF files
+    anafFiles.forEach(file => {
+      if (file.data && Array.isArray(file.data)) {
+        file.data.forEach((row, index) => {
+          // Skip company info row (0) and column header row (1)
+          if (index === 0 || index === 1) return;
+          
+          let columnValue = '';
+          
+          // Get the value from the appropriate column based on the filter column
+          switch (filterColumn) {
+            case 'CTG_SUME':
+              columnValue = row[6]; // CTG_SUME column
+              break;
+            case 'ATRIBUT_PL':
+              columnValue = row[12]; // ATRIBUT_PL column
+              break;
+            case 'IME_COD_IMPOZIT':
+              columnValue = row[0]; // IME_COD_IMPOZIT column
+              break;
+            case 'DENUMIRE_IMPOZIT':
+              columnValue = row[1]; // DENUMIRE_IMPOZIT column
+              break;
+            default:
+              return;
+          }
+          
+          // Add non-null, defined values to the set
+          if (columnValue !== null && columnValue !== undefined) {
+            // Convert to string and trim whitespace
+            const stringValue = String(columnValue).trim();
+            uniqueValues.add(stringValue);
+          }
+        });
+      }
+    });
+    
+    // Convert to array and sort, then create option objects
+    const sortedValues = Array.from(uniqueValues).sort();
+    const options = sortedValues.map(value => ({
+      value: value,
+      label: value === '' ? '(Empty)' : value
+    }));
+    
+    // Add "No filter" option at the beginning
+    options.unshift({ value: '', label: '(No filter)' });
+    
+    return options;
   };
 
   // Parse conta anaf.txt mapping to get corresponding ANAF accounts for Conta accounts
