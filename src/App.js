@@ -1295,6 +1295,69 @@ function App() {
     }
   };
 
+  // Function to get the date range from conta files for a specific account
+  const getContaAccountDateRange = (account) => {
+    if (!processedContaFiles.length) return null;
+    
+    let oldestDate = null;
+    let newestDate = null;
+    
+    for (const file of processedContaFiles) {
+      for (let i = 0; i < file.data.length; i++) {
+        const row = file.data[i];
+        const rowAccount = row[3]; // cont column (at index 3)
+        
+        // Check if this row matches the account we're looking for
+        if (rowAccount === account) {
+          // Get the date from the first column (index 0)
+          const dateValue = row[0];
+          if (!dateValue) continue;
+          
+          let rowDate = null;
+          if (typeof dateValue === 'string') {
+            // Handle DD/MM/YYYY format
+            const ddmmyyyyMatch = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (ddmmyyyyMatch) {
+              const [, day, month, year] = ddmmyyyyMatch;
+              rowDate = new Date(year, month - 1, day);
+            }
+          } else if (dateValue instanceof Date) {
+            rowDate = dateValue;
+          } else if (typeof dateValue === 'number') {
+            // Excel date number
+            rowDate = new Date((dateValue - 25569) * 86400 * 1000);
+          }
+          
+          if (rowDate && !isNaN(rowDate.getTime())) {
+            if (!oldestDate || rowDate < oldestDate) {
+              oldestDate = rowDate;
+            }
+            if (!newestDate || rowDate > newestDate) {
+              newestDate = rowDate;
+            }
+          }
+        }
+      }
+    }
+    
+    if (oldestDate && newestDate) {
+      // Format dates as DD/MM/YYYY
+      const formatDate = (date) => {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+      
+      return {
+        startDate: formatDate(oldestDate),
+        endDate: formatDate(newestDate)
+      };
+    }
+    
+    return null;
+  };
+
   const calculateAccountSums = (account, startDate, endDate) => {
     if (!processedContaFiles.length) return 0;
     
@@ -2496,6 +2559,45 @@ function App() {
     setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s)`);
   };
 
+  // Helper function to get intersection of two date ranges
+  const getDateRangeIntersection = (userStart, userEnd, contaStart, contaEnd) => {
+    // Parse dates to Date objects for comparison
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return null;
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    };
+    
+    const userStartDate = parseDate(userStart);
+    const userEndDate = parseDate(userEnd);
+    const contaStartDate = parseDate(contaStart);
+    const contaEndDate = parseDate(contaEnd);
+    
+    // Calculate intersection
+    const intersectionStart = !userStartDate ? contaStartDate : 
+                             !contaStartDate ? userStartDate :
+                             new Date(Math.max(userStartDate.getTime(), contaStartDate.getTime()));
+    
+    const intersectionEnd = !userEndDate ? contaEndDate :
+                           !contaEndDate ? userEndDate :
+                           new Date(Math.min(userEndDate.getTime(), contaEndDate.getTime()));
+    
+    // Format back to DD/MM/YYYY
+    const formatDate = (date) => {
+      if (!date) return null;
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
+    return {
+      startDate: formatDate(intersectionStart),
+      endDate: formatDate(intersectionEnd)
+    };
+  };
+
   // Unified calculation for both Conta and ANAF accounts
   const handleCalculateAllSums = () => {
     let totalCalculated = 0;
@@ -2504,20 +2606,48 @@ function App() {
     if (selectedAccounts.length > 0) {
       const newContaSums = {};
       selectedAccounts.forEach(account => {
-        const sum = calculateAccountSums(account, startDate, endDate);
+        // Get the conta account's date range from its transactions
+        const contaDateRange = getContaAccountDateRange(account);
+        
+        // Calculate intersection with user-provided date range
+        const effectiveDateRange = contaDateRange ? 
+          getDateRangeIntersection(startDate, endDate, contaDateRange.startDate, contaDateRange.endDate) :
+          { startDate, endDate };
+        
+        const sum = calculateAccountSums(account, effectiveDateRange.startDate, effectiveDateRange.endDate);
         newContaSums[account] = sum;
         totalCalculated++;
       });
       setAccountSums(newContaSums);
     }
     
-    // Calculate ANAF sums if any ANAF accounts are selected
+    // Calculate ANAF sums using synchronized date intervals with their related conta accounts
     if (selectedAnafAccounts.length > 0) {
       const newAnafSums = {};
-      selectedAnafAccounts.forEach(account => {
-        const config = getAnafAccountConfig(account);
-        const sum = calculateAnafAccountSums(account, startDate, endDate, config);
-        newAnafSums[account] = sum;
+      selectedAnafAccounts.forEach(anafAccount => {
+        // Find the conta account that this ANAF account is related to
+        const relatedContaAccount = Object.keys(accountMappings).find(contaAccount => 
+          accountMappings[contaAccount].includes(anafAccount)
+        );
+        
+        let effectiveDateRange = { startDate, endDate };
+        
+        if (relatedContaAccount && selectedAccounts.includes(relatedContaAccount)) {
+          // Get the conta account's date range from its transactions
+          const contaDateRange = getContaAccountDateRange(relatedContaAccount);
+          
+          if (contaDateRange) {
+            // Use intersection of user date range and conta date range
+            effectiveDateRange = getDateRangeIntersection(
+              startDate, endDate, 
+              contaDateRange.startDate, contaDateRange.endDate
+            );
+          }
+        }
+        
+        const config = getAnafAccountConfig(anafAccount);
+        const sum = calculateAnafAccountSums(anafAccount, effectiveDateRange.startDate, effectiveDateRange.endDate, config);
+        newAnafSums[anafAccount] = sum;
         totalCalculated++;
       });
       setAnafAccountSums(newAnafSums);
@@ -2533,7 +2663,7 @@ function App() {
     let statusMessage = `Calculated sums for `;
     
     if (contaCount > 0 && anafCount > 0) {
-      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''}`;
+      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''} (using synchronized date intervals)`;
     } else if (contaCount > 0) {
       statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''}`;
     } else {
@@ -4986,7 +5116,8 @@ function App() {
                   const isBalanced = difference !== null && Math.abs(difference) < 0.01; // Consider balanced if difference is less than 1 cent
                   
                   // Determine if this relation should be grayed out
-                  const shouldGrayOut = !hasContaSum && (Object.keys(accountSums).length > 0 || Object.keys(anafAccountSums).length > 0);
+                  // Gray out relations for conta accounts that are not selected
+                  const shouldGrayOut = !isContaSelected;
                   
                   return (
                     <div key={contaAccount} 
