@@ -1924,6 +1924,9 @@ function App() {
             }
           }
 
+          // Skip rows with no valid date when date filtering is active
+          if ((start || end) && !rowDate) return;
+          
           if (start && rowDate && rowDate < start) return;
           if (end && rowDate && rowDate > end) return;
 
@@ -2013,6 +2016,9 @@ function App() {
                 rowDate = new Date(rowISO + 'T12:00:00');
               }
             }
+
+            // Skip rows with no valid date when date filtering is active
+            if ((start || end) && !rowDate) return;
 
             if (start && rowDate && rowDate < start) return;
             if (end && rowDate && rowDate > end) return;
