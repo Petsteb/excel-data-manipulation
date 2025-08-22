@@ -1594,21 +1594,46 @@ function App() {
       return anafAccountConfigs[account];
     }
 
-    // Apply automatic configuration based on conta anaf relation.txt
-    // Default config for account 412 and others (with subtraction enabled)
+    // Apply automatic configuration based on Account 412 settings
+    // Default config for all accounts except 1/4423 and 1/4424
     let defaultConfig = {
       filterColumn: 'CTG_SUME',
-      filterValue: '',
+      filterValue: 'D',
       sumColumn: 'SUMA_PLATA',
       subtractConfig: {
-        filterColumn: 'CTG_SUME',
-        filterValue: '',
-        sumColumn: 'SUMA_PLATA'
+        filterColumn: 'ATRIBUT_PL',
+        filterValue: 'DIM',
+        sumColumn: 'INCASARI'
       }
     };
 
+    // Special configs for accounts 1/4423 and 1/4424 (no subtraction)
+    if (account === '1/4423') {
+      defaultConfig = {
+        filterColumn: 'CTG_SUME',
+        filterValue: '',
+        sumColumn: 'SUMA_PLATA',
+        subtractConfig: {
+          filterColumn: 'CTG_SUME',
+          filterValue: '',
+          sumColumn: 'SUMA_PLATA'
+        }
+      };
+    }
+    else if (account === '1/4424') {
+      defaultConfig = {
+        filterColumn: 'CTG_SUME',
+        filterValue: '',
+        sumColumn: 'SUMA_PLATA',
+        subtractConfig: {
+          filterColumn: 'CTG_SUME',
+          filterValue: '',
+          sumColumn: 'SUMA_PLATA'
+        }
+      };
+    }
     // Account 4423: CTG_SUME=D, SUMA_PLATA
-    if (account === '4423') {
+    else if (account === '4423') {
       defaultConfig = {
         filterColumn: 'CTG_SUME',
         filterValue: 'D',
