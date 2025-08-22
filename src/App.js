@@ -245,14 +245,17 @@ function App() {
   
   // Account mapping context menu and input states
   const [mappingContextMenu, setMappingContextMenu] = useState(null);
-  const [showNewContaInput, setShowNewContaInput] = useState(false);
-  const [newContaInput, setNewContaInput] = useState('');
   
   // ANAF account selection modal states
   const [showAnafSelectionModal, setShowAnafSelectionModal] = useState(false);
   const [modalContaAccount, setModalContaAccount] = useState('');
   const [modalAvailableAnafAccounts, setModalAvailableAnafAccounts] = useState([]);
   const [modalSelectedAnafAccount, setModalSelectedAnafAccount] = useState('');
+  
+  // Conta account selection modal states
+  const [showContaSelectionModal, setShowContaSelectionModal] = useState(false);
+  const [modalAvailableContaAccounts, setModalAvailableContaAccounts] = useState([]);
+  const [modalSelectedContaAccount, setModalSelectedContaAccount] = useState('');
   
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
@@ -1968,6 +1971,22 @@ function App() {
     setModalSelectedAnafAccount('');
   };
 
+  // Conta modal handler functions
+  const handleContaModalCancel = () => {
+    setShowContaSelectionModal(false);
+    setModalAvailableContaAccounts([]);
+    setModalSelectedContaAccount('');
+  };
+
+  const handleContaModalConfirm = async () => {
+    if (!modalSelectedContaAccount) {
+      return;
+    }
+    
+    setModalSelectedContaAccount(modalSelectedContaAccount);
+    await handleAddNewContaRelation();
+  };
+
   const handleRemoveMapping = async (contaAccount, anafAccount) => {
     const newMappings = {
       ...accountMappings,
@@ -1989,16 +2008,29 @@ function App() {
 
 
   // Enhanced mapping functions for new UI
-  const handleAddNewContaRelation = async () => {
-    if (!newContaInput.trim()) return;
+  const handleShowContaAccountSelection = () => {
+    // Get all available accounts that are not already mapped
+    const unmappedContaAccounts = availableAccounts.filter(account => 
+      !accountMappings.hasOwnProperty(account)
+    );
     
-    const contaAccount = newContaInput.trim();
-    
-    // Check for duplicates
-    if (accountMappings[contaAccount]) {
-      alert(`Conta account "${contaAccount}" already has a relation. Each conta account can only have one relation.`);
+    if (unmappedContaAccounts.length === 0) {
+      alert('All available conta accounts are already mapped. Add new accounts in the Account Selection panel first.');
       return;
     }
+
+    // Show modal
+    setModalAvailableContaAccounts(unmappedContaAccounts);
+    setModalSelectedContaAccount('');
+    setShowContaSelectionModal(true);
+  };
+
+  const handleAddNewContaRelation = async () => {
+    if (!modalSelectedContaAccount) {
+      return;
+    }
+    
+    const contaAccount = modalSelectedContaAccount;
     
     // Start with empty mapping
     const newMappings = {
@@ -2007,8 +2039,6 @@ function App() {
     };
     
     setAccountMappings(newMappings);
-    setShowNewContaInput(false);
-    setNewContaInput('');
     
     // Save to settings
     try {
@@ -2020,12 +2050,11 @@ function App() {
     } catch (error) {
       console.error('Failed to save account mappings:', error);
     }
+    
+    // Close modal
+    handleContaModalCancel();
   };
 
-  const handleCancelNewContaInput = () => {
-    setShowNewContaInput(false);
-    setNewContaInput('');
-  };
 
   const handleAddMoreAnafAccounts = (contaAccount) => {
     const currentMappings = accountMappings[contaAccount] || [];
@@ -4884,76 +4913,77 @@ function App() {
                         </div>
                       </div>
                       
-                      {mappedAnafAccounts.length > 0 ? (
-                        <div>
+                      <div>
+                        {mappedAnafAccounts.length > 0 && (
                           <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', marginBottom: '5px' }}>
                             Mapped ANAF accounts:
                           </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
-                            {mappedAnafAccounts.map(anafAccount => (
-                              <span
-                                key={anafAccount}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '12px',
-                                  backgroundColor: 'var(--theme-secondary, #10b981)',
-                                  color: 'white',
-                                  fontSize: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                              >
-                                {anafAccount}
-                                <button
-                                  onClick={() => handleRemoveMapping(contaAccount, anafAccount)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '10px',
-                                    padding: '0',
-                                    width: '12px',
-                                    height: '12px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                  title="Remove mapping"
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))}
-                            <button
-                              onClick={() => handleAddMoreAnafAccounts(contaAccount)}
+                        )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                          {mappedAnafAccounts.map(anafAccount => (
+                            <span
+                              key={anafAccount}
                               style={{
-                                padding: '3px 6px',
+                                padding: '3px 8px',
                                 borderRadius: '12px',
-                                border: '1px dashed var(--theme-secondary, #10b981)',
-                                backgroundColor: 'transparent',
-                                color: 'var(--theme-secondary, #10b981)',
+                                backgroundColor: 'var(--theme-secondary, #10b981)',
+                                color: 'white',
                                 fontSize: '10px',
-                                cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                minWidth: '20px',
-                                height: '20px'
+                                gap: '4px'
                               }}
-                              title="Add more ANAF accounts to this mapping"
                             >
-                              +
-                            </button>
+                              {anafAccount}
+                              <button
+                                onClick={() => handleRemoveMapping(contaAccount, anafAccount)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'white',
+                                  cursor: 'pointer',
+                                  fontSize: '10px',
+                                  padding: '0',
+                                  width: '12px',
+                                  height: '12px',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                                title="Remove mapping"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                          <button
+                            onClick={() => handleAddMoreAnafAccounts(contaAccount)}
+                            style={{
+                              padding: '3px 6px',
+                              borderRadius: '12px',
+                              border: '1px dashed var(--theme-secondary, #10b981)',
+                              backgroundColor: 'transparent',
+                              color: 'var(--theme-secondary, #10b981)',
+                              fontSize: '10px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '20px',
+                              height: '20px'
+                            }}
+                            title="Add more ANAF accounts to this mapping"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {mappedAnafAccounts.length === 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', fontStyle: 'italic', marginTop: '5px' }}>
+                            No ANAF accounts mapped yet
                           </div>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', fontStyle: 'italic' }}>
-                          No ANAF accounts mapped
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -4961,94 +4991,36 @@ function App() {
               
               {/* Add New Conta Relation Section */}
               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--theme-border-color)' }}>
-                {showNewContaInput ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <input
-                      type="text"
-                      value={newContaInput}
-                      onChange={(e) => setNewContaInput(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleAddNewContaRelation();
-                        } else if (e.key === 'Escape') {
-                          handleCancelNewContaInput();
-                        }
-                      }}
-                      placeholder="Conta account name"
-                      autoFocus
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--theme-border-color)',
-                        backgroundColor: 'var(--theme-input-bg)',
-                        color: 'var(--theme-text-color)',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <button
-                      onClick={handleAddNewContaRelation}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #10b981',
-                        backgroundColor: '#10b981',
-                        color: 'white',
-                        fontSize: '12px',
-                        cursor: 'pointer'
-                      }}
-                      title="Add new conta account relation"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={handleCancelNewContaInput}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #ef4444',
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        fontSize: '12px',
-                        cursor: 'pointer'
-                      }}
-                      title="Cancel"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowNewContaInput(true)}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '2px dashed var(--theme-border-color)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--theme-text-color)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      transition: 'all 0.2s'
-                    }}
-                    title="Add new conta account relation"
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
-                      e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = 'transparent';
-                      e.target.style.borderColor = 'var(--theme-border-color)';
-                    }}
-                  >
-                    <span style={{ fontSize: '18px' }}>+</span>
-                    Add New Conta Account Relation
-                  </button>
-                )}
+                <button
+                  onClick={handleShowContaAccountSelection}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '2px dashed var(--theme-border-color)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--theme-text-color)',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Add new conta account relation"
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+                    e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.borderColor = 'var(--theme-border-color)';
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>+</span>
+                  Add New Conta Account Relation
+                </button>
               </div>
               
               {Object.keys(accountMappings).length === 0 && (
@@ -6774,6 +6746,76 @@ function App() {
                 }}
               >
                 {anafAccount}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Conta Account Selection Modal */}
+      {showContaSelectionModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={handleContaModalCancel}
+        >
+          <div
+            style={{
+              background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+              backdropFilter: 'blur(25px)',
+              WebkitBackdropFilter: 'blur(25px)',
+              borderRadius: '12px',
+              border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+              boxShadow: `
+                0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+                inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+                inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+              `,
+              minWidth: '300px',
+              maxWidth: '400px',
+              maxHeight: '70vh',
+              overflow: 'auto',
+              padding: '12px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {modalAvailableContaAccounts.map(contaAccount => (
+              <div
+                key={contaAccount}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: 'var(--theme-text-color)',
+                  borderRadius: '4px',
+                  textAlign: 'center',
+                  border: '1px solid transparent',
+                  marginBottom: '4px'
+                }}
+                onClick={() => {
+                  setModalSelectedContaAccount(contaAccount);
+                  handleContaModalConfirm();
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
+                  e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.borderColor = 'transparent';
+                }}
+              >
+                {contaAccount}
               </div>
             ))}
           </div>
