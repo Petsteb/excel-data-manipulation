@@ -1971,6 +1971,10 @@ function App() {
     
     // Calculate core bounds from active panels and buttons only
     Object.entries(panelPositions).filter(([elementId]) => {
+      // Exclude ANAF header and date panels from workspace calculations
+      if (elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') {
+        return false;
+      }
       // Only include panels that are in the availablePanels list and active, or buttons
       const panel = availablePanels.find(p => p.id === elementId);
       const button = availableButtons.find(b => b.id === elementId);
@@ -2193,6 +2197,10 @@ function App() {
     
     // Repopulate matrix with active panel positions only
     Object.entries(panelPositions).filter(([elementId]) => {
+      // Include ANAF header and date panels in collision detection when in layout mode
+      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') && isLayoutMode) {
+        return true;
+      }
       // Only include panels that are in the availablePanels list and active, or buttons
       const panel = availablePanels.find(p => p.id === elementId);
       const button = availableButtons.find(b => b.id === elementId);
@@ -2233,6 +2241,10 @@ function App() {
     // Populate matrix with active panels and buttons only
     // Adjust coordinates to matrix space (subtract minX, minY offset)
     Object.entries(panelPositions).filter(([elementId]) => {
+      // Include ANAF header and date panels in collision detection when in layout mode
+      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') && isLayoutMode) {
+        return true;
+      }
       // Only include panels that are in the availablePanels list and active, or buttons
       const panel = availablePanels.find(p => p.id === elementId);
       const button = availableButtons.find(b => b.id === elementId);
@@ -3263,7 +3275,8 @@ function App() {
             width: `${getVisualPosition('anaf-header-panel').width}px`,
             height: `${getVisualPosition('anaf-header-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            display: isLayoutMode ? 'block' : 'none'
           }}
         >
           {isLayoutMode && (
@@ -3361,7 +3374,8 @@ function App() {
             width: `${getVisualPosition('anaf-date-panel').width}px`,
             height: `${getVisualPosition('anaf-date-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            display: isLayoutMode ? 'block' : 'none'
           }}
         >
           {isLayoutMode && (
