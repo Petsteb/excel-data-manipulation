@@ -1407,8 +1407,14 @@ function App() {
       return dateStr;
     }
     
-    // Parse DD/MM/YYYY format
-    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    // Parse DD/MM/YYYY format (with slashes)
+    let match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    
+    // Parse DD.MM.YYYY format (with dots) - common in European Excel files
+    if (!match) {
+      match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    }
+    
     if (!match) return null;
     
     const [, day, month, year] = match;
@@ -1874,12 +1880,20 @@ function App() {
     let sum = 0;
     let subtractSum = 0;
 
+    // Debug logging
+    console.log('=== ANAF DATE FILTERING DEBUG ===');
+    console.log('Account:', account);
+    console.log('Start date:', startDate, '-> End date:', endDate);
+    console.log('Selected date columns:', anafSelectedDateColumns);
+    console.log('Total ANAF files:', anafFiles.length);
 
     // Parse dates at function level so both main and subtraction calculations can use them
     const startISO = parseDDMMYYYY(startDate);
     const endISO = parseDDMMYYYY(endDate);
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+    
+    console.log('Parsed start:', start, '-> Parsed end:', end);
 
     anafFiles.forEach((file, fileIndex) => {
       if (file.data && Array.isArray(file.data)) {
@@ -1899,6 +1913,9 @@ function App() {
         if (!fileMatches) return;
         
         let processedRows = 0;
+        let rowsSkippedByDate = 0;
+        let rowsWithValidDate = 0;
+        let rowsWithNoDate = 0;
         
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
@@ -1931,9 +1948,34 @@ function App() {
             }
           }
 
+          // Debug row date info for first few rows
+          if (index <= 5) { // Debug first few data rows
+            console.log(`=== Row ${index} Date Values ===`);
+            anafSelectedDateColumns.forEach(colIndex => {
+              const value = row[colIndex];
+              const parsed = parseDDMMYYYY(value);
+              console.log(`Column ${colIndex}: "${value}" (type: ${typeof value}) -> parsed: ${parsed}`);
+            });
+            console.log(`Final parsed date for row ${index}:`, rowDate);
+            console.log('Full row data:', row);
+            console.log('=== End Row Debug ===');
+          }
+
+          if (rowDate) {
+            rowsWithValidDate++;
+          } else {
+            rowsWithNoDate++;
+          }
+
           // Apply date filtering only if we have valid start/end dates and the row has a valid date
-          if (start && rowDate && rowDate < start) return;
-          if (end && rowDate && rowDate > end) return;
+          if (start && rowDate && rowDate < start) {
+            rowsSkippedByDate++;
+            return;
+          }
+          if (end && rowDate && rowDate > end) {
+            rowsSkippedByDate++;
+            return;
+          }
           
           // Skip rows with no valid date only if we have date constraints and the row date is required
           // For now, allow rows with no date to pass through
@@ -1979,6 +2021,14 @@ function App() {
               processedRows++;
               break;
           }
+        });
+        
+        console.log(`File ${fileIndex + 1} processing summary:`, {
+          totalDataRows: file.data.length - 2,
+          processedRows,
+          rowsWithValidDate,
+          rowsWithNoDate,
+          rowsSkippedByDate
         });
       }
     });
@@ -2080,6 +2130,9 @@ function App() {
       });
     }
 
+    console.log(`Final result for account ${account}:`, { sum, subtractSum, result: sum - subtractSum });
+    console.log('=== END ANAF DATE FILTERING DEBUG ===');
+    
     return sum - subtractSum;
   };
 
