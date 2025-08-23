@@ -2355,30 +2355,29 @@ function App() {
           const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
 
-          // Date filtering using TERM_PLATA and SCADENTA columns
+          // Date filtering using SCADENTA and TERM_PLATA columns
           let rowDate = null;
           
-          // Check TERM_PLATA column (index 5)
-          const termPlataDate = row[5];
-          if (termPlataDate) {
-            const termISO = parseDDMMYYYY(termPlataDate);
-            if (termISO) {
-              rowDate = new Date(termISO + 'T12:00:00');
+          // First check SCADENTA column - try common indices (3, 4, 6, 7)
+          const potentialScadentaIndices = [3, 4, 6, 7];
+          for (const scadentaIndex of potentialScadentaIndices) {
+            const scadentaDate = row[scadentaIndex];
+            if (scadentaDate) {
+              const scadentaISO = parseDDMMYYYY(scadentaDate);
+              if (scadentaISO) {
+                rowDate = new Date(scadentaISO + 'T12:00:00');
+                break;
+              }
             }
           }
           
-          // If no valid date in TERM_PLATA, check SCADENTA column 
-          // Try common indices for SCADENTA (4, 6, 7)
+          // If no valid date in SCADENTA, fall back to TERM_PLATA column (index 5)
           if (!rowDate) {
-            const potentialScadentaIndices = [4, 6, 7];
-            for (const scadentaIndex of potentialScadentaIndices) {
-              const scadentaDate = row[scadentaIndex];
-              if (scadentaDate) {
-                const scadentaISO = parseDDMMYYYY(scadentaDate);
-                if (scadentaISO) {
-                  rowDate = new Date(scadentaISO + 'T12:00:00');
-                  break;
-                }
+            const termPlataDate = row[5];
+            if (termPlataDate) {
+              const termISO = parseDDMMYYYY(termPlataDate);
+              if (termISO) {
+                rowDate = new Date(termISO + 'T12:00:00');
               }
             }
           }
@@ -2484,30 +2483,29 @@ function App() {
             const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column (based on debug output)
             const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
-            // Date filtering using TERM_PLATA and SCADENTA columns - same as main calculation
+            // Date filtering using SCADENTA and TERM_PLATA columns - same as main calculation  
             let rowDate = null;
             
-            // Check TERM_PLATA column (index 5)
-            const termPlataDate = row[5];
-            if (termPlataDate) {
-              const termISO = parseDDMMYYYY(termPlataDate);
-              if (termISO) {
-                rowDate = new Date(termISO + 'T12:00:00');
+            // First check SCADENTA column - try common indices (3, 4, 6, 7)
+            const potentialScadentaIndices = [3, 4, 6, 7];
+            for (const scadentaIndex of potentialScadentaIndices) {
+              const scadentaDate = row[scadentaIndex];
+              if (scadentaDate) {
+                const scadentaISO = parseDDMMYYYY(scadentaDate);
+                if (scadentaISO) {
+                  rowDate = new Date(scadentaISO + 'T12:00:00');
+                  break;
+                }
               }
             }
             
-            // If no valid date in TERM_PLATA, check SCADENTA column
-            // Try common indices for SCADENTA (4, 6, 7)
+            // If no valid date in SCADENTA, fall back to TERM_PLATA column (index 5)
             if (!rowDate) {
-              const potentialScadentaIndices = [4, 6, 7];
-              for (const scadentaIndex of potentialScadentaIndices) {
-                const scadentaDate = row[scadentaIndex];
-                if (scadentaDate) {
-                  const scadentaISO = parseDDMMYYYY(scadentaDate);
-                  if (scadentaISO) {
-                    rowDate = new Date(scadentaISO + 'T12:00:00');
-                    break;
-                  }
+              const termPlataDate = row[5];
+              if (termPlataDate) {
+                const termISO = parseDDMMYYYY(termPlataDate);
+                if (termISO) {
+                  rowDate = new Date(termISO + 'T12:00:00');
                 }
               }
             }
