@@ -226,10 +226,6 @@ function App() {
   const [anafContextMenu, setAnafContextMenu] = useState(null);
   const [anafAccountConfigs, setAnafAccountConfigs] = useState({});
   
-  // Account-file assignment state
-  const [contaAccountFiles, setContaAccountFiles] = useState({});
-  const [anafAccountFiles, setAnafAccountFiles] = useState({});
-  
   // Account mapping state (1 conta account to multiple anaf accounts)
   // Default mappings from conta anaf.txt
   const defaultAccountMappings = {
@@ -1042,55 +1038,6 @@ function App() {
     return largestNumber;
   };
 
-  // Get files that match an account based on account detection logic
-  const getFilesForAccount = (account, fileList, isAnaf = false) => {
-    return fileList.filter(file => {
-      if (isAnaf) {
-        // ANAF file detection logic
-        const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
-        if (fileAccount === account) return true;
-        if (account.startsWith(fileAccount + '.')) return true;
-        if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') return true;
-        return false;
-      } else {
-        // Conta file detection logic
-        if (file.accountNumber) {
-          if (file.accountNumber === account) return true;
-          if (account.startsWith(file.accountNumber + '.')) return true;
-          return false;
-        }
-        return file.data.some(row => row[3] && row[3].toString() === account);
-      }
-    });
-  };
-
-  // Automatically assign maximum files to each account
-  const autoAssignFilesToAccounts = (fileList, accountList, isAnaf = false) => {
-    const assignments = {};
-    const usedFiles = new Set();
-    
-    // Initialize empty assignments for all accounts
-    accountList.forEach(account => {
-      assignments[account] = [];
-    });
-    
-    // For each account, find all matching files that haven't been used
-    accountList.forEach(account => {
-      const availableFiles = getFilesForAccount(account, fileList, isAnaf).filter(
-        file => !usedFiles.has(file.filePath || file.name)
-      );
-      
-      // Assign all available files to this account
-      availableFiles.forEach(file => {
-        const fileId = file.filePath || file.name;
-        assignments[account].push(fileId);
-        usedFiles.add(fileId);
-      });
-    });
-    
-    return assignments;
-  };
-
   const cleanSingleAccountFile = (fileData, accountNumber) => {
     
     const cleanedData = [];
@@ -1215,10 +1162,6 @@ function App() {
       setProcessedContaFiles(processedFiles);
       setStatus(`Processed ${processedFiles.length} conta files`);
       console.log('Total processed files:', processedFiles.length);
-      
-      // Auto-assign files to accounts
-      const contaAssignments = autoAssignFilesToAccounts(processedFiles, availableAccounts, false);
-      setContaAccountFiles(contaAssignments);
       
       // Auto-detect and set data column as date column
       autoDetectDataColumn(processedFiles);
@@ -1626,15 +1569,8 @@ function App() {
     if (accountName && !availableAccounts.includes(accountName) && !customAccounts.includes(accountName)) {
       const updatedCustomAccounts = [...customAccounts, accountName];
       setCustomAccounts(updatedCustomAccounts);
-      const updatedAvailableAccounts = [...availableAccounts, accountName];
-      setAvailableAccounts(updatedAvailableAccounts);
+      setAvailableAccounts([...availableAccounts, accountName]);
       saveCustomAccounts(updatedCustomAccounts);
-      
-      // Re-assign files to accounts after adding new account
-      if (processedContaFiles.length > 0) {
-        const contaAssignments = autoAssignFilesToAccounts(processedContaFiles, updatedAvailableAccounts, false);
-        setContaAccountFiles(contaAssignments);
-      }
     }
     setShowAccountInput(false);
     setNewAccountInput('');
@@ -1663,12 +1599,6 @@ function App() {
       
       setAvailableAccounts(updatedAvailableAccounts);
       setSelectedAccounts(updatedSelectedAccounts);
-      
-      // Re-assign files to remaining accounts after deleting account
-      if (processedContaFiles.length > 0) {
-        const contaAssignments = autoAssignFilesToAccounts(processedContaFiles, updatedAvailableAccounts, false);
-        setContaAccountFiles(contaAssignments);
-      }
       
       // Remove deleted conta account from mapping panel
       const updatedMappings = { ...accountMappings };
@@ -1884,16 +1814,11 @@ function App() {
   };
 
   // Get available filter values based on the selected filter column
-  const getAnafFilterValueOptions = (filterColumn, account = null) => {
+  const getAnafFilterValueOptions = (filterColumn) => {
     const uniqueValues = new Set();
     
-    // If account is provided, use only assigned files, otherwise use all files
-    const filesToCheck = account && anafAccountFiles[account] && anafAccountFiles[account].length > 0
-      ? anafFiles.filter(file => anafAccountFiles[account].includes(file.filePath || file.name))
-      : anafFiles;
-    
-    // Extract unique values from relevant ANAF files
-    filesToCheck.forEach(file => {
+    // Extract unique values from all ANAF files
+    anafFiles.forEach(file => {
       if (file.data && Array.isArray(file.data)) {
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
@@ -1993,12 +1918,6 @@ function App() {
       setAvailableAnafAccounts(updatedAvailableAnafAccounts);
       setSelectedAnafAccounts(updatedSelectedAnafAccounts);
       
-      // Re-assign files to remaining accounts after deleting account
-      if (anafFiles.length > 0) {
-        const anafAssignments = autoAssignFilesToAccounts(anafFiles, updatedAvailableAnafAccounts, true);
-        setAnafAccountFiles(anafAssignments);
-      }
-      
       // Remove deleted ANAF account from all mappings in mapping panel
       const updatedMappings = { ...accountMappings };
       let mappingsChanged = false;
@@ -2083,12 +2002,7 @@ function App() {
       const newAccounts = [...availableAnafAccounts, accountName];
       const sortedAccounts = sortAnafAccounts(newAccounts);
       setAvailableAnafAccounts(sortedAccounts);
-      
-      // Re-assign files to accounts after adding new account
-      if (anafFiles.length > 0) {
-        const anafAssignments = autoAssignFilesToAccounts(anafFiles, sortedAccounts, true);
-        setAnafAccountFiles(anafAssignments);
-      }
+      // Save to settings if needed
     }
     setShowAnafAccountInput(false);
     setNewAnafAccountInput('');
@@ -2416,28 +2330,36 @@ function App() {
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
     
-    // Get assigned files for this account, fallback to all files if none assigned
-    const assignedFileIds = anafAccountFiles[account] || [];
-    const filesToProcess = assignedFileIds.length > 0 
-      ? anafFiles.filter(file => assignedFileIds.includes(file.filePath || file.name))
-      : anafFiles.filter(file => {
-          // Use original file detection logic as fallback
-          const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
-          if (fileAccount === account) return true;
-          if (account.startsWith(fileAccount + '.')) return true;
-          if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') return true;
-          return false;
-        });
 
-    filesToProcess.forEach((file, fileIndex) => {
+    anafFiles.forEach((file, fileIndex) => {
       if (file.data && Array.isArray(file.data)) {
+        // First check if this file matches the account we're calculating for
+        const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+        let fileMatches = false;
+        
+        if (fileAccount === account) {
+          fileMatches = true;
+        } else if (account.startsWith(fileAccount + '.')) {
+          fileMatches = true;
+          console.log(`[DEBUG] File matches account (startsWith match)`);
+        } else if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+          fileMatches = true;
+          console.log(`[DEBUG] File matches account (special 1/4423-4424 case)`);
+        } else {
+          console.log(`[DEBUG] File does NOT match account`);
+        }
+        
+        // Skip this file if it doesn't match the account
+        if (!fileMatches) return;
         
         let processedRows = 0;
         let filteredOutRows = 0;
+        console.log(`[DEBUG] File has ${file.data.length} total rows`);
         
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
           if (index === 0 || index === 1) {
+            console.log(`[DEBUG] Skipping header row ${index}`);
             return;
           }
           
@@ -2482,6 +2404,8 @@ function App() {
           
           // Log date source and full row data for debugging
           if (index <= 5) {
+            console.log(`[DEBUG] Row ${index}: Date source: ${dateSource}, SCADENTA: "${row[4]}", TERM_PLATA: "${row[5]}", final date: ${rowDate}`);
+            console.log(`[DEBUG] Row ${index} ALL COLUMNS:`, row.map((col, idx) => `[${idx}]: "${col}"`).join(', '));
           }
           
           // Final fallback to selected date columns
@@ -2509,6 +2433,7 @@ function App() {
 
           // Show key values for first 10 rows and rows with significant amounts
           if (index <= 10 || sumaPlataValue > 1000) {
+            console.log(`[DEBUG] Row ${index}: CTG_SUME="${ctgSumeValue}", SUMA_PLATA=${sumaPlataValue}, INCASARI=${incasariValue}`);
           }
 
           // Apply filter based on selected filter column
@@ -2517,40 +2442,53 @@ function App() {
             switch (filterColumn) {
               case 'CTG_SUME':
                 matchesFilter = ctgSumeValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: CTG_SUME filter - value: "${ctgSumeValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'ATRIBUT_PL':
                 matchesFilter = atributPlValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: ATRIBUT_PL filter - value: "${atributPlValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'IME_COD_IMPOZIT':
                 matchesFilter = imeCodeValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: IME_COD_IMPOZIT filter - value: "${imeCodeValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'DENUMIRE_IMPOZIT':
                 matchesFilter = denumireValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: DENUMIRE_IMPOZIT filter - value: "${denumireValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               default:
                 matchesFilter = true;
+                console.log(`[DEBUG] Row ${index}: No specific filter, matches: true`);
             }
             if (!matchesFilter) {
+              console.log(`[DEBUG] Row ${index}: Filtered out due to filter mismatch`);
               filteredOutRows++;
               totalFilteredOutRows++;
               return;
             }
           } else {
+            console.log(`[DEBUG] Row ${index}: No filterValue, passing through`);
           }
 
 
           // Add to sum based on selected sum column
+          console.log(`[DEBUG] Row ${index}: Adding to sum using column ${sumColumn}`);
+          console.log(`[DEBUG] Row ${index}: Available values - SUMA_PLATA: ${sumaPlataValue}, INCASARI: ${incasariValue}, SUMA_NEACHITATA: ${sumaNEValue}, RAMBURSARI: ${rambursariValue}`);
           
           // Show full row data for rows with non-zero values to understand data structure
           if (sumaPlataValue > 0 || incasariValue > 0 || sumaNEValue > 0 || rambursariValue > 0) {
+            console.log(`[DEBUG] Row ${index} NON-ZERO VALUES:`, row.map((col, idx) => `[${idx}]: "${col}"`).join(', '));
           }
           switch (sumColumn) {
             case 'SUMA_PLATA':
+              console.log(`[DEBUG] Row ${index}: SUMA_PLATA value: ${sumaPlataValue}, adding to sum (was: ${sum})`);
               sum += sumaPlataValue;
+              console.log(`[DEBUG] Row ${index}: Sum is now: ${sum}`);
               processedRows++;
               totalProcessedRows++;
               break;
             case 'INCASARI':
+              console.log(`[DEBUG] Row ${index}: INCASARI value: ${incasariValue}, adding to sum (was: ${sum})`);
               sum += incasariValue;
               processedRows++;
               break;
@@ -2569,8 +2507,22 @@ function App() {
 
     // Calculate subtraction if configured
     if (subtractConfig && subtractConfig.filterValue) {
-      filesToProcess.forEach(file => {
+      anafFiles.forEach(file => {
         if (file.data && Array.isArray(file.data)) {
+          // First check if this file matches the account we're calculating for
+          const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+          let fileMatches = false;
+          
+          if (fileAccount === account) {
+            fileMatches = true;
+          } else if (account.startsWith(fileAccount + '.')) {
+            fileMatches = true;
+          } else if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+            fileMatches = true;
+          }
+          
+          // Skip this file if it doesn't match the account
+          if (!fileMatches) return;
           
           file.data.forEach((row, index) => {
             // Skip company info row (0) and column header row (1)
@@ -2673,6 +2625,8 @@ function App() {
       });
     }
 
+    console.log(`[DEBUG] ANAF calculation complete for account ${account}: sum=${sum}, subtractSum=${subtractSum}, final=${sum - subtractSum}`);
+    console.log(`[DEBUG] Total rows checked: ${totalRowsChecked}, processed: ${totalProcessedRows}, filtered out: ${totalFilteredOutRows}`);
     return sum - subtractSum;
   };
 
@@ -2823,6 +2777,7 @@ function App() {
     });
     
     if (needsRecategorization) {
+      console.log('[DEBUG] Auto-categorizing accounts based on relations');
       allSelectedAccounts.forEach(account => {
         categorizeAccount(account);
       });
@@ -2831,6 +2786,9 @@ function App() {
 
   // Unified calculation for both Conta and ANAF accounts
   const handleCalculateAllSums = () => {
+    console.log('[DEBUG] Starting handleCalculateAllSums');
+    console.log('[DEBUG] selectedAccounts:', selectedAccounts);
+    console.log('[DEBUG] selectedAnafAccounts:', selectedAnafAccounts);
     
     // First, automatically categorize any misplaced accounts
     const allSelectedAccounts = [...selectedAccounts, ...selectedAnafAccounts];
@@ -3032,14 +2990,9 @@ function App() {
           newData = await window.electronAPI.readExcelFiles(newFilePaths);
           
           // Combine with existing data
-          const combinedFiles = [...anafFiles, ...newData];
-          setAnafFiles(combinedFiles);
+          setAnafFiles([...anafFiles, ...newData]);
           setSelectedAnafFileIndices(new Set());
           setStatus(`${anafFiles.length + newData.length} ANAF files loaded successfully (${newData.length} added)`);
-          
-          // Auto-assign files to accounts
-          const anafAssignments = autoAssignFilesToAccounts(combinedFiles, availableAnafAccounts, true);
-          setAnafAccountFiles(anafAssignments);
         } else {
           // Replace existing files
           setSelectedAnafFileIndices(new Set());
@@ -3048,10 +3001,6 @@ function App() {
           newData = await window.electronAPI.readExcelFiles(newFilePaths);
           setAnafFiles(newData);
           setStatus(`${newData.length} ANAF files loaded successfully`);
-          
-          // Auto-assign files to accounts
-          const anafAssignments = autoAssignFilesToAccounts(newData, availableAnafAccounts, true);
-          setAnafAccountFiles(anafAssignments);
         }
         
         // Extract column names from ANAF files (main processing batch)
@@ -3125,9 +3074,6 @@ function App() {
     setContabilitateFiles(newContabilitateFiles);
     setSelectedFileIndices(new Set());
     setStatus(`Deleted ${selectedFileIndices.size} Contabilitate files remaining.`);
-    
-    // Re-process remaining files and update assignments
-    processContaFiles(newContabilitateFiles);
   };
 
   const handleDeleteSelectedAnaf = () => {
@@ -3138,10 +3084,6 @@ function App() {
     setAnafFiles(newAnafFiles);
     setSelectedAnafFileIndices(new Set());
     setStatus(`Deleted ${selectedAnafFileIndices.size} ANAF files remaining.`);
-    
-    // Re-assign files to accounts after deletion
-    const anafAssignments = autoAssignFilesToAccounts(newAnafFiles, availableAnafAccounts, true);
-    setAnafAccountFiles(anafAssignments);
   };
 
   const selectAllContabilitateFiles = () => {
@@ -3283,9 +3225,6 @@ function App() {
     setSelectedAnafAccounts([]);
     setAnafAccountSums({});
     setAnafContextMenu(null);
-    // Clear file assignments
-    setContaAccountFiles({});
-    setAnafAccountFiles({});
     // Note: Keep anafAccountConfigs and anafSubtractionEnabled to preserve filter settings
     // Preserve date selection - don't reset startDate and endDate
     setAccountSums({});
@@ -6197,67 +6136,6 @@ function App() {
             Account: {contextMenu.account}
           </div>
           
-          {/* File Selection Section */}
-          <div style={{ marginBottom: '12px', padding: '8px', borderRadius: '6px', backgroundColor: 'var(--theme-secondary-bg, rgba(0, 0, 0, 0.05))' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: 'var(--theme-text-color)' }}>
-              Source Files:
-            </label>
-            <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '11px' }}>
-              {(() => {
-                const availableFiles = getFilesForAccount(contextMenu.account, processedContaFiles, false);
-                const assignedFiles = contaAccountFiles[contextMenu.account] || [];
-                
-                return availableFiles.length > 0 ? availableFiles.map((file, index) => {
-                  const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown file';
-                  const isSelected = assignedFiles.includes(file.filePath || file.name);
-                  
-                  return (
-                    <div 
-                      key={index}
-                      onClick={() => {
-                        const fileId = file.filePath || file.name;
-                        const currentAssigned = contaAccountFiles[contextMenu.account] || [];
-                        let newAssigned;
-                        
-                        if (isSelected) {
-                          newAssigned = currentAssigned.filter(id => id !== fileId);
-                        } else {
-                          newAssigned = [...currentAssigned, fileId];
-                        }
-                        
-                        setContaAccountFiles({
-                          ...contaAccountFiles,
-                          [contextMenu.account]: newAssigned
-                        });
-                      }}
-                      style={{
-                        padding: '4px 6px',
-                        marginBottom: '2px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        backgroundColor: isSelected ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-button-bg)',
-                        color: isSelected ? 'white' : 'var(--theme-text-color)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        readOnly
-                        style={{ marginRight: '6px' }}
-                      />
-                      {fileName}
-                    </div>
-                  );
-                }) : (
-                  <div style={{ color: 'var(--theme-text-color)', fontStyle: 'italic' }}>
-                    No files detected for this account
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-          
           <div style={{ marginBottom: '8px', position: 'relative' }}>
             <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Filter Column:
@@ -6564,67 +6442,6 @@ function App() {
             Account: {anafContextMenu.account}
           </div>
           
-          {/* File Selection Section */}
-          <div style={{ marginBottom: '12px', padding: '8px', borderRadius: '6px', backgroundColor: 'var(--theme-secondary-bg, rgba(0, 0, 0, 0.05))' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: 'var(--theme-text-color)' }}>
-              Source Files:
-            </label>
-            <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '11px' }}>
-              {(() => {
-                const availableFiles = getFilesForAccount(anafContextMenu.account, anafFiles, true);
-                const assignedFiles = anafAccountFiles[anafContextMenu.account] || [];
-                
-                return availableFiles.length > 0 ? availableFiles.map((file, index) => {
-                  const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown file';
-                  const isSelected = assignedFiles.includes(file.filePath || file.name);
-                  
-                  return (
-                    <div 
-                      key={index}
-                      onClick={() => {
-                        const fileId = file.filePath || file.name;
-                        const currentAssigned = anafAccountFiles[anafContextMenu.account] || [];
-                        let newAssigned;
-                        
-                        if (isSelected) {
-                          newAssigned = currentAssigned.filter(id => id !== fileId);
-                        } else {
-                          newAssigned = [...currentAssigned, fileId];
-                        }
-                        
-                        setAnafAccountFiles({
-                          ...anafAccountFiles,
-                          [anafContextMenu.account]: newAssigned
-                        });
-                      }}
-                      style={{
-                        padding: '4px 6px',
-                        marginBottom: '2px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        backgroundColor: isSelected ? 'var(--theme-secondary, #10b981)' : 'var(--theme-button-bg)',
-                        color: isSelected ? 'white' : 'var(--theme-text-color)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        readOnly
-                        style={{ marginRight: '6px' }}
-                      />
-                      {fileName}
-                    </div>
-                  );
-                }) : (
-                  <div style={{ color: 'var(--theme-text-color)', fontStyle: 'italic' }}>
-                    No files detected for this account
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-          
           <div style={{ marginBottom: '8px', position: 'relative' }}>
             <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
               Filter Column:
@@ -6793,7 +6610,7 @@ function App() {
                 zIndex: 100001,
                 marginTop: '2px'
               }}>
-                {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).filterColumn, anafContextMenu.account).map((option, index, arr) => (
+                {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).filterColumn).map((option, index, arr) => (
                   <div
                     key={option.value || `empty-${index}`}
                     onClick={(e) => {
@@ -7157,7 +6974,7 @@ function App() {
                     zIndex: 100001,
                     marginTop: '2px'
                   }}>
-                    {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterColumn || 'CTG_SUME', anafContextMenu.account).map((option, index, arr) => (
+                    {getAnafFilterValueOptions(getAnafAccountConfig(anafContextMenu.account).subtractConfig?.filterColumn || 'CTG_SUME').map((option, index, arr) => (
                       <div
                         key={option.value || `empty-${index}`}
                         onClick={(e) => {
