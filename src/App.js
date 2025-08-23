@@ -1342,6 +1342,7 @@ function App() {
   const calculateAccountSums = (account, startDate, endDate) => {
     if (!processedContaFiles.length) return 0;
     
+    console.log(`[DEBUG] calculateAccountSums called for account: ${account}`);
     let sum = 0;
     // Parse DD/MM/YYYY format to ISO format before creating Date objects
     const startISO = parseDDMMYYYY(startDate);
@@ -2312,6 +2313,7 @@ function App() {
 
   const calculateAnafAccountSums = (account, startDate, endDate, config = {}) => {
     const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
+    console.log(`[DEBUG] calculateAnafAccountSums called for account: ${account}`);
     let sum = 0;
     let subtractSum = 0;
 
