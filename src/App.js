@@ -280,6 +280,7 @@ function App() {
     'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+    'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
@@ -303,6 +304,7 @@ function App() {
     { id: 'account-selection-panel', name: 'Account Selection Panel', type: 'panel', active: true },
     { id: 'account-mapping-panel', name: 'Account Mapping Panel', type: 'panel', active: true },
     { id: 'sums-panel', name: 'Account Sums Panel', type: 'panel', active: true },
+    { id: 'worksheet-selection-panel', name: 'Worksheet Selection Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
   const [showContaFilesPopup, setShowContaFilesPopup] = useState(false);
@@ -311,7 +313,6 @@ function App() {
   const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
-    { id: 'worksheet-selection-panel', name: 'Worksheet Selection Panel', type: 'panel', active: true },
     { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
@@ -394,6 +395,7 @@ function App() {
             'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
+            'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
             'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
             'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
           };
