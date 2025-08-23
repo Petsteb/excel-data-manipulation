@@ -2355,17 +2355,45 @@ function App() {
           const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
 
-          // Date filtering using selected date columns - parse row date from first available date column
+          // Date filtering using TERM_PLATA and SCADENTA columns
           let rowDate = null;
-          if (anafSelectedDateColumns.length > 0) {
-            // Try each selected date column until we find a valid date
+          
+          // Check TERM_PLATA column (index 5)
+          const termPlataDate = row[5];
+          if (termPlataDate) {
+            const termISO = parseDDMMYYYY(termPlataDate);
+            if (termISO) {
+              rowDate = new Date(termISO + 'T12:00:00');
+            }
+          }
+          
+          // If no valid date in TERM_PLATA, check SCADENTA column 
+          // Try common indices for SCADENTA (4, 6, 7)
+          if (!rowDate) {
+            const potentialScadentaIndices = [4, 6, 7];
+            for (const scadentaIndex of potentialScadentaIndices) {
+              const scadentaDate = row[scadentaIndex];
+              if (scadentaDate) {
+                const scadentaISO = parseDDMMYYYY(scadentaDate);
+                if (scadentaISO) {
+                  rowDate = new Date(scadentaISO + 'T12:00:00');
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Final fallback to selected date columns
+          if (!rowDate && anafSelectedDateColumns.length > 0) {
             for (const dateColumnIndex of anafSelectedDateColumns) {
-              const dateValue = row[dateColumnIndex];
-              if (dateValue) {
-                const rowISO = parseDDMMYYYY(dateValue);
-                if (rowISO) {
-                  rowDate = new Date(rowISO + 'T12:00:00');
-                  break; // Use the first valid date found
+              if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
+                const dateValue = row[dateColumnIndex];
+                if (dateValue) {
+                  const rowISO = parseDDMMYYYY(dateValue);
+                  if (rowISO) {
+                    rowDate = new Date(rowISO + 'T12:00:00');
+                    break;
+                  }
                 }
               }
             }
@@ -2456,17 +2484,45 @@ function App() {
             const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column (based on debug output)
             const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column (based on debug output)
 
-            // Date filtering - same approach as main calculation using selected date columns
+            // Date filtering using TERM_PLATA and SCADENTA columns - same as main calculation
             let rowDate = null;
-            if (anafSelectedDateColumns.length > 0) {
-              // Try each selected date column until we find a valid date
+            
+            // Check TERM_PLATA column (index 5)
+            const termPlataDate = row[5];
+            if (termPlataDate) {
+              const termISO = parseDDMMYYYY(termPlataDate);
+              if (termISO) {
+                rowDate = new Date(termISO + 'T12:00:00');
+              }
+            }
+            
+            // If no valid date in TERM_PLATA, check SCADENTA column
+            // Try common indices for SCADENTA (4, 6, 7)
+            if (!rowDate) {
+              const potentialScadentaIndices = [4, 6, 7];
+              for (const scadentaIndex of potentialScadentaIndices) {
+                const scadentaDate = row[scadentaIndex];
+                if (scadentaDate) {
+                  const scadentaISO = parseDDMMYYYY(scadentaDate);
+                  if (scadentaISO) {
+                    rowDate = new Date(scadentaISO + 'T12:00:00');
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Final fallback to selected date columns
+            if (!rowDate && anafSelectedDateColumns.length > 0) {
               for (const dateColumnIndex of anafSelectedDateColumns) {
-                const dateValue = row[dateColumnIndex];
-                if (dateValue) {
-                  const rowISO = parseDDMMYYYY(dateValue);
-                  if (rowISO) {
-                    rowDate = new Date(rowISO + 'T12:00:00');
-                    break; // Use the first valid date found
+                if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
+                  const dateValue = row[dateColumnIndex];
+                  if (dateValue) {
+                    const rowISO = parseDDMMYYYY(dateValue);
+                    if (rowISO) {
+                      rowDate = new Date(rowISO + 'T12:00:00');
+                      break;
+                    }
                   }
                 }
               }
@@ -2597,13 +2653,8 @@ function App() {
     if (!startDate || !endDate) return { startDate: null, endDate: null };
     
     // Add 1 month to both dates and set day to 25th
-    // For start date: +1 month, day = 25
     const anafStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 25);
-    
-    // For end date: +1 month, but ensure we go to at least the 25th of that month
-    // If the original end date is before the 25th, we still want to include the 25th
-    const preliminaryEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, endDate.getDate());
-    const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, Math.max(25, endDate.getDate()));
+    const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 25);
     
     // Format back to DD/MM/YYYY
     const formatDate = (date) => {
