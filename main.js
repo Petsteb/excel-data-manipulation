@@ -747,6 +747,59 @@ ipcMain.handle('save-settings', async (event, settings) => {
   return saveSettings(settings);
 });
 
+// Helper function to transform date values (from working implementation)
+function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime = false) {
+  // Only transform if this is one of the selected date columns and value exists
+  if (!dateColumnIndices.includes(columnIndex) || !value || value === '') {
+    return value;
+  }
+  
+  try {
+    // If it's already a Date object, return it
+    if (value instanceof Date) {
+      return value;
+    }
+    
+    // If it's a number (Excel date serial), convert it
+    if (typeof value === 'number' && value >= 30000 && value < 100000) {
+      let adjustedValue = value;
+      // Adjust for Excel's leap year bug (if date is after Feb 28, 1900)
+      if (value > 59) {
+        adjustedValue = value - 1;
+      }
+      
+      const excelEpochYear = 1900;
+      const excelEpochMonth = 0; // January (0-based)
+      const excelEpochDay = 1;
+      
+      const totalDays = adjustedValue - 1; // adjustedValue is 1-based, we need 0-based
+      const targetDate = new Date(Date.UTC(excelEpochYear, excelEpochMonth, excelEpochDay + totalDays));
+      
+      // If the original value has decimal part (time) and we want to preserve it
+      if (preserveTime && value % 1 !== 0) {
+        const timeFraction = value % 1;
+        const timeMs = timeFraction * 86400 * 1000;
+        const dateWithTime = new Date(targetDate.getTime() + timeMs);
+        return dateWithTime;
+      } else {
+        return targetDate;
+      }
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof value === 'string') {
+      const parsedDate = new Date(value);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+    
+    return value;
+  } catch (error) {
+    return value; // Return original on error
+  }
+}
+
 // Handle creating summary workbook with multiple worksheets
 ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryData, anafDateColumns = [], anafDateColumnsWithTime = [] }) => {
   try {
@@ -763,30 +816,20 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const cellRef = worksheet.getCell(rowIndex + 1, colIndex + 1);
           cellRef.value = cell;
           
-          // Apply date formatting for ANAF Merged Data worksheet
+          // Apply date transformation for ANAF Merged Data worksheet
           if (isAnafMergedData && rowIndex > 0) { // Skip header row
             // Column index in original data (subtract 1 for Source column)
             const originalColIndex = colIndex - 1;
             
-            if (anafDateColumns.includes(originalColIndex)) {
-              // Check if this is a date column
-              if (cell && typeof cell === 'string') {
-                try {
-                  // Try to parse the date
-                  const dateValue = new Date(cell);
-                  if (!isNaN(dateValue.getTime())) {
-                    cellRef.value = dateValue;
-                    
-                    // Apply date format based on whether time is included
-                    if (anafDateColumnsWithTime.includes(originalColIndex)) {
-                      cellRef.numFmt = 'dd/mm/yyyy hh:mm:ss';
-                    } else {
-                      cellRef.numFmt = 'dd/mm/yyyy';
-                    }
-                  }
-                } catch (error) {
-                  // If date parsing fails, keep original value
-                }
+            if (originalColIndex >= 0) {
+              const preserveTime = anafDateColumnsWithTime.includes(originalColIndex);
+              const transformedValue = transformDateValue(cell, originalColIndex, anafDateColumns, preserveTime);
+              
+              // If the value was transformed to a Date, update the cell
+              if (transformedValue !== cell && transformedValue instanceof Date) {
+                cellRef.value = transformedValue;
+                cellRef.numFmt = preserveTime ? 'dd/mm/yyyy hh:mm:ss' : 'dd/mm/yyyy';
+                cellRef.type = ExcelJS.ValueType.Date;
               }
             }
           }

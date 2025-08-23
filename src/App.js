@@ -3412,22 +3412,31 @@ function App() {
         Object.entries(anafAccountSums).forEach(([account, sum]) => {
           const filesUsed = anafAccountFiles[account] || [];
           
-          // If no specific files assigned, get all files that match this account via detection
           let fileNames = [];
           if (filesUsed.length > 0) {
+            // Use assigned files
             fileNames = filesUsed.map(filePath => {
-              // Extract filename from path
               const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
-              return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+              return file ? (file.name || file.fileName || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
             });
           } else {
-            // Find files that would be detected for this account
+            // For accounts like 1/4423 and 1/4424, they should use files with "imp_1" pattern
+            // Extract the numeric part after the slash or use the full account for matching
+            let searchPattern = account;
+            if (account.includes('/')) {
+              searchPattern = account.split('/')[1]; // Get "4423" from "1/4423"
+            }
+            
             const detectedFiles = anafFiles.filter(file => {
-              const fileName = file.name || file.fileName || '';
-              // Use the same detection logic as getFilesForAccount
-              return fileName.toLowerCase().includes(account.toLowerCase()) || 
-                     fileName.toLowerCase().includes(account.replace('/', '_').toLowerCase());
+              const fileName = (file.name || file.fileName || '').toLowerCase();
+              const accountPattern = searchPattern.toLowerCase();
+              
+              // Look for imp_X pattern where X matches the account number
+              return fileName.includes(`imp_${accountPattern}`) || 
+                     fileName.includes(`imp_${account.toLowerCase()}`) ||
+                     fileName.includes(accountPattern);
             });
+            
             fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
           }
           
