@@ -747,7 +747,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
   return saveSettings(settings);
 });
 
-// Helper function to transform date values (restored from working Version 1.9)
+// Helper function to transform date values (restored from proven working commit 42a9ca0)
 function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime = false) {
   // Only transform if this is one of the selected date columns and value exists
   if (!dateColumnIndices.includes(columnIndex) || !value || value === '') {
@@ -802,9 +802,41 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
     
     // If it's a string, try to parse it
     if (typeof value === 'string') {
-      const parsedDate = new Date(value);
+      const trimmedValue = value.toString().trim();
+      
+      // Try to handle common formats manually first (more reliable than Date constructor)
+      const formats = [
+        { regex: /^(\d{4})-(\d{1,2})-(\d{1,2})$/, order: [1, 2, 3] }, // YYYY-MM-DD
+        { regex: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, order: [3, 1, 2] }, // MM/DD/YYYY
+        { regex: /^(\d{1,2})-(\d{1,2})-(\d{4})$/, order: [3, 1, 2] }, // MM-DD-YYYY
+        { regex: /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, order: [3, 2, 1] }  // DD.MM.YYYY (European format)
+      ];
+      
+      for (let format of formats) {
+        const match = trimmedValue.match(format.regex);
+        if (match) {
+          const year = parseInt(match[format.order[0]]);
+          const month = parseInt(match[format.order[1]]);
+          const day = parseInt(match[format.order[2]]);
+          
+          // Validate date components
+          if (year >= 1900 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            // Use UTC to avoid timezone issues - creates date at exactly midnight UTC
+            const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+            
+            // Verify the date components are correct
+            if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
+              console.log(`Manually parsed "${trimmedValue}" to date:`, date);
+              return date;
+            }
+          }
+        }
+      }
+      
+      // Fallback to standard Date constructor
+      const parsedDate = new Date(trimmedValue);
       if (!isNaN(parsedDate.getTime())) {
-        console.log(`Parsed string "${value}" to date:`, parsedDate);
+        console.log(`Parsed string "${trimmedValue}" to date:`, parsedDate);
         return parsedDate;
       }
     }
@@ -845,7 +877,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               // If the value was transformed to a Date, update the cell
               if (transformedValue !== cell && transformedValue instanceof Date) {
                 cellRef.value = transformedValue;
-                cellRef.numFmt = preserveTime ? 'yyyy-mm-dd hh:mm:ss' : 'yyyy-mm-dd';
+                cellRef.numFmt = preserveTime ? 'dd/mm/yyyy hh:mm:ss' : 'dd/mm/yyyy';
                 cellRef.type = ExcelJS.ValueType.Date;
               }
             }
