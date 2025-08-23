@@ -3481,13 +3481,33 @@ function App() {
 
       if (result.success) {
         setCreatedFilePath(result.outputPath);
+        
+        // Calculate summary statistics based on generated worksheets
+        let totalRelations = 0;
+        let totalAccounts = 0;
+        
+        if (selectedWorksheets.relationsSummary) {
+          // Count relations from account mappings
+          Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
+            totalRelations += anafAccounts.length;
+          });
+        }
+        
+        if (selectedWorksheets.accountsSummary) {
+          totalAccounts = Object.keys(accountSums).length + Object.keys(anafAccountSums).length;
+        }
+        
         setProcessingSummary({
-          totalRelations: relationsSummary.length - 1, // Exclude header
-          totalAccounts: accountsSummary.length - 1, // Exclude header
+          totalWorksheets: worksheets.length,
+          totalRelations: totalRelations,
+          totalAccounts: totalAccounts,
           contaAccounts: Object.keys(accountSums).length,
-          anafAccounts: Object.keys(anafAccountSums).length
+          anafAccounts: Object.keys(anafAccountSums).length,
+          includesRelationsSummary: selectedWorksheets.relationsSummary,
+          includesAccountsSummary: selectedWorksheets.accountsSummary,
+          includesAnafMergedData: selectedWorksheets.anafMergedData
         });
-        setStatus(`Successfully created summary file: ${result.outputPath}`);
+        setStatus(`Successfully created summary file with ${worksheets.length} worksheet${worksheets.length !== 1 ? 's' : ''}: ${result.outputPath}`);
       } else {
         setStatus(`Error creating summary: ${result.error}`);
       }
