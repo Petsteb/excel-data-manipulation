@@ -747,7 +747,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
   return saveSettings(settings);
 });
 
-// Helper function to transform date values (from working implementation)
+// Helper function to transform date values (restored from working Version 1.9)
 function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime = false) {
   // Only transform if this is one of the selected date columns and value exists
   if (!dateColumnIndices.includes(columnIndex) || !value || value === '') {
@@ -755,33 +755,47 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
   }
   
   try {
+    console.log(`Transforming date value: ${value} (type: ${typeof value}) in column ${columnIndex}`);
+    
     // If it's already a Date object, return it
     if (value instanceof Date) {
+      console.log('Already a Date object:', value);
       return value;
     }
     
     // If it's a number (Excel date serial), convert it
     if (typeof value === 'number' && value >= 30000 && value < 100000) {
+      // Excel uses 1900-01-01 as day 1 (but treats 1900 as a leap year incorrectly)
+      // JavaScript Date() uses 1970-01-01 as epoch
+      // Excel serial 1 = 1900-01-01, Excel serial 2 = 1900-01-02, etc.
+      // But Excel incorrectly thinks 1900 is a leap year, so we need to adjust
+      
       let adjustedValue = value;
       // Adjust for Excel's leap year bug (if date is after Feb 28, 1900)
       if (value > 59) {
         adjustedValue = value - 1;
       }
       
+      // Convert to JavaScript date using UTC to avoid timezone issues
+      // Excel day 1 = Jan 1, 1900
       const excelEpochYear = 1900;
       const excelEpochMonth = 0; // January (0-based)
       const excelEpochDay = 1;
       
+      // Calculate the target date
       const totalDays = adjustedValue - 1; // adjustedValue is 1-based, we need 0-based
       const targetDate = new Date(Date.UTC(excelEpochYear, excelEpochMonth, excelEpochDay + totalDays));
       
       // If the original value has decimal part (time) and we want to preserve it
       if (preserveTime && value % 1 !== 0) {
+        // Add the time portion (fractional part represents time)
         const timeFraction = value % 1;
         const timeMs = timeFraction * 86400 * 1000;
         const dateWithTime = new Date(targetDate.getTime() + timeMs);
+        console.log(`Converted Excel serial ${value} to datetime:`, dateWithTime);
         return dateWithTime;
       } else {
+        console.log(`Converted Excel serial ${value} to date:`, targetDate);
         return targetDate;
       }
     }
@@ -790,12 +804,15 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
     if (typeof value === 'string') {
       const parsedDate = new Date(value);
       if (!isNaN(parsedDate.getTime())) {
+        console.log(`Parsed string "${value}" to date:`, parsedDate);
         return parsedDate;
       }
     }
     
+    console.log(`Could not transform value: ${value}`);
     return value;
   } catch (error) {
+    console.error('Date transformation error:', error);
     return value; // Return original on error
   }
 }
@@ -828,7 +845,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               // If the value was transformed to a Date, update the cell
               if (transformedValue !== cell && transformedValue instanceof Date) {
                 cellRef.value = transformedValue;
-                cellRef.numFmt = preserveTime ? 'dd/mm/yyyy hh:mm:ss' : 'dd/mm/yyyy';
+                cellRef.numFmt = preserveTime ? 'yyyy-mm-dd hh:mm:ss' : 'yyyy-mm-dd';
                 cellRef.type = ExcelJS.ValueType.Date;
               }
             }
@@ -852,15 +869,33 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         });
       });
       
-      // Auto-fit columns
+      // Set column widths with special handling for date columns
       worksheet.columns.forEach((column, colIndex) => {
-        let maxLength = 0;
-        worksheetData.data.forEach(row => {
-          if (row[colIndex] && row[colIndex].toString().length > maxLength) {
-            maxLength = row[colIndex].toString().length;
+        if (isAnafMergedData) {
+          if (colIndex === 0) {
+            // Source File column
+            column.width = 20;
+          } else {
+            const dataColIndex = colIndex - 1; // Adjust for Source File column
+            if (anafDateColumns.includes(dataColIndex)) {
+              // Date columns need more width to display dates properly
+              const hasTime = anafDateColumnsWithTime.includes(dataColIndex);
+              column.width = hasTime ? 20 : 12; // 20 for datetime, 12 for date only
+            } else {
+              // Regular columns
+              column.width = 15;
+            }
           }
-        });
-        column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+        } else {
+          // Auto-fit for other worksheets
+          let maxLength = 0;
+          worksheetData.data.forEach(row => {
+            if (row[colIndex] && row[colIndex].toString().length > maxLength) {
+              maxLength = row[colIndex].toString().length;
+            }
+          });
+          column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+        }
       });
     });
     
