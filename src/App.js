@@ -3935,7 +3935,7 @@ function App() {
   };
 
   // Calculate workspace boundaries based on all object positions
-  const calculateWorkspaceBounds = () => {
+  const calculateWorkspaceBounds = (layoutModeOverride = isLayoutMode) => {
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
     
     let minX = 0;
@@ -3945,8 +3945,9 @@ function App() {
     
     // Calculate core bounds from active panels and buttons only
     Object.entries(panelPositions).filter(([elementId]) => {
-      // Exclude ANAF header and date panels from workspace calculations
-      if (elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') {
+      // Exclude layout-mode-only panels from workspace calculations when not in layout mode
+      const layoutModeOnlyPanels = ['anaf-header-panel', 'anaf-date-panel', 'sums-panel'];
+      if (layoutModeOnlyPanels.includes(elementId) && !layoutModeOverride) {
         return false;
       }
       // Only include panels that are in the availablePanels list and active, or buttons
@@ -4249,6 +4250,10 @@ function App() {
       
       setIsLayoutMode(newLayoutMode);
       
+      // Recalculate workspace bounds for layout mode (includes layout-mode-only panels)
+      const layoutBounds = calculateWorkspaceBounds(true);
+      setWorkspaceBounds(layoutBounds);
+      
       // Initialize collision matrix when entering layout mode
       const matrix = initializeCollisionMatrix();
       
@@ -4277,6 +4282,12 @@ function App() {
       // Apply normalized positions and bounds to state
       setPanelPositions(normalization.normalizedPositions);
       setWorkspaceBounds(normalization.normalizedBounds);
+      
+      // Recalculate workspace bounds for normal mode (excludes layout-mode-only panels)
+      setTimeout(() => {
+        const normalBounds = calculateWorkspaceBounds(false);
+        setWorkspaceBounds(normalBounds);
+      }, 10);
       
       setCollisionMatrix(null);
       
