@@ -2314,6 +2314,8 @@ function App() {
   const calculateAnafAccountSums = (account, startDate, endDate, config = {}) => {
     const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
     console.log(`[DEBUG] calculateAnafAccountSums called for account: ${account}`);
+    console.log(`[DEBUG] ANAF files available:`, anafFiles.length);
+    console.log(`[DEBUG] Config:`, config);
     let sum = 0;
     let subtractSum = 0;
 
@@ -2325,17 +2327,24 @@ function App() {
     
 
     anafFiles.forEach((file, fileIndex) => {
+      console.log(`[DEBUG] Processing ANAF file ${fileIndex}:`, file.filePath || file.name);
       if (file.data && Array.isArray(file.data)) {
         // First check if this file matches the account we're calculating for
         const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+        console.log(`[DEBUG] Extracted fileAccount: "${fileAccount}" for account: "${account}"`);
         let fileMatches = false;
         
         if (fileAccount === account) {
           fileMatches = true;
+          console.log(`[DEBUG] File matches account (exact match)`);
         } else if (account.startsWith(fileAccount + '.')) {
           fileMatches = true;
+          console.log(`[DEBUG] File matches account (startsWith match)`);
         } else if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
           fileMatches = true;
+          console.log(`[DEBUG] File matches account (special 1/4423-4424 case)`);
+        } else {
+          console.log(`[DEBUG] File does NOT match account`);
         }
         
         // Skip this file if it doesn't match the account
