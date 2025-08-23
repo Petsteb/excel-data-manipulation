@@ -2579,6 +2579,42 @@ function App() {
     };
   };
 
+  // Helper function to adjust date interval for ANAF accounts (1 month delayed, day set to 25th)
+  const getAnafDateInterval = (contaStartDate, contaEndDate) => {
+    if (!contaStartDate || !contaEndDate) return { startDate: null, endDate: null };
+    
+    // Parse conta dates
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return null;
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    };
+    
+    const startDate = parseDate(contaStartDate);
+    const endDate = parseDate(contaEndDate);
+    
+    if (!startDate || !endDate) return { startDate: null, endDate: null };
+    
+    // Add 1 month to both dates and set day to 25th
+    const anafStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 25);
+    const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 25);
+    
+    // Format back to DD/MM/YYYY
+    const formatDate = (date) => {
+      if (!date) return null;
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
+    return {
+      startDate: formatDate(anafStartDate),
+      endDate: formatDate(anafEndDate)
+    };
+  };
+
   // Unified calculation for both Conta and ANAF accounts
   const handleCalculateAllSums = () => {
     let totalCalculated = 0;
@@ -2618,10 +2654,16 @@ function App() {
           const contaDateRange = getContaAccountDateRange(relatedContaAccount);
           
           if (contaDateRange) {
-            // Use intersection of user date range and conta date range
-            effectiveDateRange = getDateRangeIntersection(
+            // First get intersection of user date range and conta date range
+            const contaEffectiveRange = getDateRangeIntersection(
               startDate, endDate, 
               contaDateRange.startDate, contaDateRange.endDate
+            );
+            
+            // Then adjust for ANAF: 1 month delayed with day set to 25th
+            effectiveDateRange = getAnafDateInterval(
+              contaEffectiveRange.startDate, 
+              contaEffectiveRange.endDate
             );
           }
         }
@@ -2644,7 +2686,7 @@ function App() {
     let statusMessage = `Calculated sums for `;
     
     if (contaCount > 0 && anafCount > 0) {
-      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''} (using synchronized date intervals)`;
+      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''} (ANAF dates: +1 month, day 25)`;
     } else if (contaCount > 0) {
       statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''}`;
     } else {
