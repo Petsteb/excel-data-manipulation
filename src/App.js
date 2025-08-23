@@ -3139,24 +3139,35 @@ function App() {
 
   // Combined handler for both layout drag and file drag
   const handleCombinedDragOver = (e) => {
-    // Handle file drag over
-    if (e.dataTransfer.types.includes('Files')) {
-      handleFileDragOver(e);
-    }
-    
-    // Handle layout drag over
+    // In layout mode, prioritize layout dragging over file dragging
     if (isLayoutMode && draggedElement) {
       handleDragOver(e);
+      return;
+    }
+    
+    // Only handle file drag over if we're not in layout mode or not dragging a panel
+    if (e.dataTransfer.types.includes('Files') && (!isLayoutMode || !draggedElement)) {
+      handleFileDragOver(e);
     }
   };
 
   const handleDragEnter = (e, type) => {
+    // Don't activate file drag styling when in layout mode with panel dragging
+    if (isLayoutMode && draggedElement) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     setDragActive(prev => ({ ...prev, [type]: true }));
   };
 
   const handleDragLeave = (e, type) => {
+    // Don't handle file drag leave when in layout mode with panel dragging
+    if (isLayoutMode && draggedElement) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     // Only set to false if we're actually leaving the panel (not just moving between child elements)
@@ -3166,6 +3177,11 @@ function App() {
   };
 
   const handleContaDrop = async (e) => {
+    // Don't handle file drop when in layout mode with panel dragging
+    if (isLayoutMode && draggedElement) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     setDragActive(prev => ({ ...prev, conta: false }));
@@ -3208,6 +3224,11 @@ function App() {
   };
 
   const handleAnafDrop = async (e) => {
+    // Don't handle file drop when in layout mode with panel dragging
+    if (isLayoutMode && draggedElement) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     setDragActive(prev => ({ ...prev, anaf: false }));
