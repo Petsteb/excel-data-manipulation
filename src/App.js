@@ -3043,6 +3043,118 @@ function App() {
     }
   };
 
+  // Drag and drop handlers
+  const [dragActive, setDragActive] = useState({ conta: false, anaf: false });
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(prev => ({ ...prev, [type]: true }));
+  };
+
+  const handleDragLeave = (e, type) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're actually leaving the panel (not just moving between child elements)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragActive(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const handleContaDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(prev => ({ ...prev, conta: false }));
+    
+    const files = Array.from(e.dataTransfer.files);
+    const excelFiles = files.filter(file => 
+      file.name.toLowerCase().endsWith('.xlsx') || 
+      file.name.toLowerCase().endsWith('.xls')
+    );
+    
+    if (excelFiles.length === 0) {
+      setStatus('Please drop Excel files (.xlsx or .xls)');
+      return;
+    }
+    
+    try {
+      // Simulate the file selection by using the same logic as handleSelectContabilitateFiles
+      const filePaths = excelFiles.map(file => file.path);
+      
+      let newFilePaths = filePaths;
+      let newData = [];
+      
+      // Replace existing files (same as clicking "Select Excel Files")
+      setSelectedFileIndices(new Set());
+      setStatus('Contabilitate files dropped. Reading data...');
+      
+      newData = await window.electronAPI.readExcelFiles(newFilePaths);
+      setContabilitateFiles(newData);
+      setStatus(`${newData.length} Contabilitate files loaded successfully`);
+      
+      // Extract column names from Contabilitate files
+      await extractContabilitateColumnNames();
+      
+      // Process conta files for uniform structure
+      await processContaFiles(newData);
+    } catch (error) {
+      console.error('Error processing dropped files:', error);
+      setStatus('Error processing dropped files');
+    }
+  };
+
+  const handleAnafDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(prev => ({ ...prev, anaf: false }));
+    
+    const files = Array.from(e.dataTransfer.files);
+    const excelFiles = files.filter(file => 
+      file.name.toLowerCase().endsWith('.xlsx') || 
+      file.name.toLowerCase().endsWith('.xls')
+    );
+    
+    if (excelFiles.length === 0) {
+      setStatus('Please drop Excel files (.xlsx or .xls)');
+      return;
+    }
+    
+    try {
+      // Simulate the file selection by using the same logic as handleSelectAnafFiles
+      const filePaths = excelFiles.map(file => file.path);
+      
+      let newFilePaths = filePaths;
+      let newData = [];
+      
+      // Replace existing files (same as clicking "Select Excel Files")
+      setSelectedAnafFileIndices(new Set());
+      setStatus('ANAF files dropped. Reading data...');
+      
+      newData = await window.electronAPI.readExcelFiles(newFilePaths);
+      setAnafFiles(newData);
+      setStatus(`${newData.length} ANAF files loaded successfully`);
+      
+      // Auto-assign files to accounts
+      const anafAssignments = autoAssignFilesToAccounts(newData, availableAnafAccounts, true);
+      setAnafAccountFiles(anafAssignments);
+      
+      // Extract column names from ANAF files
+      await extractAnafColumnNames();
+      
+      // Auto-select all found ANAF accounts
+      autoSelectFoundAnafAccounts(newData);
+    } catch (error) {
+      console.error('Error processing dropped files:', error);
+      setStatus('Error processing dropped files');
+    }
+  };
+
+
   const handleSelectAnafFiles = async (append = false) => {
     try {
       const filePaths = await window.electronAPI.selectExcelFiles();
@@ -4583,6 +4695,10 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragEnter={(e) => handleDragEnter(e, 'conta')}
+          onDragLeave={(e) => handleDragLeave(e, 'conta')}
+          onDrop={handleContaDrop}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('contabilitate-upload-panel').x}px`,
@@ -4590,7 +4706,12 @@ function App() {
             width: `${getVisualPosition('contabilitate-upload-panel').width}px`,
             height: `${getVisualPosition('contabilitate-upload-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            ...(dragActive.conta && {
+              backgroundColor: 'var(--theme-primary-light, rgba(79, 70, 229, 0.1))',
+              border: '2px dashed var(--theme-primary, #4f46e5)',
+              boxShadow: '0 0 10px var(--theme-primary-light, rgba(79, 70, 229, 0.3))'
+            })
           }}
         >
           {isLayoutMode && (
@@ -4617,6 +4738,22 @@ function App() {
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>{t('contabilitate')}</h3>
+            {dragActive.conta && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: 'var(--theme-primary, #4f46e5)',
+                textAlign: 'center',
+                pointerEvents: 'none',
+                zIndex: 100
+              }}>
+                📁 Drop Excel files here
+              </div>
+            )}
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={() => handleSelectContabilitateFiles(false)} disabled={isProcessing}>
                 {t('selectExcelFiles')}
@@ -4639,6 +4776,10 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragEnter={(e) => handleDragEnter(e, 'anaf')}
+          onDragLeave={(e) => handleDragLeave(e, 'anaf')}
+          onDrop={handleAnafDrop}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('anaf-upload-panel').x}px`,
@@ -4646,7 +4787,12 @@ function App() {
             width: `${getVisualPosition('anaf-upload-panel').width}px`,
             height: `${getVisualPosition('anaf-upload-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            ...(dragActive.anaf && {
+              backgroundColor: 'var(--theme-secondary-light, rgba(16, 185, 129, 0.1))',
+              border: '2px dashed var(--theme-secondary, #10b981)',
+              boxShadow: '0 0 10px var(--theme-secondary-light, rgba(16, 185, 129, 0.3))'
+            })
           }}
         >
           {isLayoutMode && (
@@ -4673,6 +4819,22 @@ function App() {
               </div>
             )}
             <h3 style={{ textAlign: 'center' }}>{t('anaf')}</h3>
+            {dragActive.anaf && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: 'var(--theme-secondary, #10b981)',
+                textAlign: 'center',
+                pointerEvents: 'none',
+                zIndex: 100
+              }}>
+                📁 Drop Excel files here
+              </div>
+            )}
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" onClick={() => handleSelectAnafFiles(false)} disabled={isProcessing}>
                 {t('selectExcelFiles')}
