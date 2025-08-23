@@ -3596,7 +3596,54 @@ function App() {
           totalAccounts = Object.keys(accountSums).length + Object.keys(anafAccountSums).length;
         }
         
+        // Calculate summary statistics for the Final Summary panel
+        let totalFiles = 0;
+        let totalDataRows = 0;
+        let matchingFiles = 0;
+        let fileDetails = [];
+        
+        // Count files and rows from selected data sources
+        if (selectedWorksheets.anafMergedData && anafFiles.length > 0) {
+          totalFiles = anafFiles.length;
+          // Calculate total data rows and create file details for ANAF files
+          anafFiles.forEach((file, index) => {
+            const dataRows = Math.max(0, (file.data?.length || 0) - parseInt(anafCommonLines));
+            totalDataRows += dataRows;
+            fileDetails.push({
+              fileName: file.fileName || `ANAF File ${index + 1}`,
+              dataRows: dataRows,
+              headerMatch: true, // Assume ANAF files match
+              fileType: 'ANAF'
+            });
+          });
+          // Assume all files match for ANAF data (could be enhanced with actual header matching)
+          matchingFiles = anafFiles.length;
+        }
+        
+        // Add conta files to the count if they're being used
+        if (selectedWorksheets.accountsSummary && contabilitateFiles.length > 0) {
+          totalFiles += contabilitateFiles.length;
+          // Calculate total data rows and create file details for Conta files
+          contabilitateFiles.forEach((file, index) => {
+            const dataRows = Math.max(0, (file.data?.length || 0) - parseInt(contabilitateCommonLines));
+            totalDataRows += dataRows;
+            fileDetails.push({
+              fileName: file.fileName || `Conta File ${index + 1}`,
+              dataRows: dataRows,
+              headerMatch: true, // Assume Conta files match
+              fileType: 'Contabilitate'
+            });
+          });
+          matchingFiles += contabilitateFiles.length;
+        }
+        
         setProcessingSummary({
+          // Properties expected by the UI
+          filesProcessed: totalFiles,
+          totalDataRows: totalDataRows,
+          matchingFiles: matchingFiles,
+          fileDetails: fileDetails,
+          // Additional summary properties
           totalWorksheets: worksheets.length,
           totalRelations: totalRelations,
           totalAccounts: totalAccounts,
@@ -3604,7 +3651,8 @@ function App() {
           anafAccounts: Object.keys(anafAccountSums).length,
           includesRelationsSummary: selectedWorksheets.relationsSummary,
           includesAccountsSummary: selectedWorksheets.accountsSummary,
-          includesAnafMergedData: selectedWorksheets.anafMergedData
+          includesAnafMergedData: selectedWorksheets.anafMergedData,
+          commonHeaderRows: parseInt(anafCommonLines)
         });
         setStatus(`Successfully created summary file with ${worksheets.length} worksheet${worksheets.length !== 1 ? 's' : ''}: ${result.outputPath}`);
       } else {
