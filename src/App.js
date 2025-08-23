@@ -3420,31 +3420,38 @@ function App() {
               return file ? (file.name || file.fileName || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
             });
           } else {
-            // For accounts like 1/4423 and 1/4424, they should use files with "imp_1" pattern
-            // Extract the first part before the slash for file matching
-            let searchPattern = account;
-            if (account.includes('/')) {
-              searchPattern = account.split('/')[0]; // Get "1" from "1/4423" or "1/4424"
-            }
-            
+            // Fallback: find files that match this account
             const detectedFiles = anafFiles.filter(file => {
               const fileName = (file.name || file.fileName || '').toLowerCase();
-              const accountPattern = searchPattern.toLowerCase();
               
-              // Look for imp_X pattern where X matches the first part of the account
-              return fileName.includes(`imp_${accountPattern}`) || 
-                     fileName.includes(`imp_${account.toLowerCase()}`) ||
-                     fileName.includes(accountPattern);
+              // For accounts like 1/4423 and 1/4424, look for imp_1 pattern
+              if (account.includes('/')) {
+                const firstPart = account.split('/')[0]; // Get "1" from "1/4423"
+                if (fileName.includes(`imp_${firstPart}`)) {
+                  return true;
+                }
+              }
+              
+              // Also try broader patterns
+              const accountLower = account.toLowerCase();
+              return fileName.includes(accountLower) || 
+                     fileName.includes(account.replace('/', '_').toLowerCase()) ||
+                     fileName.includes(account.replace('/', '').toLowerCase());
             });
             
-            fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
+            if (detectedFiles.length > 0) {
+              fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
+            } else {
+              // If no specific files found, show all available ANAF files for debugging
+              fileNames = anafFiles.slice(0, 3).map(file => file.name || file.fileName || 'Unknown file');
+            }
           }
           
           accountsSummary.push([
             account,
             'ANAF',
             sum,
-            fileNames.join(', ') || 'All detected files'
+            fileNames.join(', ') || 'No files available'
           ]);
         });
         
