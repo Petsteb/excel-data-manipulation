@@ -4171,8 +4171,8 @@ function App() {
     
     // Repopulate matrix with active panel positions only
     Object.entries(panelPositions).filter(([elementId]) => {
-      // Include ANAF header and date panels in collision detection when in layout mode
-      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') && isLayoutMode) {
+      // Include ANAF header, date, and sums panels in collision detection when in layout mode
+      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel' || elementId === 'sums-panel') && isLayoutMode) {
         return true;
       }
       // Only include panels that are in the availablePanels list and active, or buttons
@@ -4215,8 +4215,8 @@ function App() {
     // Populate matrix with active panels and buttons only
     // Adjust coordinates to matrix space (subtract minX, minY offset)
     Object.entries(panelPositions).filter(([elementId]) => {
-      // Include ANAF header and date panels in collision detection when in layout mode
-      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel') && isLayoutMode) {
+      // Include ANAF header, date, and sums panels in collision detection when in layout mode
+      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel' || elementId === 'sums-panel') && isLayoutMode) {
         return true;
       }
       // Only include panels that are in the availablePanels list and active, or buttons
@@ -6098,7 +6098,8 @@ function App() {
             width: `${getVisualPosition('sums-panel').width}px`,
             height: `${getVisualPosition('sums-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            display: isLayoutMode ? 'block' : 'none'
           }}
         >
           {isLayoutMode && (
@@ -6122,7 +6123,7 @@ function App() {
                 sums-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center' }}>Account Sums</h3>
+            <h3 style={{ textAlign: 'center', color: 'var(--theme-text-color, #333)' }}>Account Sums</h3>
             
             {/* Conta Sums Section */}
             {Object.keys(accountSums).length > 0 && (
@@ -6135,7 +6136,8 @@ function App() {
                     backgroundColor: 'var(--theme-button-bg)',
                     borderRadius: '4px',
                     display: 'flex',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    color: 'var(--theme-text-color, #333)'
                   }}>
                     <span>Account {account}:</span>
                     <strong>{sum.toFixed(2)}</strong>
@@ -6156,7 +6158,8 @@ function App() {
                     borderRadius: '4px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    border: '1px solid var(--theme-secondary, #10b981)'
+                    border: '1px solid var(--theme-secondary, #10b981)',
+                    color: 'var(--theme-text-color, #333)'
                   }}>
                     <span>ANAF {account}:</span>
                     <strong>{sum.toFixed(2)}</strong>
@@ -6188,7 +6191,7 @@ function App() {
                 )}
               </div>
             ) : (
-              <p style={{ textAlign: 'center' }}>No sums calculated yet</p>
+              <p style={{ textAlign: 'center', color: 'var(--theme-text-color, #666)' }}>No sums calculated yet</p>
             )}
           </div>
         </div>
@@ -6438,7 +6441,7 @@ function App() {
                 </div>
               </div>
             ) : (
-              <p>{t('mergeResultsWillAppearHere') || 'Merge results will appear here'}</p>
+              <p style={{ color: 'var(--theme-text-color, #666)', textAlign: 'center' }}>{t('mergeResultsWillAppearHere') || 'Merge results will appear here'}</p>
             )}
           </div>
         </div>
