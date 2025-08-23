@@ -344,12 +344,42 @@ function App() {
         setCurrentLanguage(settings.language || 'en');
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
+        
+        // Load batch-specific header settings
+        const anafCommonLinesValue = Number.isInteger(settings.anafCommonLines) ? settings.anafCommonLines : (parseInt(settings.anafCommonLines) || 1);
+        let anafColumnNamesRowValue = Number.isInteger(settings.anafColumnNamesRow) ? settings.anafColumnNamesRow : (parseInt(settings.anafColumnNamesRow) || 1);
+        
+        if (!settings.anafColumnNamesRowExplicitlySet) {
+          anafColumnNamesRowValue = anafCommonLinesValue;
+        }
+        
+        setAnafCommonLines(anafCommonLinesValue);
+        setAnafColumnNamesRow(anafColumnNamesRowValue);
+        
+        const contabilitateCommonLinesValue = Number.isInteger(settings.contabilitateCommonLines) ? settings.contabilitateCommonLines : (parseInt(settings.contabilitateCommonLines) || 1);
+        let contabilitateColumnNamesRowValue = Number.isInteger(settings.contabilitateColumnNamesRow) ? settings.contabilitateColumnNamesRow : (parseInt(settings.contabilitateColumnNamesRow) || 1);
+        
+        if (!settings.contabilitateColumnNamesRowExplicitlySet) {
+          contabilitateColumnNamesRowValue = contabilitateCommonLinesValue;
+        }
+        
+        setContabilitateCommonLines(contabilitateCommonLinesValue);
+        setContabilitateColumnNamesRow(contabilitateColumnNamesRowValue);
+        
         // Load batch-specific date columns from settings
         setAnafSelectedDateColumns(settings.anafSelectedDateColumns || []);
         setContabilitateSelectedDateColumns(settings.contabilitateSelectedDateColumns || []);
         
-        // Load account file assignments from settings
-        setAnafAccountFiles(settings.anafAccountFiles || {});
+        // Load account file assignments from settings with defaults for 1/4423 and 1/4424
+        const defaultAnafAccountFiles = {};
+        // Set default assignment for 1/4423 and 1/4424 to use the same file (imp_1)
+        if (!settings.anafAccountFiles || (!settings.anafAccountFiles['1/4423'] && !settings.anafAccountFiles['1/4424'])) {
+          // Auto-assign imp_1 file to both accounts if not already assigned
+          defaultAnafAccountFiles['1/4423'] = ['imp_1'];
+          defaultAnafAccountFiles['1/4424'] = ['imp_1'];
+        }
+        
+        setAnafAccountFiles({ ...defaultAnafAccountFiles, ...(settings.anafAccountFiles || {}) });
         setContaAccountFiles(settings.contaAccountFiles || {});
         
         // Load saved layout positions only for current panels
