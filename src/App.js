@@ -1710,13 +1710,27 @@ function App() {
     let defaultConfig = {
       filterColumn: 'CTG_SUME',
       filterValue: 'D',
-      sumColumn: 'SUMA_PLATA',
-      subtractConfig: {
+      sumColumn: 'SUMA_PLATA'
+      // No subtractConfig by default - only specific accounts should have subtraction
+    };
+
+    // Account 2: No subtraction - clean sum only
+    if (account === '2') {
+      defaultConfig = {
+        filterColumn: 'CTG_SUME',
+        filterValue: 'D',
+        sumColumn: 'SUMA_PLATA'
+        // No subtractConfig
+      };
+    }
+    // For other accounts that need subtraction (like 412), add it back
+    else if (account !== '1/4423' && account !== '1/4424' && account !== '2') {
+      defaultConfig.subtractConfig = {
         filterColumn: 'ATRIBUT_PL',
         filterValue: 'DIM',
         sumColumn: 'INCASARI'
-      }
-    };
+      };
+    }
 
     // Special configs for accounts 1/4423 and 1/4424 (no subtraction)
     if (account === '1/4423') {
@@ -2351,10 +2365,14 @@ function App() {
         if (!fileMatches) return;
         
         let processedRows = 0;
+        console.log(`[DEBUG] File has ${file.data.length} total rows`);
         
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
-          if (index === 0 || index === 1) return;
+          if (index === 0 || index === 1) {
+            console.log(`[DEBUG] Skipping header row ${index}`);
+            return;
+          }
 
           const termPlataValue = row[5]; // TERM_PLATA column (based on debug output)
           const ctgSumeValue = row[6]; // CTG_SUME column (based on debug output)
@@ -2423,29 +2441,43 @@ function App() {
             switch (filterColumn) {
               case 'CTG_SUME':
                 matchesFilter = ctgSumeValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: CTG_SUME filter - value: "${ctgSumeValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'ATRIBUT_PL':
                 matchesFilter = atributPlValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: ATRIBUT_PL filter - value: "${atributPlValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'IME_COD_IMPOZIT':
                 matchesFilter = imeCodeValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: IME_COD_IMPOZIT filter - value: "${imeCodeValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               case 'DENUMIRE_IMPOZIT':
                 matchesFilter = denumireValue === filterValue;
+                console.log(`[DEBUG] Row ${index}: DENUMIRE_IMPOZIT filter - value: "${denumireValue}", expected: "${filterValue}", matches: ${matchesFilter}`);
                 break;
               default:
                 matchesFilter = true;
+                console.log(`[DEBUG] Row ${index}: No specific filter, matches: true`);
             }
-            if (!matchesFilter) return;
+            if (!matchesFilter) {
+              console.log(`[DEBUG] Row ${index}: Filtered out due to filter mismatch`);
+              return;
+            }
+          } else {
+            console.log(`[DEBUG] Row ${index}: No filterValue, passing through`);
           }
 
           // Add to sum based on selected sum column
+          console.log(`[DEBUG] Row ${index}: Adding to sum using column ${sumColumn}`);
           switch (sumColumn) {
             case 'SUMA_PLATA':
+              console.log(`[DEBUG] Row ${index}: SUMA_PLATA value: ${sumaPlataValue}, adding to sum (was: ${sum})`);
               sum += sumaPlataValue;
+              console.log(`[DEBUG] Row ${index}: Sum is now: ${sum}`);
               processedRows++;
               break;
             case 'INCASARI':
+              console.log(`[DEBUG] Row ${index}: INCASARI value: ${incasariValue}, adding to sum (was: ${sum})`);
               sum += incasariValue;
               processedRows++;
               break;
@@ -2586,6 +2618,7 @@ function App() {
       });
     }
 
+    console.log(`[DEBUG] ANAF calculation complete for account ${account}: sum=${sum}, subtractSum=${subtractSum}, final=${sum - subtractSum}`);
     return sum - subtractSum;
   };
 
