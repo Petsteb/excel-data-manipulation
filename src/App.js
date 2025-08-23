@@ -2484,30 +2484,14 @@ function App() {
           if (index <= 5) {
           }
           
-          // Final fallback to selected date columns
-          if (!rowDate && anafSelectedDateColumns.length > 0) {
-            for (const dateColumnIndex of anafSelectedDateColumns) {
-              if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
-                const dateValue = row[dateColumnIndex];
-                if (dateValue) {
-                  const rowISO = parseDDMMYYYY(dateValue);
-                  if (rowISO) {
-                    rowDate = new Date(rowISO + 'T12:00:00');
-                    dateSource = `Column_${dateColumnIndex}`;
-                    break;
-                  }
-                }
-              }
-            }
+          // If both SCADENTA and TERM_PLATA are null or unparseable, skip the row
+          if (!rowDate) {
+            return; // Skip rows with no valid date in SCADENTA or TERM_PLATA
           }
 
           // Apply interval filtering after selecting date source
-          if (rowDate) {
-            if ((start && rowDate < start) || (end && rowDate > end)) {
-              return; // Skip rows outside the date interval
-            }
-          } else {
-            return; // Skip rows with no valid date
+          if ((start && rowDate < start) || (end && rowDate > end)) {
+            return; // Skip rows outside the date interval
           }
 
           // Show key values for first 10 rows and rows with significant amounts
@@ -2615,30 +2599,14 @@ function App() {
               }
             }
             
-            // Final fallback to selected date columns
-            if (!rowDate && anafSelectedDateColumns.length > 0) {
-              for (const dateColumnIndex of anafSelectedDateColumns) {
-                if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
-                  const dateValue = row[dateColumnIndex];
-                  if (dateValue) {
-                    const rowISO = parseDDMMYYYY(dateValue);
-                    if (rowISO) {
-                      rowDate = new Date(rowISO + 'T12:00:00');
-                      dateSource = `Column_${dateColumnIndex}`;
-                      break;
-                    }
-                  }
-                }
-              }
+            // If both SCADENTA and TERM_PLATA are null or unparseable, skip the row
+            if (!rowDate) {
+              return; // Skip rows with no valid date in SCADENTA or TERM_PLATA
             }
 
             // Apply interval filtering after selecting date source
-            if (rowDate) {
-              if ((start && rowDate < start) || (end && rowDate > end)) {
-                return; // Skip rows outside the date interval
-              }
-            } else {
-              return; // Skip rows with no valid date
+            if ((start && rowDate < start) || (end && rowDate > end)) {
+              return; // Skip rows outside the date interval
             }
 
             // Apply subtraction filter based on selected filter column
