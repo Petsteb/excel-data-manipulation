@@ -2456,26 +2456,34 @@ function App() {
 
           // Date filtering using SCADENTA and TERM_PLATA columns
           let rowDate = null;
-          
-          // First check SCADENTA column (index 4 based on standard ANAF format)
           let dateSource = '';
+          
+          // First check SCADENTA column (index 4) - must be within interval to be used
           const scadentaDate = row[4];
           if (scadentaDate && scadentaDate.trim() !== '') {
             const scadentaISO = parseDDMMYYYY(scadentaDate);
             if (scadentaISO) {
-              rowDate = new Date(scadentaISO + 'T12:00:00');
-              dateSource = 'SCADENTA';
+              const scadentaDateObj = new Date(scadentaISO + 'T12:00:00');
+              // Only use SCADENTA if it falls within the date interval (or no interval constraints)
+              if ((!start || scadentaDateObj >= start) && (!end || scadentaDateObj <= end)) {
+                rowDate = scadentaDateObj;
+                dateSource = 'SCADENTA';
+              }
             }
           }
           
-          // If no valid date in SCADENTA, fall back to TERM_PLATA column (index 5)
+          // If SCADENTA is null, unparseable, or outside interval, fall back to TERM_PLATA column (index 5)
           if (!rowDate) {
             const termPlataDate = row[5];
             if (termPlataDate && termPlataDate.trim() !== '') {
               const termISO = parseDDMMYYYY(termPlataDate);
               if (termISO) {
-                rowDate = new Date(termISO + 'T12:00:00');
-                dateSource = 'TERM_PLATA';
+                const termPlataDateObj = new Date(termISO + 'T12:00:00');
+                // Only use TERM_PLATA if it falls within the date interval (or no interval constraints)
+                if ((!start || termPlataDateObj >= start) && (!end || termPlataDateObj <= end)) {
+                  rowDate = termPlataDateObj;
+                  dateSource = 'TERM_PLATA';
+                }
               }
             }
           }
@@ -2484,7 +2492,7 @@ function App() {
           if (index <= 5) {
           }
           
-          // Final fallback to selected date columns
+          // Final fallback to selected date columns (also check interval)
           if (!rowDate && anafSelectedDateColumns.length > 0) {
             for (const dateColumnIndex of anafSelectedDateColumns) {
               if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
@@ -2492,20 +2500,21 @@ function App() {
                 if (dateValue) {
                   const rowISO = parseDDMMYYYY(dateValue);
                   if (rowISO) {
-                    rowDate = new Date(rowISO + 'T12:00:00');
-                    break;
+                    const fallbackDateObj = new Date(rowISO + 'T12:00:00');
+                    // Only use fallback date if it falls within the interval
+                    if ((!start || fallbackDateObj >= start) && (!end || fallbackDateObj <= end)) {
+                      rowDate = fallbackDateObj;
+                      dateSource = `Column_${dateColumnIndex}`;
+                      break;
+                    }
                   }
                 }
               }
             }
           }
 
-          // Apply date filtering only if we have valid start/end dates and the row has a valid date
-          if (start && rowDate && rowDate < start) return;
-          if (end && rowDate && rowDate > end) return;
-          
-          // Skip rows with no valid date only if we have date constraints and the row date is required
-          // For now, allow rows with no date to pass through
+          // Skip rows with no valid date within interval
+          if (!rowDate) return;
 
           // Show key values for first 10 rows and rows with significant amounts
           if (index <= 10 || sumaPlataValue > 1000) {
@@ -2588,28 +2597,39 @@ function App() {
 
             // Date filtering using SCADENTA and TERM_PLATA columns - same as main calculation  
             let rowDate = null;
+            let dateSource = '';
             
-            // First check SCADENTA column (index 4 based on standard ANAF format)
+            // First check SCADENTA column (index 4) - must be within interval to be used
             const scadentaDate = row[4];
             if (scadentaDate && scadentaDate.trim() !== '') {
               const scadentaISO = parseDDMMYYYY(scadentaDate);
               if (scadentaISO) {
-                rowDate = new Date(scadentaISO + 'T12:00:00');
+                const scadentaDateObj = new Date(scadentaISO + 'T12:00:00');
+                // Only use SCADENTA if it falls within the date interval (or no interval constraints)
+                if ((!start || scadentaDateObj >= start) && (!end || scadentaDateObj <= end)) {
+                  rowDate = scadentaDateObj;
+                  dateSource = 'SCADENTA';
+                }
               }
             }
             
-            // If no valid date in SCADENTA, fall back to TERM_PLATA column (index 5)
+            // If SCADENTA is null, unparseable, or outside interval, fall back to TERM_PLATA column (index 5)
             if (!rowDate) {
               const termPlataDate = row[5];
               if (termPlataDate && termPlataDate.trim() !== '') {
                 const termISO = parseDDMMYYYY(termPlataDate);
                 if (termISO) {
-                  rowDate = new Date(termISO + 'T12:00:00');
+                  const termPlataDateObj = new Date(termISO + 'T12:00:00');
+                  // Only use TERM_PLATA if it falls within the date interval (or no interval constraints)
+                  if ((!start || termPlataDateObj >= start) && (!end || termPlataDateObj <= end)) {
+                    rowDate = termPlataDateObj;
+                    dateSource = 'TERM_PLATA';
+                  }
                 }
               }
             }
             
-            // Final fallback to selected date columns
+            // Final fallback to selected date columns (also check interval)
             if (!rowDate && anafSelectedDateColumns.length > 0) {
               for (const dateColumnIndex of anafSelectedDateColumns) {
                 if (dateColumnIndex !== 5 && ![4, 6, 7].includes(dateColumnIndex)) { // Skip already checked columns
@@ -2617,20 +2637,21 @@ function App() {
                   if (dateValue) {
                     const rowISO = parseDDMMYYYY(dateValue);
                     if (rowISO) {
-                      rowDate = new Date(rowISO + 'T12:00:00');
-                      break;
+                      const fallbackDateObj = new Date(rowISO + 'T12:00:00');
+                      // Only use fallback date if it falls within the interval
+                      if ((!start || fallbackDateObj >= start) && (!end || fallbackDateObj <= end)) {
+                        rowDate = fallbackDateObj;
+                        dateSource = `Column_${dateColumnIndex}`;
+                        break;
+                      }
                     }
                   }
                 }
               }
             }
 
-            // Apply date filtering only if we have valid start/end dates and the row has a valid date
-            if (start && rowDate && rowDate < start) return;
-            if (end && rowDate && rowDate > end) return;
-            
-            // Skip rows with no valid date only if we have date constraints and the row date is required
-            // For now, allow rows with no date to pass through
+            // Skip rows with no valid date within interval
+            if (!rowDate) return;
 
             // Apply subtraction filter based on selected filter column
             let matchesSubtractFilter = false;
