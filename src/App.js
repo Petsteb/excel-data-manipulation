@@ -2597,8 +2597,13 @@ function App() {
     if (!startDate || !endDate) return { startDate: null, endDate: null };
     
     // Add 1 month to both dates and set day to 25th
+    // For start date: +1 month, day = 25
     const anafStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 25);
-    const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 25);
+    
+    // For end date: +1 month, but ensure we go to at least the 25th of that month
+    // If the original end date is before the 25th, we still want to include the 25th
+    const preliminaryEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, endDate.getDate());
+    const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, Math.max(25, endDate.getDate()));
     
     // Format back to DD/MM/YYYY
     const formatDate = (date) => {
