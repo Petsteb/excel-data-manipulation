@@ -348,6 +348,10 @@ function App() {
         setAnafSelectedDateColumns(settings.anafSelectedDateColumns || []);
         setContabilitateSelectedDateColumns(settings.contabilitateSelectedDateColumns || []);
         
+        // Load account file assignments from settings
+        setAnafAccountFiles(settings.anafAccountFiles || {});
+        setContaAccountFiles(settings.contaAccountFiles || {});
+        
         // Load saved layout positions only for current panels
         if (settings.panelPositions) {
           const defaultPanelPositions = {
@@ -1082,8 +1086,37 @@ function App() {
       assignments[account] = [];
     });
     
-    // For each account, find all matching files that haven't been used
+    // Special handling for ANAF accounts 1/4423 and 1/4424 - they should both use the same imp_1 file
+    if (isAnaf) {
+      const specialAccounts = ['1/4423', '1/4424'];
+      const availableSpecialAccounts = specialAccounts.filter(acc => accountList.includes(acc));
+      
+      if (availableSpecialAccounts.length > 0) {
+        // Find imp_1 file
+        const imp1File = fileList.find(file => {
+          const fileName = (file.name || file.fileName || '').toLowerCase();
+          return fileName.includes('imp_1');
+        });
+        
+        if (imp1File) {
+          const fileId = imp1File.filePath || imp1File.name;
+          // Assign the same file to both accounts
+          availableSpecialAccounts.forEach(account => {
+            assignments[account] = [fileId];
+          });
+          // Don't mark this file as used since both accounts should share it
+          // usedFiles.add(fileId); // Commenting this out allows sharing
+        }
+      }
+    }
+    
+    // For all other accounts, find matching files that haven't been used
     accountList.forEach(account => {
+      // Skip special accounts that were already handled
+      if (isAnaf && ['1/4423', '1/4424'].includes(account)) {
+        return;
+      }
+      
       const availableFiles = getFilesForAccount(account, fileList, isAnaf).filter(
         file => !usedFiles.has(file.filePath || file.name)
       );
@@ -1764,6 +1797,19 @@ function App() {
       setAnafSubtractionEnabled(enabledStates);
     } catch (error) {
       console.error('Failed to save ANAF subtraction states:', error);
+    }
+  };
+
+  const saveAccountFileAssignments = async (anafAssignments, contaAssignments) => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        anafAccountFiles: anafAssignments || anafAccountFiles,
+        contaAccountFiles: contaAssignments || contaAccountFiles
+      });
+    } catch (error) {
+      console.error('Failed to save account file assignments:', error);
     }
   };
 
@@ -3163,6 +3209,7 @@ function App() {
       // Auto-assign files to accounts
       const anafAssignments = autoAssignFilesToAccounts(newData, availableAnafAccounts, true);
       setAnafAccountFiles(anafAssignments);
+      saveAccountFileAssignments(anafAssignments, null);
       
       // Extract column names from ANAF files
       await extractAnafColumnNames();
@@ -3217,6 +3264,7 @@ function App() {
           // Auto-assign files to accounts
           const anafAssignments = autoAssignFilesToAccounts(newData, availableAnafAccounts, true);
           setAnafAccountFiles(anafAssignments);
+          saveAccountFileAssignments(anafAssignments, null);
         }
         
         // Extract column names from ANAF files (main processing batch)
@@ -7058,10 +7106,12 @@ function App() {
                           newAssigned = [...currentAssigned, fileId];
                         }
                         
-                        setAnafAccountFiles({
+                        const updatedAnafFiles = {
                           ...anafAccountFiles,
                           [anafContextMenu.account]: newAssigned
-                        });
+                        };
+                        setAnafAccountFiles(updatedAnafFiles);
+                        saveAccountFileAssignments(updatedAnafFiles, null);
                       }}
                       style={{
                         padding: '4px 6px',
