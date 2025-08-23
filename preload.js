@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectExcelFiles: () => ipcRenderer.invoke('select-excel-files'),
   readExcelFiles: (filePaths) => ipcRenderer.invoke('read-excel-files', filePaths),
   mergeAndSaveExcel: (data) => ipcRenderer.invoke('merge-and-save-excel', data),
+  createSummaryWorkbook: (data) => ipcRenderer.invoke('create-summary-workbook', data),
   saveFileDialog: () => ipcRenderer.invoke('save-file-dialog'),
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   loadSettings: () => ipcRenderer.invoke('load-settings'),

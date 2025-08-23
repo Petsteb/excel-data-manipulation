@@ -746,3 +746,65 @@ ipcMain.handle('load-settings', async () => {
 ipcMain.handle('save-settings', async (event, settings) => {
   return saveSettings(settings);
 });
+
+// Handle creating summary workbook with multiple worksheets
+ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryData }) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Add each worksheet
+    summaryData.worksheets.forEach((worksheetData, index) => {
+      const worksheet = workbook.addWorksheet(worksheetData.name);
+      
+      // Add data to worksheet
+      worksheetData.data.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          const cellRef = worksheet.getCell(rowIndex + 1, colIndex + 1);
+          cellRef.value = cell;
+          
+          // Style header row
+          if (rowIndex === 0) {
+            cellRef.font = { bold: true };
+            cellRef.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE0E0E0' }
+            };
+            cellRef.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          }
+        });
+      });
+      
+      // Auto-fit columns
+      worksheet.columns.forEach((column, colIndex) => {
+        let maxLength = 0;
+        worksheetData.data.forEach(row => {
+          if (row[colIndex] && row[colIndex].toString().length > maxLength) {
+            maxLength = row[colIndex].toString().length;
+          }
+        });
+        column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+      });
+    });
+    
+    // Save the workbook
+    await workbook.xlsx.writeFile(outputPath);
+    
+    return {
+      success: true,
+      outputPath: outputPath,
+      message: 'Summary workbook created successfully'
+    };
+  } catch (error) {
+    console.error('Error creating summary workbook:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});

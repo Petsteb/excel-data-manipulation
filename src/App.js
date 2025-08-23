@@ -3043,12 +3043,25 @@ function App() {
     }
   };
 
-  // Drag and drop handlers
+  // Drag and drop handlers for file uploads
   const [dragActive, setDragActive] = useState({ conta: false, anaf: false });
 
-  const handleDragOver = (e) => {
+  const handleFileDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  // Combined handler for both layout drag and file drag
+  const handleCombinedDragOver = (e) => {
+    // Handle file drag over
+    if (e.dataTransfer.types.includes('Files')) {
+      handleFileDragOver(e);
+    }
+    
+    // Handle layout drag over
+    if (isLayoutMode && draggedElement) {
+      handleDragOver(e);
+    }
   };
 
   const handleDragEnter = (e, type) => {
@@ -3314,16 +3327,6 @@ function App() {
 
 
   const handleGenerateSummary = async () => {
-    if (anafFiles.length === 0) {
-      setStatus('Please select ANAF files first');
-      return;
-    }
-    
-    if (anafCommonLines < 0 || anafCommonLines > 100) {
-      setStatus('Please enter a valid number of common lines (0-100)');
-      return;
-    }
-
     try {
       setIsProcessing(true);
       setStatus('Choosing save location...');
@@ -3335,39 +3338,110 @@ function App() {
         return;
       }
 
-      setStatus('Generating summary and processing ANAF files...');
+      setStatus('Generating summary worksheets...');
       
-      // Generate summary that includes data from both batches
-      const summaryData = {
-        contabilitateFiles: contabilitateFiles,
-        anafFiles: anafFiles,
-        totalFiles: contabilitateFiles.length + anafFiles.length,
-        contabilitateRowCount: contabilitateFiles.reduce((total, file) => total + file.rowCount, 0),
-        anafRowCount: anafFiles.reduce((total, file) => total + file.rowCount, 0)
+      // Parse conta anaf relations (reverse the mapping from conta->anaf to anaf->conta)
+      const relations = {};
+      Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
+        anafAccounts.forEach(anafAccount => {
+          if (!relations[anafAccount]) {
+            relations[anafAccount] = [];
+          }
+          relations[anafAccount].push(contaAccount);
+        });
+      });
+
+      // Generate Relations Summary
+      const relationsSummary = [];
+      relationsSummary.push(['ANAF Account', 'Conta Accounts', 'ANAF Sum', 'Conta Sum', 'Difference']);
+      
+      Object.entries(relations).forEach(([anafAccount, contaAccounts]) => {
+        const anafSum = anafAccountSums[anafAccount] || 0;
+        let contaSum = 0;
+        
+        // Sum all related conta accounts
+        contaAccounts.forEach(contaAccount => {
+          contaSum += accountSums[contaAccount] || 0;
+        });
+        
+        const difference = anafSum - contaSum;
+        relationsSummary.push([
+          anafAccount,
+          contaAccounts.join(', '),
+          anafSum,
+          contaSum,
+          difference
+        ]);
+      });
+
+      // Generate Accounts Summary
+      const accountsSummary = [];
+      accountsSummary.push(['Account', 'Type', 'Sum', 'Files Used']);
+      
+      // Add Conta accounts
+      Object.entries(accountSums).forEach(([account, sum]) => {
+        const filesUsed = contaAccountFiles[account] || [];
+        const fileNames = filesUsed.map(filePath => {
+          // Extract filename from path
+          const file = contabilitateFiles.find(f => (f.filePath || f.name) === filePath);
+          return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+        });
+        
+        accountsSummary.push([
+          account,
+          'Conta',
+          sum,
+          fileNames.join(', ') || 'All detected files'
+        ]);
+      });
+      
+      // Add ANAF accounts
+      Object.entries(anafAccountSums).forEach(([account, sum]) => {
+        const filesUsed = anafAccountFiles[account] || [];
+        const fileNames = filesUsed.map(filePath => {
+          // Extract filename from path
+          const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
+          return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+        });
+        
+        accountsSummary.push([
+          account,
+          'ANAF',
+          sum,
+          fileNames.join(', ') || 'All detected files'
+        ]);
+      });
+
+      // Create the summary workbook with two worksheets
+      const summaryWorkbookData = {
+        worksheets: [
+          {
+            name: 'Relations Summary',
+            data: relationsSummary
+          },
+          {
+            name: 'Accounts Summary',
+            data: accountsSummary
+          }
+        ]
       };
-      
-      // Process only ANAF files for file generation
-      const result = await window.electronAPI.mergeAndSaveExcel({
-        filesData: anafFiles,
-        commonLines: parseInt(anafCommonLines),
+
+      const result = await window.electronAPI.createSummaryWorkbook({
         outputPath,
-        dateColumnIndices: anafSelectedDateColumns,
-        dateColumnsWithTime: anafDateColumnsWithTime,
-        columnNamesRow: parseInt(anafColumnNamesRow)
+        summaryData: summaryWorkbookData
       });
 
       if (result.success) {
         setCreatedFilePath(result.outputPath);
-        // Enhanced summary with both batch information
-        const enhancedSummary = {
-          ...result.summary,
-          contabilitateInfo: summaryData,
-          processedBatch: 'ANAF'
-        };
-        setProcessingSummary(enhancedSummary);
-        setStatus(`Successfully created merged file: ${result.outputPath}`);
+        setProcessingSummary({
+          totalRelations: relationsSummary.length - 1, // Exclude header
+          totalAccounts: accountsSummary.length - 1, // Exclude header
+          contaAccounts: Object.keys(accountSums).length,
+          anafAccounts: Object.keys(anafAccountSums).length
+        });
+        setStatus(`Successfully created summary file: ${result.outputPath}`);
       } else {
-        setStatus(`Error merging files: ${result.error}`);
+        setStatus(`Error creating summary: ${result.error}`);
       }
     } catch (error) {
       setStatus(`Error: ${error.message}`);
@@ -4695,7 +4769,7 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
-          onDragOver={handleDragOver}
+          onDragOver={handleCombinedDragOver}
           onDragEnter={(e) => handleDragEnter(e, 'conta')}
           onDragLeave={(e) => handleDragLeave(e, 'conta')}
           onDrop={handleContaDrop}
@@ -4776,7 +4850,7 @@ function App() {
           draggable={isLayoutMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
-          onDragOver={handleDragOver}
+          onDragOver={handleCombinedDragOver}
           onDragEnter={(e) => handleDragEnter(e, 'anaf')}
           onDragLeave={(e) => handleDragLeave(e, 'anaf')}
           onDrop={handleAnafDrop}
@@ -5947,9 +6021,9 @@ function App() {
           <button 
             className="merge-button" 
             onClick={handleGenerateSummary}
-            disabled={isProcessing || anafFiles.length === 0}
+            disabled={isProcessing}
           >
-            {isProcessing ? 'Processing...' : t('generateSummary')}
+            {isProcessing ? 'Creating Summary...' : t('generateSummary')}
           </button>
         </div>
         
