@@ -2672,8 +2672,80 @@ function App() {
     };
   };
 
+  // Helper function to determine if an account is a conta account or ANAF account
+  const isContaAccount = (accountNumber) => {
+    // Check if the account exists as a key in accountMappings (conta accounts)
+    return accountMappings.hasOwnProperty(accountNumber);
+  };
+
+  const isAnafAccount = (accountNumber) => {
+    // Check if the account exists as a value in any accountMappings (ANAF accounts)
+    return Object.values(accountMappings).some(anafAccounts => 
+      anafAccounts.includes(accountNumber)
+    );
+  };
+
+  // Function to automatically categorize and move accounts to correct sections
+  const categorizeAccount = (accountNumber) => {
+    if (isContaAccount(accountNumber)) {
+      // Add to conta accounts if not already there
+      if (!selectedAccounts.includes(accountNumber)) {
+        setSelectedAccounts(prev => [...prev, accountNumber]);
+      }
+      // Remove from ANAF accounts if it was there by mistake
+      if (selectedAnafAccounts.includes(accountNumber)) {
+        setSelectedAnafAccounts(prev => prev.filter(acc => acc !== accountNumber));
+      }
+    } else if (isAnafAccount(accountNumber)) {
+      // Add to ANAF accounts if not already there
+      if (!selectedAnafAccounts.includes(accountNumber)) {
+        setSelectedAnafAccounts(prev => [...prev, accountNumber]);
+      }
+      // Remove from conta accounts if it was there by mistake
+      if (selectedAccounts.includes(accountNumber)) {
+        setSelectedAccounts(prev => prev.filter(acc => acc !== accountNumber));
+      }
+    }
+  };
+
+  // Auto-categorize accounts when mappings change
+  useEffect(() => {
+    const allSelectedAccounts = [...selectedAccounts, ...selectedAnafAccounts];
+    let needsRecategorization = false;
+    
+    allSelectedAccounts.forEach(account => {
+      const shouldBeContaAccount = isContaAccount(account);
+      const shouldBeAnafAccount = isAnafAccount(account);
+      const isInContaSection = selectedAccounts.includes(account);
+      const isInAnafSection = selectedAnafAccounts.includes(account);
+      
+      if (shouldBeContaAccount && !isInContaSection) {
+        needsRecategorization = true;
+      } else if (shouldBeAnafAccount && !isInAnafSection) {
+        needsRecategorization = true;
+      }
+    });
+    
+    if (needsRecategorization) {
+      console.log('[DEBUG] Auto-categorizing accounts based on relations');
+      allSelectedAccounts.forEach(account => {
+        categorizeAccount(account);
+      });
+    }
+  }, [accountMappings, selectedAccounts, selectedAnafAccounts]);
+
   // Unified calculation for both Conta and ANAF accounts
   const handleCalculateAllSums = () => {
+    console.log('[DEBUG] Starting handleCalculateAllSums');
+    console.log('[DEBUG] selectedAccounts:', selectedAccounts);
+    console.log('[DEBUG] selectedAnafAccounts:', selectedAnafAccounts);
+    
+    // First, automatically categorize any misplaced accounts
+    const allSelectedAccounts = [...selectedAccounts, ...selectedAnafAccounts];
+    allSelectedAccounts.forEach(account => {
+      categorizeAccount(account);
+    });
+    
     let totalCalculated = 0;
     
     // Calculate Conta sums if any conta accounts are selected
