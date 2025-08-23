@@ -2320,6 +2320,7 @@ function App() {
     const endISO = parseDDMMYYYY(endDate);
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+    
 
     anafFiles.forEach((file, fileIndex) => {
       if (file.data && Array.isArray(file.data)) {
