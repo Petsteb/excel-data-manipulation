@@ -3358,35 +3358,24 @@ function App() {
       
       // Generate Relations Summary (if selected)
       if (selectedWorksheets.relationsSummary) {
-        // Parse conta anaf relations (reverse the mapping from conta->anaf to anaf->conta)
-        const relations = {};
-        Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
-          anafAccounts.forEach(anafAccount => {
-            if (!relations[anafAccount]) {
-              relations[anafAccount] = [];
-            }
-            relations[anafAccount].push(contaAccount);
-          });
-        });
-
         const relationsSummary = [];
-        relationsSummary.push(['ANAF Account', 'Conta Accounts', 'ANAF Sum', 'Conta Sum', 'Difference']);
+        relationsSummary.push(['Conta Account', 'ANAF Accounts', 'Conta Sum', 'ANAF Sum', 'Difference']);
         
-        Object.entries(relations).forEach(([anafAccount, contaAccounts]) => {
-          const anafSum = anafAccountSums[anafAccount] || 0;
-          let contaSum = 0;
+        Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
+          const contaSum = accountSums[contaAccount] || 0;
+          let anafSum = 0;
           
-          // Sum all related conta accounts
-          contaAccounts.forEach(contaAccount => {
-            contaSum += accountSums[contaAccount] || 0;
+          // Sum all related anaf accounts
+          anafAccounts.forEach(anafAccount => {
+            anafSum += anafAccountSums[anafAccount] || 0;
           });
           
-          const difference = anafSum - contaSum;
+          const difference = contaSum - anafSum;
           relationsSummary.push([
-            anafAccount,
-            contaAccounts.join(', '),
-            anafSum,
+            contaAccount,
+            anafAccounts.join(', '),
             contaSum,
+            anafSum,
             difference
           ]);
         });
@@ -3422,11 +3411,25 @@ function App() {
         // Add ANAF accounts
         Object.entries(anafAccountSums).forEach(([account, sum]) => {
           const filesUsed = anafAccountFiles[account] || [];
-          const fileNames = filesUsed.map(filePath => {
-            // Extract filename from path
-            const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
-            return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
-          });
+          
+          // If no specific files assigned, get all files that match this account via detection
+          let fileNames = [];
+          if (filesUsed.length > 0) {
+            fileNames = filesUsed.map(filePath => {
+              // Extract filename from path
+              const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
+              return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+            });
+          } else {
+            // Find files that would be detected for this account
+            const detectedFiles = anafFiles.filter(file => {
+              const fileName = file.name || file.fileName || '';
+              // Use the same detection logic as getFilesForAccount
+              return fileName.toLowerCase().includes(account.toLowerCase()) || 
+                     fileName.toLowerCase().includes(account.replace('/', '_').toLowerCase());
+            });
+            fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
+          }
           
           accountsSummary.push([
             account,
@@ -3476,7 +3479,9 @@ function App() {
 
       const result = await window.electronAPI.createSummaryWorkbook({
         outputPath,
-        summaryData: summaryWorkbookData
+        summaryData: summaryWorkbookData,
+        anafDateColumns: anafSelectedDateColumns,
+        anafDateColumnsWithTime: anafDateColumnsWithTime
       });
 
       if (result.success) {

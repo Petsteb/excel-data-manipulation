@@ -748,19 +748,48 @@ ipcMain.handle('save-settings', async (event, settings) => {
 });
 
 // Handle creating summary workbook with multiple worksheets
-ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryData }) => {
+ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryData, anafDateColumns = [], anafDateColumnsWithTime = [] }) => {
   try {
     const workbook = new ExcelJS.Workbook();
     
     // Add each worksheet
     summaryData.worksheets.forEach((worksheetData, index) => {
       const worksheet = workbook.addWorksheet(worksheetData.name);
+      const isAnafMergedData = worksheetData.name === 'ANAF Merged Data';
       
       // Add data to worksheet
       worksheetData.data.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
           const cellRef = worksheet.getCell(rowIndex + 1, colIndex + 1);
           cellRef.value = cell;
+          
+          // Apply date formatting for ANAF Merged Data worksheet
+          if (isAnafMergedData && rowIndex > 0) { // Skip header row
+            // Column index in original data (subtract 1 for Source column)
+            const originalColIndex = colIndex - 1;
+            
+            if (anafDateColumns.includes(originalColIndex)) {
+              // Check if this is a date column
+              if (cell && typeof cell === 'string') {
+                try {
+                  // Try to parse the date
+                  const dateValue = new Date(cell);
+                  if (!isNaN(dateValue.getTime())) {
+                    cellRef.value = dateValue;
+                    
+                    // Apply date format based on whether time is included
+                    if (anafDateColumnsWithTime.includes(originalColIndex)) {
+                      cellRef.numFmt = 'dd/mm/yyyy hh:mm:ss';
+                    } else {
+                      cellRef.numFmt = 'dd/mm/yyyy';
+                    }
+                  }
+                } catch (error) {
+                  // If date parsing fails, keep original value
+                }
+              }
+            }
+          }
           
           // Style header row
           if (rowIndex === 0) {
