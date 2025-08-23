@@ -3421,17 +3421,17 @@ function App() {
             });
           } else {
             // For accounts like 1/4423 and 1/4424, they should use files with "imp_1" pattern
-            // Extract the numeric part after the slash or use the full account for matching
+            // Extract the first part before the slash for file matching
             let searchPattern = account;
             if (account.includes('/')) {
-              searchPattern = account.split('/')[1]; // Get "4423" from "1/4423"
+              searchPattern = account.split('/')[0]; // Get "1" from "1/4423" or "1/4424"
             }
             
             const detectedFiles = anafFiles.filter(file => {
               const fileName = (file.name || file.fileName || '').toLowerCase();
               const accountPattern = searchPattern.toLowerCase();
               
-              // Look for imp_X pattern where X matches the account number
+              // Look for imp_X pattern where X matches the first part of the account
               return fileName.includes(`imp_${accountPattern}`) || 
                      fileName.includes(`imp_${account.toLowerCase()}`) ||
                      fileName.includes(accountPattern);
