@@ -808,3 +808,57 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
     };
   }
 });
+
+// Handle merging ANAF data without saving to disk (returns data for worksheet inclusion)
+ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateColumnIndices = [], dateColumnsWithTime = [], columnNamesRow = 1 }) => {
+  try {
+    const mergedData = [];
+    let totalDataRows = 0;
+    
+    const yRowIndex = (columnNamesRow || 1) - 1; // Convert to 0-based index
+    
+    // Add common header lines from first file
+    for (let i = 0; i < commonLines; i++) {
+      if (filesData[0].data[i]) {
+        const headerRow = ['Source', ...filesData[0].data[i]];
+        mergedData.push(headerRow);
+      }
+    }
+    
+    // Add data from all files
+    filesData.forEach((fileData, fileIndex) => {
+      const fileName = fileData.fileName || `File ${fileIndex + 1}`;
+      
+      // Add data rows (skip common header lines)
+      for (let rowIndex = commonLines; rowIndex < fileData.data.length; rowIndex++) {
+        const row = fileData.data[rowIndex];
+        if (row && row.length > 0) {
+          // Filter out completely empty rows
+          const nonEmptyValues = row.filter(cell => cell !== null && cell !== undefined && cell !== '');
+          if (nonEmptyValues.length > 0) {
+            const dataRow = [fileName, ...row];
+            mergedData.push(dataRow);
+            totalDataRows++;
+          }
+        }
+      }
+    });
+    
+    return {
+      success: true,
+      mergedData: mergedData,
+      summary: {
+        totalFiles: filesData.length,
+        totalDataRows: totalDataRows,
+        totalRows: mergedData.length
+      }
+    };
+  } catch (error) {
+    console.error('Error merging ANAF data:', error);
+    return {
+      success: false,
+      error: error.message,
+      mergedData: null
+    };
+  }
+});

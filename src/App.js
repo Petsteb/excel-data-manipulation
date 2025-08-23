@@ -230,6 +230,13 @@ function App() {
   const [contaAccountFiles, setContaAccountFiles] = useState({});
   const [anafAccountFiles, setAnafAccountFiles] = useState({});
   
+  // Worksheet selection state for Generate Summary
+  const [selectedWorksheets, setSelectedWorksheets] = useState({
+    relationsSummary: true,
+    accountsSummary: true,
+    anafMergedData: true
+  });
+  
   // Account mapping state (1 conta account to multiple anaf accounts)
   // Default mappings from conta anaf.txt
   const defaultAccountMappings = {
@@ -304,6 +311,7 @@ function App() {
   const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
+    { id: 'worksheet-selection-panel', name: 'Worksheet Selection Panel', type: 'panel', active: true },
     { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
@@ -3327,6 +3335,12 @@ function App() {
 
 
   const handleGenerateSummary = async () => {
+    // Validate at least one worksheet is selected
+    if (Object.values(selectedWorksheets).every(v => !v)) {
+      setStatus('Please select at least one worksheet to generate');
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setStatus('Choosing save location...');
@@ -3340,90 +3354,124 @@ function App() {
 
       setStatus('Generating summary worksheets...');
       
-      // Parse conta anaf relations (reverse the mapping from conta->anaf to anaf->conta)
-      const relations = {};
-      Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
-        anafAccounts.forEach(anafAccount => {
-          if (!relations[anafAccount]) {
-            relations[anafAccount] = [];
-          }
-          relations[anafAccount].push(contaAccount);
-        });
-      });
-
-      // Generate Relations Summary
-      const relationsSummary = [];
-      relationsSummary.push(['ANAF Account', 'Conta Accounts', 'ANAF Sum', 'Conta Sum', 'Difference']);
+      const worksheets = [];
       
-      Object.entries(relations).forEach(([anafAccount, contaAccounts]) => {
-        const anafSum = anafAccountSums[anafAccount] || 0;
-        let contaSum = 0;
-        
-        // Sum all related conta accounts
-        contaAccounts.forEach(contaAccount => {
-          contaSum += accountSums[contaAccount] || 0;
+      // Generate Relations Summary (if selected)
+      if (selectedWorksheets.relationsSummary) {
+        // Parse conta anaf relations (reverse the mapping from conta->anaf to anaf->conta)
+        const relations = {};
+        Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
+          anafAccounts.forEach(anafAccount => {
+            if (!relations[anafAccount]) {
+              relations[anafAccount] = [];
+            }
+            relations[anafAccount].push(contaAccount);
+          });
         });
-        
-        const difference = anafSum - contaSum;
-        relationsSummary.push([
-          anafAccount,
-          contaAccounts.join(', '),
-          anafSum,
-          contaSum,
-          difference
-        ]);
-      });
 
-      // Generate Accounts Summary
-      const accountsSummary = [];
-      accountsSummary.push(['Account', 'Type', 'Sum', 'Files Used']);
-      
-      // Add Conta accounts
-      Object.entries(accountSums).forEach(([account, sum]) => {
-        const filesUsed = contaAccountFiles[account] || [];
-        const fileNames = filesUsed.map(filePath => {
-          // Extract filename from path
-          const file = contabilitateFiles.find(f => (f.filePath || f.name) === filePath);
-          return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+        const relationsSummary = [];
+        relationsSummary.push(['ANAF Account', 'Conta Accounts', 'ANAF Sum', 'Conta Sum', 'Difference']);
+        
+        Object.entries(relations).forEach(([anafAccount, contaAccounts]) => {
+          const anafSum = anafAccountSums[anafAccount] || 0;
+          let contaSum = 0;
+          
+          // Sum all related conta accounts
+          contaAccounts.forEach(contaAccount => {
+            contaSum += accountSums[contaAccount] || 0;
+          });
+          
+          const difference = anafSum - contaSum;
+          relationsSummary.push([
+            anafAccount,
+            contaAccounts.join(', '),
+            anafSum,
+            contaSum,
+            difference
+          ]);
         });
         
-        accountsSummary.push([
-          account,
-          'Conta',
-          sum,
-          fileNames.join(', ') || 'All detected files'
-        ]);
-      });
-      
-      // Add ANAF accounts
-      Object.entries(anafAccountSums).forEach(([account, sum]) => {
-        const filesUsed = anafAccountFiles[account] || [];
-        const fileNames = filesUsed.map(filePath => {
-          // Extract filename from path
-          const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
-          return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+        worksheets.push({
+          name: 'Relations Summary',
+          data: relationsSummary
         });
-        
-        accountsSummary.push([
-          account,
-          'ANAF',
-          sum,
-          fileNames.join(', ') || 'All detected files'
-        ]);
-      });
+      }
 
-      // Create the summary workbook with two worksheets
+      // Generate Accounts Summary (if selected)
+      if (selectedWorksheets.accountsSummary) {
+        const accountsSummary = [];
+        accountsSummary.push(['Account', 'Type', 'Sum', 'Files Used']);
+        
+        // Add Conta accounts
+        Object.entries(accountSums).forEach(([account, sum]) => {
+          const filesUsed = contaAccountFiles[account] || [];
+          const fileNames = filesUsed.map(filePath => {
+            // Extract filename from path
+            const file = contabilitateFiles.find(f => (f.filePath || f.name) === filePath);
+            return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+          });
+          
+          accountsSummary.push([
+            account,
+            'Conta',
+            sum,
+            fileNames.join(', ') || 'All detected files'
+          ]);
+        });
+        
+        // Add ANAF accounts
+        Object.entries(anafAccountSums).forEach(([account, sum]) => {
+          const filesUsed = anafAccountFiles[account] || [];
+          const fileNames = filesUsed.map(filePath => {
+            // Extract filename from path
+            const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
+            return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
+          });
+          
+          accountsSummary.push([
+            account,
+            'ANAF',
+            sum,
+            fileNames.join(', ') || 'All detected files'
+          ]);
+        });
+        
+        worksheets.push({
+          name: 'Accounts Summary',
+          data: accountsSummary
+        });
+      }
+
+      // Generate ANAF Merged Data (if selected and ANAF files available)
+      let anafMergedData = null;
+      if (selectedWorksheets.anafMergedData && anafFiles.length > 0) {
+        if (anafCommonLines < 0 || anafCommonLines > 100) {
+          setStatus('Please enter a valid number of common lines (0-100) for ANAF data merging');
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Generate merged ANAF data using the original logic
+        const mergeResult = await window.electronAPI.mergeAnafData({
+          filesData: anafFiles,
+          commonLines: parseInt(anafCommonLines),
+          dateColumnIndices: anafSelectedDateColumns,
+          dateColumnsWithTime: anafDateColumnsWithTime,
+          columnNamesRow: parseInt(anafColumnNamesRow)
+        });
+        
+        if (mergeResult.success) {
+          anafMergedData = mergeResult.mergedData;
+          worksheets.push({
+            name: 'ANAF Merged Data',
+            data: anafMergedData
+          });
+        }
+      }
+
+      // Create the summary workbook with selected worksheets
       const summaryWorkbookData = {
-        worksheets: [
-          {
-            name: 'Relations Summary',
-            data: relationsSummary
-          },
-          {
-            name: 'Accounts Summary',
-            data: accountsSummary
-          }
-        ]
+        worksheets: worksheets
       };
 
       const result = await window.electronAPI.createSummaryWorkbook({
@@ -5976,6 +6024,115 @@ function App() {
           </div>
         </div>
         
+        {/* Worksheet Selection Panel */}
+        <div 
+          className="upload-section panel"
+          data-panel="worksheet-selection-panel"
+          draggable={isLayoutMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'worksheet-selection-panel', type: 'panel' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('worksheet-selection-panel').x}px`,
+            top: `${getVisualPosition('worksheet-selection-panel').y}px`,
+            width: `${getVisualPosition('worksheet-selection-panel').width}px`,
+            height: `${getVisualPosition('worksheet-selection-panel').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10
+          }}
+        >
+          {isLayoutMode && (
+            <div 
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'worksheet-selection-panel')}
+            />
+          )}
+          <div className="panel-content">
+            {isDeveloperMode && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '4px', 
+                right: '4px', 
+                fontSize: '10px', 
+                color: 'var(--theme-text-color, #666)', 
+                opacity: 0.7,
+                userSelect: 'none',
+                pointerEvents: 'none' 
+              }}>
+                worksheet-selection-panel
+              </div>
+            )}
+            
+            <h3>Summary Worksheets</h3>
+            <p style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--theme-text-color, #666)' }}>
+              Select which worksheets to include in the generated summary file:
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedWorksheets.relationsSummary}
+                  onChange={(e) => setSelectedWorksheets({
+                    ...selectedWorksheets,
+                    relationsSummary: e.target.checked
+                  })}
+                />
+                <span>Relations Summary</span>
+                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
+                  (ANAF ↔ Conta account relationships and differences)
+                </span>
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedWorksheets.accountsSummary}
+                  onChange={(e) => setSelectedWorksheets({
+                    ...selectedWorksheets,
+                    accountsSummary: e.target.checked
+                  })}
+                />
+                <span>Accounts Summary</span>
+                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
+                  (All account sums and file usage)
+                </span>
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedWorksheets.anafMergedData}
+                  onChange={(e) => setSelectedWorksheets({
+                    ...selectedWorksheets,
+                    anafMergedData: e.target.checked
+                  })}
+                />
+                <span>ANAF Merged Data</span>
+                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
+                  (All ANAF files combined into one table)
+                  {anafFiles.length === 0 && (
+                    <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - No ANAF files loaded</em>
+                  )}
+                </span>
+              </label>
+            </div>
+            
+            {Object.values(selectedWorksheets).every(v => !v) && (
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '10px', 
+                backgroundColor: 'var(--theme-warning-bg, rgba(245, 158, 11, 0.1))',
+                color: 'var(--theme-warning, #f59e0b)',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                ⚠️ Please select at least one worksheet to generate
+              </div>
+            )}
+          </div>
+        </div>
+        
         {/* Generate Summary Button */}
         <div 
           className="merge-section panel button-panel"
@@ -6021,7 +6178,7 @@ function App() {
           <button 
             className="merge-button" 
             onClick={handleGenerateSummary}
-            disabled={isProcessing}
+            disabled={isProcessing || Object.values(selectedWorksheets).every(v => !v)}
           >
             {isProcessing ? 'Creating Summary...' : t('generateSummary')}
           </button>
