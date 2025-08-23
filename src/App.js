@@ -2409,12 +2409,19 @@ function App() {
     let totalProcessedRows = 0;
     let totalFilteredOutRows = 0;
     let totalRowsChecked = 0;
+    let dateFilteredOutRows = 0;
+    let sumDetails = [];
 
     // Parse dates at function level so both main and subtraction calculations can use them
     const startISO = parseDDMMYYYY(startDate);
     const endISO = parseDDMMYYYY(endDate);
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+    
+    console.log(`[ANAF DEBUG] Starting calculation for account: ${account}`);
+    console.log(`[ANAF DEBUG] Date range: ${startDate} to ${endDate}`);
+    console.log(`[ANAF DEBUG] Filter: ${filterColumn} = "${filterValue}", Sum: ${sumColumn}`);
+    console.log(`[ANAF DEBUG] Subtraction config:`, subtractConfig);
     
     // Get assigned files for this account, fallback to all files if none assigned
     const assignedFileIds = anafAccountFiles[account] || [];
@@ -2429,11 +2436,17 @@ function App() {
           return false;
         });
 
+    console.log(`[ANAF DEBUG] Processing ${filesToProcess.length} files for account ${account}`);
+    
     filesToProcess.forEach((file, fileIndex) => {
+      const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
+      console.log(`[ANAF DEBUG] File ${fileIndex + 1}: ${fileName}`);
+      
       if (file.data && Array.isArray(file.data)) {
         
         let processedRows = 0;
         let filteredOutRows = 0;
+        let dateFilteredRows = 0;
         
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
@@ -2486,11 +2499,18 @@ function App() {
           
           // If both SCADENTA and TERM_PLATA are null or unparseable, skip the row
           if (!rowDate) {
+            dateFilteredRows++;
+            dateFilteredOutRows++;
             return; // Skip rows with no valid date in SCADENTA or TERM_PLATA
           }
 
           // Apply interval filtering after selecting date source
           if ((start && rowDate < start) || (end && rowDate > end)) {
+            dateFilteredRows++;
+            dateFilteredOutRows++;
+            if (index <= 5 || sumaPlataValue > 1000) {
+              console.log(`[ANAF DEBUG] Row ${index}: Date ${rowDate.toISOString().split('T')[0]} outside interval [${startDate}, ${endDate}] - SKIPPED`);
+            }
             return; // Skip rows outside the date interval
           }
 
@@ -2520,42 +2540,61 @@ function App() {
             if (!matchesFilter) {
               filteredOutRows++;
               totalFilteredOutRows++;
+              if (index <= 5 || sumaPlataValue > 1000) {
+                console.log(`[ANAF DEBUG] Row ${index}: ${filterColumn}="${ctgSumeValue}" != "${filterValue}" - FILTERED OUT`);
+              }
               return;
             }
-          } else {
           }
 
 
           // Add to sum based on selected sum column
+          let valueToAdd = 0;
           
-          // Show full row data for rows with non-zero values to understand data structure
-          if (sumaPlataValue > 0 || incasariValue > 0 || sumaNEValue > 0 || rambursariValue > 0) {
-          }
           switch (sumColumn) {
             case 'SUMA_PLATA':
-              sum += sumaPlataValue;
-              processedRows++;
-              totalProcessedRows++;
+              valueToAdd = sumaPlataValue;
               break;
             case 'INCASARI':
-              sum += incasariValue;
-              processedRows++;
+              valueToAdd = incasariValue;
               break;
             case 'SUMA_NEACHITATA':
-              sum += sumaNEValue;
-              processedRows++;
+              valueToAdd = sumaNEValue;
               break;
             case 'RAMBURSARI':
-              sum += rambursariValue;
-              processedRows++;
+              valueToAdd = rambursariValue;
               break;
+            default:
+              valueToAdd = sumaPlataValue;
+          }
+          
+          sum += valueToAdd;
+          processedRows++;
+          totalProcessedRows++;
+          
+          // Debug significant values or first few rows
+          if (index <= 10 || valueToAdd > 1000 || Math.abs(valueToAdd) > 1000) {
+            const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'No date';
+            console.log(`[ANAF DEBUG] Row ${index}: ${dateStr} | ${filterColumn}=${ctgSumeValue} | ${sumColumn}=${valueToAdd} | Running sum: ${sum.toFixed(2)}`);
+            sumDetails.push({
+              row: index,
+              date: dateStr,
+              filter: `${filterColumn}=${ctgSumeValue}`,
+              value: valueToAdd,
+              runningSum: sum
+            });
           }
         });
+        
+        console.log(`[ANAF DEBUG] File ${fileIndex + 1} (${fileName}) summary: ${processedRows} processed, ${filteredOutRows} filtered out, ${dateFilteredRows} date filtered`);
       }
     });
 
+    console.log(`[ANAF DEBUG] Main calculation complete: ${sum.toFixed(2)} (${totalProcessedRows} rows processed, ${totalFilteredOutRows} filtered out, ${dateFilteredOutRows} date filtered)`);
+    
     // Calculate subtraction if configured
     if (subtractConfig && subtractConfig.filterValue) {
+      console.log(`[ANAF DEBUG] Starting subtraction calculation with config:`, subtractConfig);
       filesToProcess.forEach(file => {
         if (file.data && Array.isArray(file.data)) {
           
@@ -2648,9 +2687,25 @@ function App() {
           });
         }
       });
+      console.log(`[ANAF DEBUG] Subtraction complete: ${subtractSum.toFixed(2)}`);
+    } else {
+      console.log(`[ANAF DEBUG] No subtraction configured`);
     }
 
-    return sum - subtractSum;
+    const finalResult = sum - subtractSum;
+    console.log(`[ANAF DEBUG] Final result for account ${account}: ${finalResult.toFixed(2)} (${sum.toFixed(2)} - ${subtractSum.toFixed(2)})`);
+    
+    // Show top contributing rows if result is significant
+    if (Math.abs(finalResult) > 10000) {
+      console.log(`[ANAF DEBUG] Top contributing rows:`);
+      sumDetails.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+                .slice(0, 5)
+                .forEach(detail => {
+                  console.log(`[ANAF DEBUG] Row ${detail.row}: ${detail.date} | ${detail.filter} | Value: ${detail.value}`);
+                });
+    }
+
+    return finalResult;
   };
 
   const handleCalculateAnafSums = () => {
