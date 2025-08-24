@@ -1,0 +1,3 @@
+unele tranzactii apar in anaf la 3 luni dupa sau 6 lnui inainte de cand apar in conta
+am date in anf care sunt pe 20 si 21 ale lunii urmatoare nu 25
+nu am implementat nimic pe 446.XXX
