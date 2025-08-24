@@ -4422,6 +4422,19 @@ function App() {
       
       setIsLayoutMode(newLayoutMode);
       
+      // Close screen mode when exiting layout mode (screen mode only works in layout mode)
+      if (isScreenMode) {
+        setIsScreenMode(false);
+        setScreenModeStep('idle');
+        setCreatingScreenRect(null);
+        setShowScreenNamePopup(false);
+        setNewScreenName('');
+        setShowScreenContextMenu(false);
+        setSelectedScreenForContext(null);
+        setShowScreenRenamePopup(false);
+        setScreenRenameValue('');
+      }
+      
       // Apply normalized positions and bounds to state
       setPanelPositions(normalization.normalizedPositions);
       setWorkspaceBounds(normalization.normalizedBounds);
@@ -5318,7 +5331,7 @@ function App() {
           }}
           disabled={!isLayoutMode}
         >
-          👁️
+          SCREEN
         </button>
       </div>
 
@@ -5416,7 +5429,7 @@ function App() {
               }}
               title="Add/Edit Home Screen"
             >
-              🏠 HOME
+              HOME
             </button>
             
             {screenModeStep === 'creating-home' && (
@@ -5436,7 +5449,7 @@ function App() {
                   }}
                   title="Confirm Home Screen"
                 >
-                  ✓
+                  OK
                 </button>
                 <button
                   className="screen-mode-btn cancel-btn"
@@ -5453,7 +5466,7 @@ function App() {
                   }}
                   title="Cancel Home Screen Creation"
                 >
-                  ✕
+                  X
                 </button>
               </div>
             )}
@@ -5473,7 +5486,7 @@ function App() {
               }}
               title={screenModeStep === 'viewing-home' ? 'Hide Home Screen' : 'View Home Screen'}
             >
-              {screenModeStep === 'viewing-home' ? '👁️ HIDE' : '👁️ VIEW'}
+              {screenModeStep === 'viewing-home' ? 'HIDE' : 'VIEW'}
             </button>
           </div>
 
@@ -5495,7 +5508,7 @@ function App() {
               }}
               title="Add Secondary Screen"
             >
-              ➕ SECONDARY
+              SECONDARY
             </button>
             
             {screenModeStep === 'creating-secondary' && (
@@ -5515,7 +5528,7 @@ function App() {
                   }}
                   title="Confirm Secondary Screen"
                 >
-                  ✓
+                  OK
                 </button>
                 <button
                   className="screen-mode-btn cancel-btn"
@@ -5532,7 +5545,7 @@ function App() {
                   }}
                   title="Cancel Secondary Screen Creation"
                 >
-                  ✕
+                  X
                 </button>
               </div>
             )}
@@ -5552,7 +5565,7 @@ function App() {
               }}
               title={screenModeStep === 'viewing-secondary' ? 'Hide Secondary Screens' : 'View Secondary Screens'}
             >
-              {screenModeStep === 'viewing-secondary' ? '👁️ HIDE' : '👁️ VIEW'}
+              {screenModeStep === 'viewing-secondary' ? 'HIDE' : 'VIEW'}
             </button>
           </div>
         </div>
@@ -5803,11 +5816,11 @@ function App() {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
-              🏷️ Rename
+              Rename
             </button>
             <button
               className="context-menu-item"
-              onClick={() => deleteSecondaryScreen(selectedScreenForContext.id)}
+              onClick={() => selectedScreenForContext && deleteSecondaryScreen(selectedScreenForContext.id)}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -5821,7 +5834,7 @@ function App() {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
-              🗑️ Delete
+              Delete
             </button>
           </div>
         </div>
@@ -6550,7 +6563,7 @@ function App() {
                         }}
                         title="Add account"
                       >
-                        ✓
+                        OK
                       </button>
                       <button
                         onClick={handleAccountInputCancel}
@@ -6570,7 +6583,7 @@ function App() {
                         }}
                         title="Cancel"
                       >
-                        ✕
+                        X
                       </button>
                     </div>
                   ) : (
@@ -6649,14 +6662,14 @@ function App() {
                         style={anafInputStyles.submitButton}
                         title="Add ANAF account"
                       >
-                        ✓
+                        OK
                       </button>
                       <button
                         onClick={handleAnafAccountInputCancel}
                         style={anafInputStyles.cancelButton}
                         title="Cancel"
                       >
-                        ✕
+                        X
                       </button>
                     </div>
                   ) : (
@@ -8001,7 +8014,7 @@ function App() {
             )}
 
             {/* Secondary View Tabs */}
-            {secondaryScreens.map((view, index) => (
+            {secondaryScreens.map((screen, index) => (
               <div
                 key={screen.id}
                 className={`screen-tab ${currentScreen === screen.id ? 'active' : ''}`}
