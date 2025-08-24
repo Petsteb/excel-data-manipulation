@@ -3,11 +3,38 @@ import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
-import dashboardIcon from './dashboard.png';
+// Icon imports - light mode
+import dashboardIconLight from './assets/icons/light/dashboard.png';
+import idIconLight from './assets/icons/light/id.png';
+import settingIconLight from './assets/icons/light/setting.png';
+import allDirectionsIconLight from './assets/icons/light/all-directions.png';
+import displayFrameIconLight from './assets/icons/light/display-frame.png';
+
+// Icon imports - dark mode
+import dashboardIconDark from './assets/icons/dark/dashboard.png';
+import idIconDark from './assets/icons/dark/id.png';
+import settingIconDark from './assets/icons/dark/setting.png';
+import allDirectionsIconDark from './assets/icons/dark/all-directions.png';
+import displayFrameIconDark from './assets/icons/dark/display-frame.png';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
+
+// Helper function to get the appropriate icon based on theme
+const getIcon = (iconName, currentTheme) => {
+  const isDarkMode = currentTheme && currentTheme.name && (currentTheme.name.includes('dark') || currentTheme.name.includes('night'));
+  
+  const icons = {
+    dashboard: { light: dashboardIconLight, dark: dashboardIconDark },
+    id: { light: idIconLight, dark: idIconDark },
+    setting: { light: settingIconLight, dark: settingIconDark },
+    allDirections: { light: allDirectionsIconLight, dark: allDirectionsIconDark },
+    displayFrame: { light: displayFrameIconLight, dark: displayFrameIconDark }
+  };
+  
+  return icons[iconName] ? icons[iconName][isDarkMode ? 'dark' : 'light'] : null;
+};
 
 // Global theme constants for improved modularity
 const GLOBAL_TEXT_COLOR = 'var(--theme-text-color, #333333)';
@@ -299,6 +326,7 @@ function App() {
   const [screenContextMenu, setScreenContextMenu] = useState(null);
   const [screenRenameDialog, setScreenRenameDialog] = useState(null);
   const [renameInputValue, setRenameInputValue] = useState('');
+  const [showColorPicker, setShowColorPicker] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
     'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -554,7 +582,7 @@ function App() {
         document.removeEventListener('click', handleDocumentClick);
       };
     }
-  }, [contextMenu, anafContextMenu, mappingContextMenu, screenContextMenu]);
+  }, [contextMenu, anafContextMenu, mappingContextMenu, screenContextMenu, showColorPicker]);
 
   // Apply theme when component mounts and currentTheme changes
   useEffect(() => {
@@ -3141,6 +3169,9 @@ function App() {
     if (screenRenameDialog) {
       setScreenRenameDialog(null);
     }
+    if (showColorPicker) {
+      setShowColorPicker(null);
+    }
   };
 
   const handleDateRangeChange = (start, end) => {
@@ -4977,6 +5008,18 @@ function App() {
     setScreenContextMenu(null);
   };
 
+  const changeScreenColor = (screenId, newColor) => {
+    setSecondaryScreens(prev => 
+      prev.map(screen => 
+        screen.id === screenId 
+          ? { ...screen, color: newColor }
+          : screen
+      )
+    );
+    setShowColorPicker(null);
+    setScreenContextMenu(null);
+  };
+
   const handleScreenRename = (screen) => {
     setScreenRenameDialog(screen);
     setRenameInputValue(screen.name);
@@ -5145,6 +5188,50 @@ function App() {
             />
           );
         })}
+        
+        {/* Screen visualizations on minimap */}
+        {(screenModeStep === 'viewing-home' || screenModeStep === 'viewing-secondary') && (
+          <>
+            {/* Home screen visualization */}
+            {screenModeStep === 'viewing-home' && homeScreen && (
+              <div
+                className="minimap-screen"
+                style={{
+                  position: 'absolute',
+                  left: `${(homeScreen.x - workspaceBounds.minX) * scale + MINIMAP_PADDING}px`,
+                  top: `${(homeScreen.y - workspaceBounds.minY) * scale + MINIMAP_PADDING}px`,
+                  width: `${homeScreen.width * scale}px`,
+                  height: `${homeScreen.height * scale}px`,
+                  border: '2px solid #3498db',
+                  borderRadius: '2px',
+                  backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              />
+            )}
+            
+            {/* Secondary screens visualization */}
+            {screenModeStep === 'viewing-secondary' && secondaryScreens.map(screen => (
+              <div
+                key={`minimap-${screen.id}`}
+                className="minimap-screen"
+                style={{
+                  position: 'absolute',
+                  left: `${(screen.x - workspaceBounds.minX) * scale + MINIMAP_PADDING}px`,
+                  top: `${(screen.y - workspaceBounds.minY) * scale + MINIMAP_PADDING}px`,
+                  width: `${screen.width * scale}px`,
+                  height: `${screen.height * scale}px`,
+                  border: `2px solid ${screen.color || '#e74c3c'}`,
+                  borderRadius: '2px',
+                  backgroundColor: `${screen.color || '#e74c3c'}20`,
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              />
+            ))}
+          </>
+        )}
         
         {/* Viewport indicator */}
         <div
@@ -5343,23 +5430,21 @@ function App() {
           onClick={toggleLayoutMode}
           title="Toggle Layout Mode"
         >
-          <img src={dashboardIcon} alt="Layout" className="layout-icon" />
+          <img src={getIcon('dashboard', currentTheme)} alt="Layout" className="layout-icon" />
         </button>
         <button 
           className={`layout-button ${isDeveloperMode ? 'active' : ''}`}
           onClick={() => setIsDeveloperMode(!isDeveloperMode)}
           title="Toggle Developer Mode"
-          style={{ fontSize: '14px', fontWeight: 'bold' }}
         >
-          DEV
+          <img src={getIcon('id', currentTheme)} alt="Developer" className="layout-icon" />
         </button>
         <button 
           className="layout-button"
           onClick={() => setShowLayoutControlPanel(true)}
           title="Configure Layout Mode Only Panels"
-          style={{ fontSize: '14px', fontWeight: 'bold' }}
         >
-          ⚙️
+          <img src={getIcon('setting', currentTheme)} alt="Settings" className="layout-icon" />
         </button>
         <button 
           className={`layout-button ${isPanningDisabled ? 'active' : ''}`}
@@ -5369,11 +5454,18 @@ function App() {
             fontSize: '12px', 
             fontWeight: 'bold',
             opacity: !isLayoutMode ? 1 : 0.5,
-            cursor: !isLayoutMode ? 'pointer' : 'not-allowed'
+            cursor: !isLayoutMode ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
           disabled={isLayoutMode}
         >
-          📌 {isPanningDisabled ? 'LOCKED' : 'FREE'}
+          <img 
+            src={getIcon('allDirections', currentTheme)} 
+            alt="Toggle Panning" 
+            style={{ width: '16px', height: '16px' }} 
+          />
         </button>
         <button 
           className={`layout-button ${isScreenMode ? 'active' : ''}`}
@@ -5383,11 +5475,18 @@ function App() {
             fontSize: '14px', 
             fontWeight: 'bold',
             opacity: isLayoutMode ? 1 : 0.5,
-            cursor: isLayoutMode ? 'pointer' : 'not-allowed'
+            cursor: isLayoutMode ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
           disabled={!isLayoutMode}
         >
-          SCREEN
+          <img 
+            src={getIcon('displayFrame', currentTheme)} 
+            alt="Screen Mode" 
+            style={{ width: '16px', height: '16px' }} 
+          />
         </button>
       </div>
 
@@ -5888,7 +5987,10 @@ function App() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                deleteSecondaryScreen(screenContextMenu.screen.id);
+                if (screenContextMenu.screen.id !== 'home') {
+                  setShowColorPicker(screenContextMenu.screen);
+                  setScreenContextMenu(null);
+                }
               }}
               style={{
                 width: '100%',
@@ -5896,12 +5998,55 @@ function App() {
                 border: 'none',
                 backgroundColor: 'transparent',
                 textAlign: 'left',
-                cursor: 'pointer',
+                cursor: screenContextMenu.screen.id !== 'home' ? 'pointer' : 'not-allowed',
                 fontSize: '14px',
-                color: '#dc3545'
+                color: screenContextMenu.screen.id !== 'home' ? '#333' : '#999',
+                borderBottom: '1px solid #f0f0f0',
+                opacity: screenContextMenu.screen.id !== 'home' ? 1 : 0.5
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) => {
+                if (screenContextMenu.screen.id !== 'home') {
+                  e.target.style.backgroundColor = '#f8f9fa';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (screenContextMenu.screen.id !== 'home') {
+                  e.target.style.backgroundColor = 'transparent';
+                }
+              }}
+              disabled={screenContextMenu.screen.id === 'home'}
+            >
+              🎨 Change Color
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (screenContextMenu.screen.id !== 'home') {
+                  deleteSecondaryScreen(screenContextMenu.screen.id);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: screenContextMenu.screen.id !== 'home' ? 'pointer' : 'not-allowed',
+                fontSize: '14px',
+                color: screenContextMenu.screen.id !== 'home' ? '#dc3545' : '#999',
+                opacity: screenContextMenu.screen.id !== 'home' ? 1 : 0.5
+              }}
+              onMouseEnter={(e) => {
+                if (screenContextMenu.screen.id !== 'home') {
+                  e.target.style.backgroundColor = '#f8f9fa';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (screenContextMenu.screen.id !== 'home') {
+                  e.target.style.backgroundColor = 'transparent';
+                }
+              }}
+              disabled={screenContextMenu.screen.id === 'home'}
             >
               🗑️ Delete
             </button>
@@ -6020,6 +6165,96 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Color Picker Dialog */}
+      {showColorPicker && (
+        <div 
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000002
+          }}
+          onClick={() => setShowColorPicker(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              padding: '24px',
+              minWidth: '320px',
+              maxWidth: '400px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ 
+              margin: '0 0 16px 0', 
+              fontSize: '18px', 
+              fontWeight: '600', 
+              color: '#333' 
+            }}>
+              Choose Screen Color
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
+              {['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#f97316'].map(color => (
+                <div
+                  key={color}
+                  onClick={() => changeScreenColor(showColorPicker.id, color)}
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    backgroundColor: color,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    border: showColorPicker.color === color ? '3px solid #333' : '2px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.1s ease'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  {showColorPicker.color === color && (
+                    <div style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>✓</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowColorPicker(null)}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  backgroundColor: '#f8f9fa',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e9ecef'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -8082,6 +8317,7 @@ function App() {
               <div
                 className={`screen-tab ${currentScreen === 'home' ? 'active' : ''}`}
                 onClick={() => navigateToScreen('home')}
+                onContextMenu={(e) => handleScreenRightClick(e, { id: 'home', name: 'Home' })}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
@@ -8105,7 +8341,7 @@ function App() {
                   color: 'white',
                   borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
                              tabPosition === 'right' ? '8px 0 0 8px' :
-                             tabPosition === 'top' ? '8px 8px 0 0' : '0 0 8px 8px',
+                             tabPosition === 'top' ? '0 0 8px 8px' : '8px 8px 0 0',
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'bold',
@@ -8165,7 +8401,7 @@ function App() {
                   color: 'white',
                   borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
                              tabPosition === 'right' ? '8px 0 0 8px' :
-                             tabPosition === 'top' ? '8px 8px 0 0' : '0 0 8px 8px',
+                             tabPosition === 'top' ? '0 0 8px 8px' : '8px 8px 0 0',
                   cursor: 'pointer',
                   fontSize: '10px',
                   fontWeight: 'bold',
