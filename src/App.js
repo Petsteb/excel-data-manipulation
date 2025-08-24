@@ -286,16 +286,21 @@ function App() {
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
   
-  // View Mode states
-  const [isViewMode, setIsViewMode] = useState(false);
-  const [viewModeStep, setViewModeStep] = useState('idle'); // 'idle', 'creating-home', 'creating-secondary', 'viewing-home', 'viewing-secondary'
-  const [homeView, setHomeView] = useState(null); // { x, y, width, height }
-  const [secondaryViews, setSecondaryViews] = useState([]); // [{ id, name, x, y, width, height, color }]
-  const [currentView, setCurrentView] = useState('home'); // 'home' or view id
+  // Screen Mode states
+  const [isScreenMode, setIsScreenMode] = useState(false);
+  const [screenModeStep, setScreenModeStep] = useState('idle'); // 'idle', 'creating-home', 'creating-secondary', 'viewing-home', 'viewing-secondary'
+  const [homeScreen, setHomeScreen] = useState(null); // { x, y, width, height }
+  const [secondaryScreens, setSecondaryScreens] = useState([]); // [{ id, name, x, y, width, height, color }]
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' or screen id
   const [tabPosition, setTabPosition] = useState('left'); // 'left', 'right', 'top', 'bottom'
-  const [creatingViewRect, setCreatingViewRect] = useState(null); // Temporary rectangle while creating view
-  const [showViewNamePopup, setShowViewNamePopup] = useState(false);
-  const [newViewName, setNewViewName] = useState('');
+  const [creatingScreenRect, setCreatingScreenRect] = useState(null); // Temporary rectangle while creating screen
+  const [showScreenNamePopup, setShowScreenNamePopup] = useState(false);
+  const [newScreenName, setNewScreenName] = useState('');
+  const [showScreenContextMenu, setShowScreenContextMenu] = useState(false);
+  const [screenContextMenuPosition, setScreenContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [selectedScreenForContext, setSelectedScreenForContext] = useState(null);
+  const [showScreenRenamePopup, setShowScreenRenamePopup] = useState(false);
+  const [screenRenameValue, setScreenRenameValue] = useState('');
   const [panelPositions, setPanelPositions] = useState({
     'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -318,7 +323,7 @@ function App() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [normalModeViewPosition, setNormalModeViewPosition] = useState({ x: 0, y: 0 }); // Store last normal mode view position
+  const [normalModeScreenPosition, setNormalModeScreenPosition] = useState({ x: 0, y: 0 }); // Store last normal mode screen position
   const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
     { id: 'contabilitate-upload-panel', name: 'Contabilitate Upload Panel', type: 'panel', active: true },
@@ -448,8 +453,8 @@ function App() {
         // This prevents issues with phantom panels from old layouts
         
         // Load saved normal mode view position or use defaults
-        if (settings.normalModeViewPosition) {
-          setNormalModeViewPosition(settings.normalModeViewPosition);
+        if (settings.normalModeScreenPosition) {
+          setNormalModeScreenPosition(settings.normalModeScreenPosition);
         }
         
         // Load saved conta date range and convert to DD/MM/YYYY display format
@@ -499,11 +504,11 @@ function App() {
         }
         
         // Load view system settings
-        if (settings.homeView) {
-          setHomeView(settings.homeView);
+        if (settings.homeScreen) {
+          setHomeScreen(settings.homeScreen);
         }
-        if (settings.secondaryViews) {
-          setSecondaryViews(settings.secondaryViews);
+        if (settings.secondaryScreens) {
+          setSecondaryScreens(settings.secondaryScreens);
         }
         if (settings.tabPosition) {
           setTabPosition(settings.tabPosition);
@@ -515,11 +520,11 @@ function App() {
           initializeCollisionMatrix();
           applyTheme(settings.theme || 'professional');
           
-          // If homeView exists and we're in normal mode, navigate to it
-          if (settings.homeView && !isLayoutMode) {
+          // If homeScreen exists and we're in normal mode, navigate to it
+          if (settings.homeScreen && !isLayoutMode) {
             const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-            const targetX = -(settings.homeView.x + settings.homeView.width / 2 - viewportWidth / 2);
-            const targetY = -(settings.homeView.y + settings.homeView.height / 2 - viewportHeight / 2);
+            const targetX = -(settings.homeScreen.x + settings.homeScreen.width / 2 - viewportWidth / 2);
+            const targetY = -(settings.homeScreen.y + settings.homeScreen.height / 2 - viewportHeight / 2);
             setPanOffset({ x: targetX, y: targetY });
           }
         }, 100);
@@ -537,20 +542,20 @@ function App() {
 
   // Auto-save view settings when they change
   useEffect(() => {
-    if (homeView || secondaryViews.length > 0) {
-      saveViewSettings();
+    if (homeScreen || secondaryScreens.length > 0) {
+      saveScreenSettings();
     }
-  }, [homeView, secondaryViews, tabPosition]);
+  }, [homeScreen, secondaryScreens, tabPosition]);
 
   // Handle document clicks to close context menu
   useEffect(() => {
-    if (contextMenu || anafContextMenu || mappingContextMenu) {
+    if (contextMenu || anafContextMenu || mappingContextMenu || showScreenContextMenu) {
       document.addEventListener('click', handleDocumentClick);
       return () => {
         document.removeEventListener('click', handleDocumentClick);
       };
     }
-  }, [contextMenu, anafContextMenu, mappingContextMenu]);
+  }, [contextMenu, anafContextMenu, mappingContextMenu, showScreenContextMenu]);
 
   // Apply theme when component mounts and currentTheme changes
   useEffect(() => {
@@ -594,27 +599,27 @@ function App() {
           centerViewOnWorkspace();
         } else {
           // Restore saved normal mode view position
-          setPanOffset(normalModeViewPosition);
+          setPanOffset(normalModeScreenPosition);
         }
       }, 200);
       
       return () => clearTimeout(restoreTimeout);
     }
-  }, [isLoading, normalModeViewPosition]);
+  }, [isLoading, normalModeScreenPosition]);
 
-  // Save normal mode view position when panning in normal mode
+  // Save normal mode screen position when panning in normal mode
   useEffect(() => {
     if (!isLoading && !isLayoutMode && !isPanning) {
       // Debounce saving to avoid too many writes during smooth panning
       const saveTimeout = setTimeout(() => {
-        if (panOffset.x !== normalModeViewPosition.x || panOffset.y !== normalModeViewPosition.y) {
-          saveNormalModeViewPosition();
+        if (panOffset.x !== normalModeScreenPosition.x || panOffset.y !== normalModeScreenPosition.y) {
+          saveNormalModeScreenPosition();
         }
       }, 1000); // Save 1 second after panning stops
       
       return () => clearTimeout(saveTimeout);
     }
-  }, [panOffset, isLayoutMode, isPanning, isLoading, normalModeViewPosition]);
+  }, [panOffset, isLayoutMode, isPanning, isLoading, normalModeScreenPosition]);
 
   // Apply theme to CSS variables
   const applyTheme = (themeKey) => {
@@ -3131,6 +3136,10 @@ function App() {
     if (mappingContextMenu) {
       setMappingContextMenu(null);
     }
+    if (showScreenContextMenu) {
+      setShowScreenContextMenu(false);
+      setSelectedScreenForContext(null);
+    }
   };
 
   const handleDateRangeChange = (start, end) => {
@@ -4246,7 +4255,7 @@ function App() {
         ...settings,
         panelPositions: customPositions || panelPositions,
         workspaceBounds: customBounds || workspaceBounds,
-        normalModeViewPosition
+        normalModeScreenPosition
       });
     } catch (error) {
       console.error('Failed to save layout settings:', error);
@@ -4254,14 +4263,14 @@ function App() {
   };
 
   // Save normal mode view position
-  const saveNormalModeViewPosition = async (position = null) => {
+  const saveNormalModeScreenPosition = async (position = null) => {
     try {
       const settings = await window.electronAPI.loadSettings();
       const positionToSave = position || panOffset;
-      setNormalModeViewPosition(positionToSave);
+      setNormalModeScreenPosition(positionToSave);
       await window.electronAPI.saveSettings({
         ...settings,
-        normalModeViewPosition: positionToSave
+        normalModeScreenPosition: positionToSave
       });
     } catch (error) {
       console.error('Failed to save normal mode view position:', error);
@@ -4348,18 +4357,18 @@ function App() {
     return matrix;
   };
 
-  // Save view system settings
-  const saveViewSettings = async () => {
+  // Save screen system settings
+  const saveScreenSettings = async () => {
     try {
       const settings = await window.electronAPI.loadSettings();
       await window.electronAPI.saveSettings({
         ...settings,
-        homeView,
-        secondaryViews,
+        homeScreen,
+        secondaryScreens,
         tabPosition
       });
     } catch (error) {
-      console.error('Failed to save view settings:', error);
+      console.error('Failed to save screen settings:', error);
     }
   };
 
@@ -4368,8 +4377,8 @@ function App() {
     const newLayoutMode = !isLayoutMode;
     
     if (newLayoutMode) {
-      // Save current normal mode view position before entering layout mode
-      await saveNormalModeViewPosition();
+      // Save current normal mode screen position before entering layout mode
+      await saveNormalModeScreenPosition();
       
       setIsLayoutMode(newLayoutMode);
       
@@ -4385,7 +4394,7 @@ function App() {
         rebuildCollisionMatrix();
       }, 10);
       
-      // Center the view on the workspace when entering layout mode
+      // Center the screen on the workspace when entering layout mode
       setTimeout(() => {
         centerViewOnWorkspace();
       }, 50);
@@ -4395,12 +4404,12 @@ function App() {
       
       // Calculate what the normal mode view position should be
       let normalModePosition;
-      if (homeView) {
-        // Use homeView position if configured
+      if (homeScreen) {
+        // Use homeScreen position if configured
         const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
         normalModePosition = {
-          x: -(homeView.x + homeView.width / 2 - viewportWidth / 2),
-          y: -(homeView.y + homeView.height / 2 - viewportHeight / 2)
+          x: -(homeScreen.x + homeScreen.width / 2 - viewportWidth / 2),
+          y: -(homeScreen.y + homeScreen.height / 2 - viewportHeight / 2)
         };
       } else {
         // Fallback to calculated center (excluding layout-mode-only panels)
@@ -4409,7 +4418,7 @@ function App() {
       
       // Save the normalized layout and calculated normal mode position
       await saveLayoutSettings(normalization.normalizedPositions, normalization.normalizedBounds);
-      await saveNormalModeViewPosition(normalModePosition);
+      await saveNormalModeScreenPosition(normalModePosition);
       
       setIsLayoutMode(newLayoutMode);
       
@@ -4425,11 +4434,11 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Set the view to normal mode position after a delay
+      // Set the screen to normal mode position after a delay
       setTimeout(() => {
         setPanOffset(normalModePosition);
         // Update the stored normal mode position to match what we just set
-        setNormalModeViewPosition(normalModePosition);
+        setNormalModeScreenPosition(normalModePosition);
       }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
@@ -4644,19 +4653,19 @@ function App() {
   const handlePanStart = (e) => {
     if (draggedElement) return;
     
-    // In view mode, allow panning but block other interactions except for specific UI elements
-    if (isViewMode) {
+    // In screen mode, allow panning but block other interactions except for specific UI elements
+    if (isScreenMode) {
       const isOnThemeButton = e.target.closest('.theme-toggle') || e.target.closest('.language-toggle');
-      const isOnViewControls = e.target.closest('.view-mode-controls') || e.target.closest('.view-mode-btn') || e.target.closest('.view-mode-dropdown');
-      const isOnViewTabs = e.target.closest('.view-navigation-tabs');
+      const isOnScreenControls = e.target.closest('.screen-mode-controls') || e.target.closest('.screen-mode-btn') || e.target.closest('.screen-mode-dropdown');
+      const isOnScreenTabs = e.target.closest('.screen-navigation-tabs');
       const isOnTopControls = e.target.closest('.top-controls');
       
       // If clicking on UI controls, don't start panning - let the UI handle it
-      if (isOnThemeButton || isOnViewControls || isOnViewTabs || isOnTopControls) {
+      if (isOnThemeButton || isOnScreenControls || isOnScreenTabs || isOnTopControls) {
         return;
       }
       
-      // For all other clicks in view mode, allow panning
+      // For all other clicks in screen mode, allow panning
     }
     
     // Allow panning on empty space (not on panels) or when right-clicking in layout mode
@@ -4798,34 +4807,34 @@ function App() {
     }
   };
 
-  // View Mode Functions
+  // Screen Mode Functions
   const generateUniqueColor = () => {
     const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#ee5a6f', '#0abde3', '#10ac84'];
-    const usedColors = secondaryViews.map(view => view.color);
+    const usedColors = secondaryScreens.map(screen => screen.color);
     const availableColors = colors.filter(color => !usedColors.includes(color));
     return availableColors.length > 0 ? availableColors[0] : colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const toggleViewMode = () => {
+  const toggleScreenMode = () => {
     if (!isLayoutMode) return; // View mode only available in layout mode
     
-    const newViewMode = !isViewMode;
-    setIsViewMode(newViewMode);
+    const newScreenMode = !isScreenMode;
+    setIsScreenMode(newScreenMode);
     
-    if (!newViewMode) {
-      // Exiting view mode - reset all view mode states
-      setViewModeStep('idle');
-      setCreatingViewRect(null);
-      setShowViewNamePopup(false);
-      setNewViewName('');
+    if (!newScreenMode) {
+      // Exiting screen mode - reset all screen mode states
+      setScreenModeStep('idle');
+      setCreatingScreenRect(null);
+      setShowScreenNamePopup(false);
+      setNewScreenName('');
     }
   };
 
-  const startCreatingHomeView = () => {
-    setViewModeStep('creating-home');
+  const startCreatingHomeScreen = () => {
+    setScreenModeStep('creating-home');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
     // Center the view rectangle on the current viewport center
-    setCreatingViewRect({
+    setCreatingScreenRect({
       x: -panOffset.x + viewportWidth * 0.1,
       y: -panOffset.y + viewportHeight * 0.1,
       width: viewportWidth * 0.8,
@@ -4833,11 +4842,11 @@ function App() {
     });
   };
 
-  const startCreatingSecondaryView = () => {
-    setViewModeStep('creating-secondary');
+  const startCreatingSecondaryScreen = () => {
+    setScreenModeStep('creating-secondary');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
     // Center the view rectangle on the current viewport center
-    setCreatingViewRect({
+    setCreatingScreenRect({
       x: -panOffset.x + viewportWidth * 0.1,
       y: -panOffset.y + viewportHeight * 0.1,
       width: viewportWidth * 0.8,
@@ -4847,77 +4856,114 @@ function App() {
 
   // Update creating view rectangle to stay centered when panning
   useEffect(() => {
-    if (creatingViewRect && (viewModeStep === 'creating-home' || viewModeStep === 'creating-secondary')) {
+    if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-      setCreatingViewRect(prev => ({
+      setCreatingScreenRect(prev => ({
         ...prev,
         x: -panOffset.x + viewportWidth * 0.1,
         y: -panOffset.y + viewportHeight * 0.1
       }));
     }
-  }, [panOffset.x, panOffset.y, viewModeStep]);
+  }, [panOffset.x, panOffset.y, screenModeStep]);
 
-  const cancelViewCreation = () => {
-    setViewModeStep('idle');
-    setCreatingViewRect(null);
-    setShowViewNamePopup(false);
-    setNewViewName('');
+  const cancelScreenCreation = () => {
+    setScreenModeStep('idle');
+    setCreatingScreenRect(null);
+    setShowScreenNamePopup(false);
+    setNewScreenName('');
   };
 
-  const confirmViewCreation = () => {
-    if (!creatingViewRect) return;
+  const confirmScreenCreation = () => {
+    if (!creatingScreenRect) return;
     
-    if (viewModeStep === 'creating-home') {
-      setHomeView({ ...creatingViewRect });
-      setViewModeStep('idle');
-      setCreatingViewRect(null);
-    } else if (viewModeStep === 'creating-secondary') {
-      setShowViewNamePopup(true);
+    if (screenModeStep === 'creating-home') {
+      setHomeView({ ...creatingScreenRect });
+      setScreenModeStep('idle');
+      setCreatingScreenRect(null);
+    } else if (screenModeStep === 'creating-secondary') {
+      setShowScreenNamePopup(true);
     }
   };
 
-  const saveSecondaryView = () => {
-    if (!creatingViewRect || !newViewName.trim()) return;
+  const saveSecondaryScreen = () => {
+    if (!creatingScreenRect || !newScreenName.trim()) return;
     
-    const newView = {
+    const newScreen = {
       id: `view-${Date.now()}`,
-      name: newViewName.trim(),
-      ...creatingViewRect,
+      name: newScreenName.trim(),
+      ...creatingScreenRect,
       color: generateUniqueColor()
     };
     
-    setSecondaryViews(prev => [...prev, newView]);
-    setViewModeStep('idle');
-    setCreatingViewRect(null);
-    setShowViewNamePopup(false);
-    setNewViewName('');
+    setSecondaryScreens(prev => [...prev, newScreen]);
+    setScreenModeStep('idle');
+    setCreatingScreenRect(null);
+    setShowScreenNamePopup(false);
+    setNewScreenName('');
   };
 
-  const deleteSecondaryView = (viewId) => {
-    setSecondaryViews(prev => prev.filter(view => view.id !== viewId));
-    if (currentView === viewId) {
-      setCurrentView('home');
+  const handleScreenRightClick = (e, screen) => {
+    e.preventDefault();
+    setSelectedScreenForContext(screen);
+    setScreenContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowScreenContextMenu(true);
+  };
+
+  const deleteSecondaryScreen = (screenId) => {
+    setSecondaryScreens(prev => prev.filter(screen => screen.id !== screenId));
+    if (currentScreen === screenId) {
+      setCurrentScreen('home');
+    }
+    // Close context menu if open
+    setShowScreenContextMenu(false);
+    setSelectedScreenForContext(null);
+  };
+
+  const startScreenRename = () => {
+    if (selectedScreenForContext) {
+      setScreenRenameValue(selectedScreenForContext.name);
+      setShowScreenRenamePopup(true);
+      setShowScreenContextMenu(false);
     }
   };
 
-  const showHomeView = () => {
-    setViewModeStep(viewModeStep === 'viewing-home' ? 'idle' : 'viewing-home');
+  const saveScreenRename = () => {
+    if (selectedScreenForContext && screenRenameValue.trim()) {
+      setSecondaryScreens(prev => prev.map(screen => 
+        screen.id === selectedScreenForContext.id 
+          ? { ...screen, name: screenRenameValue.trim() }
+          : screen
+      ));
+      setShowScreenRenamePopup(false);
+      setSelectedScreenForContext(null);
+      setScreenRenameValue('');
+    }
   };
 
-  const showSecondaryViews = () => {
-    setViewModeStep(viewModeStep === 'viewing-secondary' ? 'idle' : 'viewing-secondary');
+  const cancelScreenRename = () => {
+    setShowScreenRenamePopup(false);
+    setSelectedScreenForContext(null);
+    setScreenRenameValue('');
   };
 
-  const navigateToView = (viewId) => {
+  const showHomeScreen = () => {
+    setScreenModeStep(screenModeStep === 'viewing-home' ? 'idle' : 'viewing-home');
+  };
+
+  const showSecondaryScreens = () => {
+    setScreenModeStep(screenModeStep === 'viewing-secondary' ? 'idle' : 'viewing-secondary');
+  };
+
+  const navigateToScreen = (screenId) => {
     if (isLayoutMode) return; // Only allow navigation in normal mode
     
-    const view = viewId === 'home' ? homeView : secondaryViews.find(v => v.id === viewId);
-    if (view) {
+    const screen = screenId === 'home' ? homeScreen : secondaryScreens.find(s => s.id === screenId);
+    if (screen) {
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-      const targetX = -(view.x + view.width / 2 - viewportWidth / 2);
-      const targetY = -(view.y + view.height / 2 - viewportHeight / 2);
+      const targetX = -(screen.x + screen.width / 2 - viewportWidth / 2);
+      const targetY = -(screen.y + screen.height / 2 - viewportHeight / 2);
       setPanOffset({ x: targetX, y: targetY });
-      setCurrentView(viewId);
+      setCurrentScreen(screenId);
     }
   };
 
@@ -5067,7 +5113,7 @@ function App() {
 
   // Handle resize start with grid snapping and collision prevention
   const handleResizeStart = (e, elementId) => {
-    if (!isLayoutMode) return;
+    if (!isLayoutMode || isScreenMode) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -5261,9 +5307,9 @@ function App() {
           ⚙️
         </button>
         <button 
-          className={`layout-button ${isViewMode ? 'active' : ''}`}
-          onClick={toggleViewMode}
-          title="View Mode - Configure Custom Views"
+          className={`layout-button ${isScreenMode ? 'active' : ''}`}
+          onClick={toggleScreenMode}
+          title="Screen Mode - Configure Custom Screens"
           style={{ 
             fontSize: '14px', 
             fontWeight: 'bold',
@@ -5276,10 +5322,10 @@ function App() {
         </button>
       </div>
 
-      {/* View Mode Overlay and UI */}
-      {isViewMode && !viewModeStep.includes('viewing') && !viewModeStep.includes('creating') && (
+      {/* Screen Mode Overlay and UI */}
+      {isScreenMode && !screenModeStep.includes('viewing') && !screenModeStep.includes('creating') && (
         <div 
-          className="view-mode-overlay"
+          className="screen-mode-overlay"
           style={{
             position: 'fixed',
             top: 0,
@@ -5293,10 +5339,10 @@ function App() {
         />
       )}
 
-      {/* View Mode Control Buttons */}
-      {isViewMode && (
+      {/* Screen Mode Control Buttons */}
+      {isScreenMode && (
         <div 
-          className="view-mode-controls"
+          className="screen-mode-controls"
           style={{
             position: 'fixed',
             top: '50%',
@@ -5322,28 +5368,28 @@ function App() {
               TAB POSITION: {tabPosition.toUpperCase()}
             </label>
             <select
-              className="view-mode-dropdown"
+              className="screen-mode-dropdown"
               value={tabPosition}
               onChange={(e) => setTabPosition(e.target.value)}
-              disabled={secondaryViews.length === 0}
+              disabled={secondaryScreens.length === 0}
               style={{
                 padding: '8px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: secondaryViews.length === 0 ? 'rgba(128, 128, 128, 0.5)' : GLOBAL_PRIMARY_COLOR,
+                backgroundColor: secondaryScreens.length === 0 ? 'rgba(128, 128, 128, 0.5)' : GLOBAL_PRIMARY_COLOR,
                 color: 'white',
-                cursor: secondaryViews.length === 0 ? 'not-allowed' : 'pointer',
+                cursor: secondaryScreens.length === 0 ? 'not-allowed' : 'pointer',
                 fontSize: '12px',
                 fontWeight: 'bold',
                 minWidth: '100px',
                 appearance: 'none',
-                backgroundImage: secondaryViews.length === 0 ? 'none' : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundImage: secondaryScreens.length === 0 ? 'none' : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right 8px center',
                 backgroundSize: '16px',
                 paddingRight: '32px'
               }}
-              title={secondaryViews.length === 0 ? 'No secondary views to configure' : 'Select tab position'}
+              title={secondaryScreens.length === 0 ? 'No secondary views to configure' : 'Select tab position'}
             >
               <option value="left" style={{ backgroundColor: '#2c3e50', color: 'white' }}>← Left Border</option>
               <option value="right" style={{ backgroundColor: '#2c3e50', color: 'white' }}>→ Right Border</option>
@@ -5355,8 +5401,8 @@ function App() {
           {/* Home View Section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <button
-              className="view-mode-btn"
-              onClick={startCreatingHomeView}
+              className="screen-mode-btn"
+              onClick={startCreatingHomeScreen}
               style={{
                 padding: '10px',
                 borderRadius: '8px',
@@ -5368,16 +5414,16 @@ function App() {
                 fontWeight: 'bold',
                 minWidth: '100px'
               }}
-              title="Add/Edit Home View"
+              title="Add/Edit Home Screen"
             >
               🏠 HOME
             </button>
             
-            {viewModeStep === 'creating-home' && (
+            {screenModeStep === 'creating-home' && (
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button
-                  className="view-mode-btn confirm-btn"
-                  onClick={confirmViewCreation}
+                  className="screen-mode-btn confirm-btn"
+                  onClick={confirmScreenCreation}
                   style={{
                     padding: '8px',
                     borderRadius: '6px',
@@ -5388,13 +5434,13 @@ function App() {
                     fontSize: '16px',
                     flex: 1
                   }}
-                  title="Confirm Home View"
+                  title="Confirm Home Screen"
                 >
                   ✓
                 </button>
                 <button
-                  className="view-mode-btn cancel-btn"
-                  onClick={cancelViewCreation}
+                  className="screen-mode-btn cancel-btn"
+                  onClick={cancelScreenCreation}
                   style={{
                     padding: '8px',
                     borderRadius: '6px',
@@ -5405,7 +5451,7 @@ function App() {
                     fontSize: '16px',
                     flex: 1
                   }}
-                  title="Cancel Home View Creation"
+                  title="Cancel Home Screen Creation"
                 >
                   ✕
                 </button>
@@ -5413,29 +5459,29 @@ function App() {
             )}
             
             <button
-              className="view-mode-btn"
-              onClick={showHomeView}
+              className="screen-mode-btn"
+              onClick={showHomeScreen}
               style={{
                 padding: '8px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: viewModeStep === 'viewing-home' ? '#e74c3c' : '#34495e',
+                backgroundColor: screenModeStep === 'viewing-home' ? '#e74c3c' : '#34495e',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: '12px',
                 minWidth: '100px'
               }}
-              title={viewModeStep === 'viewing-home' ? 'Hide Home View' : 'View Home View'}
+              title={screenModeStep === 'viewing-home' ? 'Hide Home Screen' : 'View Home Screen'}
             >
-              {viewModeStep === 'viewing-home' ? '👁️ HIDE' : '👁️ VIEW'}
+              {screenModeStep === 'viewing-home' ? '👁️ HIDE' : '👁️ VIEW'}
             </button>
           </div>
 
           {/* Secondary Views Section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <button
-              className="view-mode-btn"
-              onClick={startCreatingSecondaryView}
+              className="screen-mode-btn"
+              onClick={startCreatingSecondaryScreen}
               style={{
                 padding: '10px',
                 borderRadius: '8px',
@@ -5447,16 +5493,16 @@ function App() {
                 fontWeight: 'bold',
                 minWidth: '100px'
               }}
-              title="Add Secondary View"
+              title="Add Secondary Screen"
             >
               ➕ SECONDARY
             </button>
             
-            {viewModeStep === 'creating-secondary' && (
+            {screenModeStep === 'creating-secondary' && (
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button
-                  className="view-mode-btn confirm-btn"
-                  onClick={confirmViewCreation}
+                  className="screen-mode-btn confirm-btn"
+                  onClick={confirmScreenCreation}
                   style={{
                     padding: '8px',
                     borderRadius: '6px',
@@ -5467,13 +5513,13 @@ function App() {
                     fontSize: '16px',
                     flex: 1
                   }}
-                  title="Confirm Secondary View"
+                  title="Confirm Secondary Screen"
                 >
                   ✓
                 </button>
                 <button
-                  className="view-mode-btn cancel-btn"
-                  onClick={cancelViewCreation}
+                  className="screen-mode-btn cancel-btn"
+                  onClick={cancelScreenCreation}
                   style={{
                     padding: '8px',
                     borderRadius: '6px',
@@ -5484,7 +5530,7 @@ function App() {
                     fontSize: '16px',
                     flex: 1
                   }}
-                  title="Cancel Secondary View Creation"
+                  title="Cancel Secondary Screen Creation"
                 >
                   ✕
                 </button>
@@ -5492,39 +5538,39 @@ function App() {
             )}
             
             <button
-              className="view-mode-btn"
-              onClick={showSecondaryViews}
+              className="screen-mode-btn"
+              onClick={showSecondaryScreens}
               style={{
                 padding: '8px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: viewModeStep === 'viewing-secondary' ? '#e74c3c' : '#34495e',
+                backgroundColor: screenModeStep === 'viewing-secondary' ? '#e74c3c' : '#34495e',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: '12px',
                 minWidth: '100px'
               }}
-              title={viewModeStep === 'viewing-secondary' ? 'Hide Secondary Views' : 'View Secondary Views'}
+              title={screenModeStep === 'viewing-secondary' ? 'Hide Secondary Screens' : 'View Secondary Screens'}
             >
-              {viewModeStep === 'viewing-secondary' ? '👁️ HIDE' : '👁️ VIEW'}
+              {screenModeStep === 'viewing-secondary' ? '👁️ HIDE' : '👁️ VIEW'}
             </button>
           </div>
         </div>
       )}
 
       {/* View Creation Rectangle */}
-      {creatingViewRect && (viewModeStep === 'creating-home' || viewModeStep === 'creating-secondary') && (
+      {creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
         <div
-          className="view-creation-rect"
+          className="screen-creation-rect"
           style={{
             position: 'absolute',
-            left: `${creatingViewRect.x + panOffset.x}px`,
-            top: `${creatingViewRect.y + panOffset.y}px`,
-            width: `${creatingViewRect.width}px`,
-            height: `${creatingViewRect.height}px`,
-            border: `4px dashed ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
+            left: `${creatingScreenRect.x + panOffset.x}px`,
+            top: `${creatingScreenRect.y + panOffset.y}px`,
+            width: `${creatingScreenRect.width}px`,
+            height: `${creatingScreenRect.height}px`,
+            border: `4px dashed ${screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
             backgroundColor: 'transparent',
-            boxShadow: `inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 2px ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
+            boxShadow: `inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 2px ${screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
             zIndex: 10001,
             pointerEvents: 'none',
             borderRadius: '8px'
@@ -5535,7 +5581,7 @@ function App() {
               position: 'absolute',
               top: '10px',
               left: '10px',
-              backgroundColor: viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+              backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
               color: 'white',
               padding: '5px 10px',
               borderRadius: '4px',
@@ -5543,23 +5589,23 @@ function App() {
               fontWeight: 'bold'
             }}
           >
-            {viewModeStep === 'creating-home' ? 'HOME VIEW' : 'SECONDARY VIEW'}
+            {screenModeStep === 'creating-home' ? 'HOME SCREEN' : 'SECONDARY SCREEN'}
           </div>
         </div>
       )}
 
       {/* View Visualization Rectangles */}
-      {(viewModeStep === 'viewing-home' || viewModeStep === 'viewing-secondary') && (
+      {(screenModeStep === 'viewing-home' || screenModeStep === 'viewing-secondary') && (
         <>
-          {viewModeStep === 'viewing-home' && homeView && (
+          {screenModeStep === 'viewing-home' && homeScreen && (
             <div
-              className="view-visualization-rect"
+              className="screen-visualization-rect"
               style={{
                 position: 'absolute',
-                left: `${homeView.x + panOffset.x}px`,
-                top: `${homeView.y + panOffset.y}px`,
-                width: `${homeView.width}px`,
-                height: `${homeView.height}px`,
+                left: `${homeScreen.x + panOffset.x}px`,
+                top: `${homeScreen.y + panOffset.y}px`,
+                width: `${homeScreen.width}px`,
+                height: `${homeScreen.height}px`,
                 border: `3px solid ${GLOBAL_SUCCESS_COLOR}`,
                 borderRadius: '8px',
                 zIndex: 10001,
@@ -5595,32 +5641,29 @@ function App() {
             </div>
           )}
           
-          {viewModeStep === 'viewing-secondary' && secondaryViews.map(view => (
+          {screenModeStep === 'viewing-secondary' && secondaryScreens.map(screen => (
             <div
-              key={view.id}
-              className="view-visualization-rect"
+              key={screen.id}
+              className="screen-visualization-rect"
               style={{
                 position: 'absolute',
-                left: `${view.x + panOffset.x}px`,
-                top: `${view.y + panOffset.y}px`,
-                width: `${view.width}px`,
-                height: `${view.height}px`,
-                border: `3px solid ${view.color}`,
+                left: `${screen.x + panOffset.x}px`,
+                top: `${screen.y + panOffset.y}px`,
+                width: `${screen.width}px`,
+                height: `${screen.height}px`,
+                border: `3px solid ${screen.color}`,
                 borderRadius: '8px',
                 zIndex: 10001,
                 pointerEvents: 'auto'
               }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                deleteSecondaryView(view.id);
-              }}
+              onContextMenu={(e) => handleScreenRightClick(e, screen)}
             >
               <div
                 style={{
                   position: 'absolute',
                   top: '10px',
                   left: '10px',
-                  backgroundColor: view.color,
+                  backgroundColor: screen.color,
                   color: 'white',
                   padding: '5px 10px',
                   borderRadius: '4px',
@@ -5628,7 +5671,7 @@ function App() {
                   fontWeight: 'bold'
                 }}
               >
-                {view.name}
+                {screen.name}
               </div>
               <div
                 style={{
@@ -5647,14 +5690,14 @@ function App() {
       )}
 
       {/* Secondary View Name Popup */}
-      {showViewNamePopup && (
+      {showScreenNamePopup && (
         <div 
           className="popup-overlay" 
           onClick={() => {
-            setShowViewNamePopup(false);
-            setViewModeStep('idle');
-            setCreatingViewRect(null);
-            setNewViewName('');
+            setShowScreenNamePopup(false);
+            setScreenModeStep('idle');
+            setCreatingScreenRect(null);
+            setNewScreenName('');
           }}
         >
           <div className="popup-content" onClick={(e) => e.stopPropagation()}>
@@ -5663,10 +5706,10 @@ function App() {
               <button 
                 className="close-btn" 
                 onClick={() => {
-                  setShowViewNamePopup(false);
-                  setViewModeStep('idle');
-                  setCreatingViewRect(null);
-                  setNewViewName('');
+                  setShowScreenNamePopup(false);
+                  setScreenModeStep('idle');
+                  setCreatingScreenRect(null);
+                  setNewScreenName('');
                 }}
               >
                 ×
@@ -5675,8 +5718,8 @@ function App() {
             <div className="popup-body">
               <input
                 type="text"
-                value={newViewName}
-                onChange={(e) => setNewViewName(e.target.value)}
+                value={newScreenName}
+                onChange={(e) => setNewScreenName(e.target.value)}
                 placeholder="Enter view name..."
                 style={{
                   width: '100%',
@@ -5689,7 +5732,7 @@ function App() {
                   marginBottom: '15px'
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newViewName.trim()) {
+                  if (e.key === 'Enter' && newScreenName.trim()) {
                     saveSecondaryView();
                   }
                 }}
@@ -5699,26 +5742,149 @@ function App() {
                 <button
                   className="btn btn-secondary"
                   onClick={() => {
-                    setShowViewNamePopup(false);
-                    setViewModeStep('idle');
-                    setCreatingViewRect(null);
-                    setNewViewName('');
+                    setShowScreenNamePopup(false);
+                    setScreenModeStep('idle');
+                    setCreatingScreenRect(null);
+                    setNewScreenName('');
                   }}
                 >
                   Cancel
                 </button>
                 <button
                   className="btn btn-primary"
-                  onClick={saveSecondaryView}
-                  disabled={!newViewName.trim()}
+                  onClick={saveSecondaryScreen}
+                  disabled={!newScreenName.trim()}
                   style={{
-                    opacity: newViewName.trim() ? 1 : 0.5,
-                    cursor: newViewName.trim() ? 'pointer' : 'not-allowed'
+                    opacity: newScreenName.trim() ? 1 : 0.5,
+                    cursor: newScreenName.trim() ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  Save View
+                  Save Screen
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Screen Context Menu */}
+      {showScreenContextMenu && (
+        <div 
+          className="popup-overlay" 
+          onClick={() => setShowScreenContextMenu(false)}
+        >
+          <div 
+            className="context-menu"
+            style={{
+              position: 'absolute',
+              left: `${screenContextMenuPosition.x}px`,
+              top: `${screenContextMenuPosition.y}px`,
+              backgroundColor: 'white',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              zIndex: 10003,
+              minWidth: '120px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="context-menu-item"
+              onClick={startScreenRename}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              🏷️ Rename
+            </button>
+            <button
+              className="context-menu-item"
+              onClick={() => deleteSecondaryScreen(selectedScreenForContext.id)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#e74c3c'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Screen Rename Popup */}
+      {showScreenRenamePopup && (
+        <div 
+          className="popup-overlay" 
+          onClick={cancelScreenRename}
+        >
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Rename Screen</h3>
+              <button 
+                className="close-btn" 
+                onClick={cancelScreenRename}
+              >×</button>
+            </div>
+            <div className="popup-body">
+              <label htmlFor="screen-rename-input">Screen Name:</label>
+              <input
+                id="screen-rename-input"
+                type="text"
+                value={screenRenameValue}
+                onChange={(e) => setScreenRenameValue(e.target.value)}
+                placeholder="Enter screen name..."
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  marginTop: '5px'
+                }}
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && screenRenameValue.trim()) {
+                    saveScreenRename();
+                  } else if (e.key === 'Escape') {
+                    cancelScreenRename();
+                  }
+                }}
+              />
+            </div>
+            <div className="popup-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={cancelScreenRename}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={saveScreenRename}
+                disabled={!screenRenameValue.trim()}
+                style={{
+                  opacity: screenRenameValue.trim() ? 1 : 0.5,
+                  cursor: screenRenameValue.trim() ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Rename
+              </button>
             </div>
           </div>
         </div>
@@ -5748,7 +5914,7 @@ function App() {
         <div 
           className="upload-section panel"
           data-panel="contabilitate-upload-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           onDragOver={handleCombinedDragOver}
@@ -5770,7 +5936,7 @@ function App() {
             })
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'contabilitate-upload-panel')}
@@ -5829,7 +5995,7 @@ function App() {
         <div 
           className="upload-section panel"
           data-panel="anaf-upload-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-upload-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           onDragOver={handleCombinedDragOver}
@@ -5851,7 +6017,7 @@ function App() {
             })
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'anaf-upload-panel')}
@@ -5910,7 +6076,7 @@ function App() {
         <div 
           className="uploaded-files-summary panel"
           data-panel="contabilitate-summary-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -5923,7 +6089,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'contabilitate-summary-panel')}
@@ -5983,7 +6149,7 @@ function App() {
         <div 
           className="uploaded-files-summary panel"
           data-panel="anaf-summary-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -5996,7 +6162,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'anaf-summary-panel')}
@@ -6054,7 +6220,7 @@ function App() {
         <div 
           className="xy-selection-section panel"
           data-panel="anaf-header-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-header-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6068,7 +6234,7 @@ function App() {
             display: layoutModeOnlyPanels.includes('anaf-header-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'anaf-header-panel')}
@@ -6153,7 +6319,7 @@ function App() {
         <div 
           className="date-columns-section panel"
           data-panel="anaf-date-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-date-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6167,7 +6333,7 @@ function App() {
             display: layoutModeOnlyPanels.includes('anaf-date-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'anaf-date-panel')}
@@ -6253,7 +6419,7 @@ function App() {
         <div 
           className="conta-account-selection panel"
           data-panel="account-selection-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'account-selection-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6266,7 +6432,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'account-selection-panel')}
@@ -6569,7 +6735,7 @@ function App() {
         <div 
           className="account-mapping panel"
           data-panel="account-mapping-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'account-mapping-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6582,7 +6748,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'account-mapping-panel')}
@@ -6853,7 +7019,7 @@ function App() {
         <div 
           className="conta-sums panel"
           data-panel="sums-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'sums-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6867,7 +7033,7 @@ function App() {
             display: layoutModeOnlyPanels.includes('sums-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'sums-panel')}
@@ -6965,7 +7131,7 @@ function App() {
         <div 
           className="upload-section panel"
           data-panel="worksheet-selection-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'worksheet-selection-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -6978,7 +7144,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'worksheet-selection-panel')}
@@ -7128,7 +7294,7 @@ function App() {
         <div 
           className="merge-section panel button-panel"
           data-panel="generate-summary-button"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'generate-summary-button', type: 'button' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -7144,7 +7310,7 @@ function App() {
             justifyContent: 'center'
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'generate-summary-button')}
@@ -7179,7 +7345,7 @@ function App() {
         <div 
           className="merged-files-section panel"
           data-panel="final-summary-panel"
-          draggable={isLayoutMode}
+          draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'final-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
           style={{
@@ -7192,7 +7358,7 @@ function App() {
             zIndex: 10
           }}
         >
-          {isLayoutMode && (
+          {isLayoutMode && !isScreenMode && (
             <div 
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'final-summary-panel')}
@@ -7739,9 +7905,9 @@ function App() {
         )}
 
         {/* View Navigation Tabs - only shown in normal mode when views exist */}
-        {!isLayoutMode && (homeView || secondaryViews.length > 0) && (
+        {!isLayoutMode && (homeScreen || secondaryScreens.length > 0) && (
           <div 
-            className="view-navigation-tabs"
+            className="screen-navigation-tabs"
             style={{
               position: 'fixed',
               ...(tabPosition === 'left' ? {
@@ -7777,9 +7943,9 @@ function App() {
             }}
           >
             {/* Home Tab - always first */}
-            {homeView && (
+            {homeScreen && (
               <div
-                className={`view-tab ${currentView === 'home' ? 'active' : ''}`}
+                className={`view-tab ${currentScreen === 'home' ? 'active' : ''}`}
                 onClick={() => navigateToView('home')}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
@@ -7800,7 +7966,7 @@ function App() {
                     justifyContent: 'center',
                     padding: '8px 12px'
                   }),
-                  backgroundColor: currentView === 'home' ? GLOBAL_SUCCESS_COLOR : 'rgba(16, 185, 129, 0.8)',
+                  backgroundColor: currentScreen === 'home' ? GLOBAL_SUCCESS_COLOR : 'rgba(16, 185, 129, 0.8)',
                   color: 'white',
                   borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
                              tabPosition === 'right' ? '8px 0 0 8px' :
@@ -7808,14 +7974,14 @@ function App() {
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'bold',
-                  border: currentView === 'home' ? `2px solid ${GLOBAL_SUCCESS_COLOR}` : '1px solid rgba(255, 255, 255, 0.3)',
+                  border: currentScreen === 'home' ? `2px solid ${GLOBAL_SUCCESS_COLOR}` : '1px solid rgba(255, 255, 255, 0.3)',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                   transition: 'all 0.2s ease',
                   backdropFilter: 'blur(10px)',
                   overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
-                  if (currentView !== 'home') {
+                  if (currentScreen !== 'home') {
                     e.target.style.backgroundColor = GLOBAL_SUCCESS_COLOR;
                     e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
                                               tabPosition === 'right' ? 'translateX(-2px)' :
@@ -7823,7 +7989,7 @@ function App() {
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (currentView !== 'home') {
+                  if (currentScreen !== 'home') {
                     e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
                     e.target.style.transform = 'none';
                   }
@@ -7835,11 +8001,11 @@ function App() {
             )}
 
             {/* Secondary View Tabs */}
-            {secondaryViews.map((view, index) => (
+            {secondaryScreens.map((view, index) => (
               <div
-                key={view.id}
-                className={`view-tab ${currentView === view.id ? 'active' : ''}`}
-                onClick={() => navigateToView(view.id)}
+                key={screen.id}
+                className={`view-tab ${currentScreen === screen.id ? 'active' : ''}`}
+                onClick={() => navigateToView(screen.id)}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
@@ -7859,7 +8025,7 @@ function App() {
                     justifyContent: 'center',
                     padding: '8px 12px'
                   }),
-                  backgroundColor: currentView === view.id ? view.color : `${view.color}cc`,
+                  backgroundColor: currentScreen === screen.id ? screen.color : `${screen.color}cc`,
                   color: 'white',
                   borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
                              tabPosition === 'right' ? '8px 0 0 8px' :
@@ -7867,7 +8033,7 @@ function App() {
                   cursor: 'pointer',
                   fontSize: '10px',
                   fontWeight: 'bold',
-                  border: currentView === view.id ? `2px solid ${view.color}` : '1px solid rgba(255, 255, 255, 0.3)',
+                  border: currentScreen === screen.id ? `2px solid ${screen.color}` : '1px solid rgba(255, 255, 255, 0.3)',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                   transition: 'all 0.2s ease',
                   backdropFilter: 'blur(10px)',
@@ -7876,16 +8042,16 @@ function App() {
                   textAlign: 'center'
                 }}
                 onMouseEnter={(e) => {
-                  if (currentView !== view.id) {
-                    e.target.style.backgroundColor = view.color;
+                  if (currentScreen !== screen.id) {
+                    e.target.style.backgroundColor = screen.color;
                     e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
                                               tabPosition === 'right' ? 'translateX(-2px)' :
                                               tabPosition === 'top' ? 'translateY(2px)' : 'translateY(-2px)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (currentView !== view.id) {
-                    e.target.style.backgroundColor = `${view.color}cc`;
+                  if (currentScreen !== screen.id) {
+                    e.target.style.backgroundColor = `${screen.color}cc`;
                     e.target.style.transform = 'none';
                   }
                 }}
@@ -7896,7 +8062,7 @@ function App() {
                   whiteSpace: (tabPosition === 'left' || tabPosition === 'right') ? 'normal' : 'nowrap',
                   maxWidth: '100%'
                 }}>
-                  {view.name}
+                  {screen.name}
                 </div>
               </div>
             ))}
