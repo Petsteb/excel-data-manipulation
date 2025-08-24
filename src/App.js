@@ -285,6 +285,17 @@ function App() {
   
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [draggedElement, setDraggedElement] = useState(null);
+  
+  // View Mode states
+  const [isViewMode, setIsViewMode] = useState(false);
+  const [viewModeStep, setViewModeStep] = useState('idle'); // 'idle', 'creating-home', 'creating-secondary', 'viewing-home', 'viewing-secondary'
+  const [homeView, setHomeView] = useState(null); // { x, y, width, height }
+  const [secondaryViews, setSecondaryViews] = useState([]); // [{ id, name, x, y, width, height, color }]
+  const [currentView, setCurrentView] = useState('home'); // 'home' or view id
+  const [tabOrientation, setTabOrientation] = useState('vertical'); // 'horizontal' or 'vertical'
+  const [creatingViewRect, setCreatingViewRect] = useState(null); // Temporary rectangle while creating view
+  const [showViewNamePopup, setShowViewNamePopup] = useState(false);
+  const [newViewName, setNewViewName] = useState('');
   const [panelPositions, setPanelPositions] = useState({
     'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -487,11 +498,30 @@ function App() {
           setAccountMappings(mergedMappings);
         }
         
+        // Load view system settings
+        if (settings.homeView) {
+          setHomeView(settings.homeView);
+        }
+        if (settings.secondaryViews) {
+          setSecondaryViews(settings.secondaryViews);
+        }
+        if (settings.tabOrientation) {
+          setTabOrientation(settings.tabOrientation);
+        }
+        
         // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
           updateWorkspaceBounds();
           initializeCollisionMatrix();
           applyTheme(settings.theme || 'professional');
+          
+          // If homeView exists and we're in normal mode, navigate to it
+          if (settings.homeView && !isLayoutMode) {
+            const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+            const targetX = -(settings.homeView.x + settings.homeView.width / 2 - viewportWidth / 2);
+            const targetY = -(settings.homeView.y + settings.homeView.height / 2 - viewportHeight / 2);
+            setPanOffset({ x: targetX, y: targetY });
+          }
         }, 100);
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -504,6 +534,13 @@ function App() {
 
     loadAppSettings();
   }, []);
+
+  // Auto-save view settings when they change
+  useEffect(() => {
+    if (homeView || secondaryViews.length > 0) {
+      saveViewSettings();
+    }
+  }, [homeView, secondaryViews, tabOrientation]);
 
   // Handle document clicks to close context menu
   useEffect(() => {
@@ -4311,6 +4348,20 @@ function App() {
     return matrix;
   };
 
+  // Save view system settings
+  const saveViewSettings = async () => {
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({
+        ...settings,
+        homeView,
+        secondaryViews,
+        tabOrientation
+      });
+    } catch (error) {
+      console.error('Failed to save view settings:', error);
+    }
+  };
 
   // Toggle layout mode
   const toggleLayoutMode = async () => {
@@ -4342,8 +4393,19 @@ function App() {
       // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Calculate what the normal mode view position should be (excluding layout-mode-only panels)
-      const normalModePosition = centerViewOnWorkspace(false);
+      // Calculate what the normal mode view position should be
+      let normalModePosition;
+      if (homeView) {
+        // Use homeView position if configured
+        const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+        normalModePosition = {
+          x: -(homeView.x + homeView.width / 2 - viewportWidth / 2),
+          y: -(homeView.y + homeView.height / 2 - viewportHeight / 2)
+        };
+      } else {
+        // Fallback to calculated center (excluding layout-mode-only panels)
+        normalModePosition = centerViewOnWorkspace(false);
+      }
       
       // Save the normalized layout and calculated normal mode position
       await saveLayoutSettings(normalization.normalizedPositions, normalization.normalizedBounds);
@@ -4721,6 +4783,108 @@ function App() {
     }
   };
 
+  // View Mode Functions
+  const generateUniqueColor = () => {
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#ee5a6f', '#0abde3', '#10ac84'];
+    const usedColors = secondaryViews.map(view => view.color);
+    const availableColors = colors.filter(color => !usedColors.includes(color));
+    return availableColors.length > 0 ? availableColors[0] : colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const toggleViewMode = () => {
+    if (!isLayoutMode) return; // View mode only available in layout mode
+    
+    const newViewMode = !isViewMode;
+    setIsViewMode(newViewMode);
+    
+    if (!newViewMode) {
+      // Exiting view mode - reset all view mode states
+      setViewModeStep('idle');
+      setCreatingViewRect(null);
+      setShowViewNamePopup(false);
+      setNewViewName('');
+    }
+  };
+
+  const startCreatingHomeView = () => {
+    setViewModeStep('creating-home');
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    setCreatingViewRect({
+      x: -panOffset.x + viewportWidth * 0.1,
+      y: -panOffset.y + viewportHeight * 0.1,
+      width: viewportWidth * 0.8,
+      height: viewportHeight * 0.8
+    });
+  };
+
+  const startCreatingSecondaryView = () => {
+    setViewModeStep('creating-secondary');
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    setCreatingViewRect({
+      x: -panOffset.x + viewportWidth * 0.1,
+      y: -panOffset.y + viewportHeight * 0.1,
+      width: viewportWidth * 0.8,
+      height: viewportHeight * 0.8
+    });
+  };
+
+  const confirmViewCreation = () => {
+    if (!creatingViewRect) return;
+    
+    if (viewModeStep === 'creating-home') {
+      setHomeView({ ...creatingViewRect });
+      setViewModeStep('idle');
+      setCreatingViewRect(null);
+    } else if (viewModeStep === 'creating-secondary') {
+      setShowViewNamePopup(true);
+    }
+  };
+
+  const saveSecondaryView = () => {
+    if (!creatingViewRect || !newViewName.trim()) return;
+    
+    const newView = {
+      id: `view-${Date.now()}`,
+      name: newViewName.trim(),
+      ...creatingViewRect,
+      color: generateUniqueColor()
+    };
+    
+    setSecondaryViews(prev => [...prev, newView]);
+    setViewModeStep('idle');
+    setCreatingViewRect(null);
+    setShowViewNamePopup(false);
+    setNewViewName('');
+  };
+
+  const deleteSecondaryView = (viewId) => {
+    setSecondaryViews(prev => prev.filter(view => view.id !== viewId));
+    if (currentView === viewId) {
+      setCurrentView('home');
+    }
+  };
+
+  const showHomeView = () => {
+    setViewModeStep(viewModeStep === 'viewing-home' ? 'idle' : 'viewing-home');
+  };
+
+  const showSecondaryViews = () => {
+    setViewModeStep(viewModeStep === 'viewing-secondary' ? 'idle' : 'viewing-secondary');
+  };
+
+  const navigateToView = (viewId) => {
+    if (isLayoutMode) return; // Only allow navigation in normal mode
+    
+    const view = viewId === 'home' ? homeView : secondaryViews.find(v => v.id === viewId);
+    if (view) {
+      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const targetX = -(view.x + view.width / 2 - viewportWidth / 2);
+      const targetY = -(view.y + view.height / 2 - viewportHeight / 2);
+      setPanOffset({ x: targetX, y: targetY });
+      setCurrentView(viewId);
+    }
+  };
+
   // Render minimap component
   const renderMinimap = () => {
     if (!isLayoutMode) return null;
@@ -5060,7 +5224,407 @@ function App() {
         >
           ⚙️
         </button>
+        <button 
+          className={`layout-button ${isViewMode ? 'active' : ''}`}
+          onClick={toggleViewMode}
+          title="View Mode - Configure Custom Views"
+          style={{ 
+            fontSize: '14px', 
+            fontWeight: 'bold',
+            opacity: isLayoutMode ? 1 : 0.5,
+            cursor: isLayoutMode ? 'pointer' : 'not-allowed'
+          }}
+          disabled={!isLayoutMode}
+        >
+          👁️
+        </button>
       </div>
+
+      {/* View Mode Overlay and UI */}
+      {isViewMode && (
+        <div 
+          className="view-mode-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 10000,
+            pointerEvents: viewModeStep.includes('viewing') || viewModeStep.includes('creating') ? 'none' : 'auto'
+          }}
+        />
+      )}
+
+      {/* View Mode Control Buttons */}
+      {isViewMode && (
+        <div 
+          className="view-mode-controls"
+          style={{
+            position: 'fixed',
+            top: '50%',
+            right: '20px',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            zIndex: 10001
+          }}
+        >
+          {/* Tab Orientation Toggle */}
+          <button
+            className="view-mode-btn"
+            onClick={() => setTabOrientation(tabOrientation === 'vertical' ? 'horizontal' : 'vertical')}
+            disabled={secondaryViews.length === 0}
+            style={{
+              padding: '10px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: secondaryViews.length === 0 ? 'rgba(128, 128, 128, 0.5)' : GLOBAL_PRIMARY_COLOR,
+              color: 'white',
+              cursor: secondaryViews.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              minWidth: '100px'
+            }}
+            title={secondaryViews.length === 0 ? 'No secondary views to configure' : `Switch to ${tabOrientation === 'vertical' ? 'horizontal' : 'vertical'} tabs`}
+          >
+            {tabOrientation === 'vertical' ? '📋 HORIZONTAL' : '📋 VERTICAL'}
+          </button>
+
+          {/* Home View Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <button
+              className="view-mode-btn"
+              onClick={startCreatingHomeView}
+              style={{
+                padding: '10px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: GLOBAL_SUCCESS_COLOR,
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                minWidth: '100px'
+              }}
+              title="Add/Edit Home View"
+            >
+              🏠 HOME
+            </button>
+            
+            {viewModeStep === 'creating-home' && (
+              <button
+                className="view-mode-btn confirm-btn"
+                onClick={confirmViewCreation}
+                style={{
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#2ecc71',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  minWidth: '100px'
+                }}
+                title="Confirm Home View"
+              >
+                ✓
+              </button>
+            )}
+            
+            <button
+              className="view-mode-btn"
+              onClick={showHomeView}
+              style={{
+                padding: '8px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: viewModeStep === 'viewing-home' ? '#e74c3c' : '#34495e',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '12px',
+                minWidth: '100px'
+              }}
+              title={viewModeStep === 'viewing-home' ? 'Hide Home View' : 'View Home View'}
+            >
+              {viewModeStep === 'viewing-home' ? '👁️ HIDE' : '👁️ VIEW'}
+            </button>
+          </div>
+
+          {/* Secondary Views Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <button
+              className="view-mode-btn"
+              onClick={startCreatingSecondaryView}
+              style={{
+                padding: '10px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: '#9b59b6',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                minWidth: '100px'
+              }}
+              title="Add Secondary View"
+            >
+              ➕ SECONDARY
+            </button>
+            
+            {viewModeStep === 'creating-secondary' && (
+              <button
+                className="view-mode-btn confirm-btn"
+                onClick={confirmViewCreation}
+                style={{
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#2ecc71',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  minWidth: '100px'
+                }}
+                title="Confirm Secondary View"
+              >
+                ✓
+              </button>
+            )}
+            
+            <button
+              className="view-mode-btn"
+              onClick={showSecondaryViews}
+              style={{
+                padding: '8px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: viewModeStep === 'viewing-secondary' ? '#e74c3c' : '#34495e',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '12px',
+                minWidth: '100px'
+              }}
+              title={viewModeStep === 'viewing-secondary' ? 'Hide Secondary Views' : 'View Secondary Views'}
+            >
+              {viewModeStep === 'viewing-secondary' ? '👁️ HIDE' : '👁️ VIEW'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View Creation Rectangle */}
+      {creatingViewRect && (viewModeStep === 'creating-home' || viewModeStep === 'creating-secondary') && (
+        <div
+          className="view-creation-rect"
+          style={{
+            position: 'absolute',
+            left: `${creatingViewRect.x + panOffset.x}px`,
+            top: `${creatingViewRect.y + panOffset.y}px`,
+            width: `${creatingViewRect.width}px`,
+            height: `${creatingViewRect.height}px`,
+            border: `3px dashed ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            zIndex: 10001,
+            pointerEvents: 'none',
+            borderRadius: '8px'
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              backgroundColor: viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+              color: 'white',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}
+          >
+            {viewModeStep === 'creating-home' ? 'HOME VIEW' : 'SECONDARY VIEW'}
+          </div>
+        </div>
+      )}
+
+      {/* View Visualization Rectangles */}
+      {(viewModeStep === 'viewing-home' || viewModeStep === 'viewing-secondary') && (
+        <>
+          {viewModeStep === 'viewing-home' && homeView && (
+            <div
+              className="view-visualization-rect"
+              style={{
+                position: 'absolute',
+                left: `${homeView.x + panOffset.x}px`,
+                top: `${homeView.y + panOffset.y}px`,
+                width: `${homeView.width}px`,
+                height: `${homeView.height}px`,
+                border: `3px solid ${GLOBAL_SUCCESS_COLOR}`,
+                borderRadius: '8px',
+                zIndex: 10001,
+                pointerEvents: 'none'
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  backgroundColor: GLOBAL_SUCCESS_COLOR,
+                  color: 'white',
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                HOME
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'transparent',
+                  zIndex: 10002
+                }}
+              />
+            </div>
+          )}
+          
+          {viewModeStep === 'viewing-secondary' && secondaryViews.map(view => (
+            <div
+              key={view.id}
+              className="view-visualization-rect"
+              style={{
+                position: 'absolute',
+                left: `${view.x + panOffset.x}px`,
+                top: `${view.y + panOffset.y}px`,
+                width: `${view.width}px`,
+                height: `${view.height}px`,
+                border: `3px solid ${view.color}`,
+                borderRadius: '8px',
+                zIndex: 10001,
+                pointerEvents: 'auto'
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                deleteSecondaryView(view.id);
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  backgroundColor: view.color,
+                  color: 'white',
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                {view.name}
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'transparent',
+                  zIndex: 10002
+                }}
+              />
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Secondary View Name Popup */}
+      {showViewNamePopup && (
+        <div 
+          className="popup-overlay" 
+          onClick={() => {
+            setShowViewNamePopup(false);
+            setViewModeStep('idle');
+            setCreatingViewRect(null);
+            setNewViewName('');
+          }}
+        >
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Name Your Secondary View</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => {
+                  setShowViewNamePopup(false);
+                  setViewModeStep('idle');
+                  setCreatingViewRect(null);
+                  setNewViewName('');
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="popup-body">
+              <input
+                type="text"
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                placeholder="Enter view name..."
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: `1px solid ${GLOBAL_BORDER_COLOR}`,
+                  backgroundColor: GLOBAL_INPUT_BG,
+                  color: GLOBAL_TEXT_COLOR,
+                  fontSize: '14px',
+                  marginBottom: '15px'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newViewName.trim()) {
+                    saveSecondaryView();
+                  }
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowViewNamePopup(false);
+                    setViewModeStep('idle');
+                    setCreatingViewRect(null);
+                    setNewViewName('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={saveSecondaryView}
+                  disabled={!newViewName.trim()}
+                  style={{
+                    opacity: newViewName.trim() ? 1 : 0.5,
+                    cursor: newViewName.trim() ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  Save View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {(processingSummary || contabilitateFiles.length > 0 || anafFiles.length > 0) && (
         <div className="remake-button-container">
@@ -7073,6 +7637,149 @@ function App() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* View Navigation Tabs - only shown in normal mode when views exist */}
+        {!isLayoutMode && (homeView || secondaryViews.length > 0) && (
+          <div 
+            className="view-navigation-tabs"
+            style={{
+              position: 'fixed',
+              ...(tabOrientation === 'vertical' ? {
+                left: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              } : {
+                bottom: '10px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '8px'
+              }),
+              zIndex: 1000
+            }}
+          >
+            {/* Home Tab - always first */}
+            {homeView && (
+              <div
+                className={`view-tab ${currentView === 'home' ? 'active' : ''}`}
+                onClick={() => navigateToView('home')}
+                style={{
+                  ...(tabOrientation === 'vertical' ? {
+                    width: '40px',
+                    height: '60px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 4px',
+                    writingMode: 'vertical-rl',
+                    textOrientation: 'mixed'
+                  } : {
+                    width: '80px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 12px'
+                  }),
+                  backgroundColor: currentView === 'home' ? GLOBAL_SUCCESS_COLOR : 'rgba(16, 185, 129, 0.8)',
+                  color: 'white',
+                  borderRadius: tabOrientation === 'vertical' ? '0 8px 8px 0' : '8px 8px 0 0',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  border: currentView === 'home' ? `2px solid ${GLOBAL_SUCCESS_COLOR}` : '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== 'home') {
+                    e.target.style.backgroundColor = GLOBAL_SUCCESS_COLOR;
+                    e.target.style.transform = tabOrientation === 'vertical' ? 'translateX(2px)' : 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== 'home') {
+                    e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
+                    e.target.style.transform = 'none';
+                  }
+                }}
+              >
+                <div style={{ fontSize: '14px', marginBottom: '2px' }}>🏠</div>
+                <div style={{ fontSize: '10px' }}>HOME</div>
+              </div>
+            )}
+
+            {/* Secondary View Tabs */}
+            {secondaryViews.map((view, index) => (
+              <div
+                key={view.id}
+                className={`view-tab ${currentView === view.id ? 'active' : ''}`}
+                onClick={() => navigateToView(view.id)}
+                style={{
+                  ...(tabOrientation === 'vertical' ? {
+                    width: '40px',
+                    minHeight: '60px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 4px',
+                    writingMode: 'vertical-rl',
+                    textOrientation: 'mixed'
+                  } : {
+                    minWidth: '80px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 12px'
+                  }),
+                  backgroundColor: currentView === view.id ? view.color : `${view.color}cc`,
+                  color: 'white',
+                  borderRadius: tabOrientation === 'vertical' ? '0 8px 8px 0' : '8px 8px 0 0',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  border: currentView === view.id ? `2px solid ${view.color}` : '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if (currentView !== view.id) {
+                    e.target.style.backgroundColor = view.color;
+                    e.target.style.transform = tabOrientation === 'vertical' ? 'translateX(2px)' : 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentView !== view.id) {
+                    e.target.style.backgroundColor = `${view.color}cc`;
+                    e.target.style.transform = 'none';
+                  }
+                }}
+              >
+                <div style={{ 
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: tabOrientation === 'vertical' ? 'normal' : 'nowrap',
+                  maxWidth: '100%'
+                }}>
+                  {view.name}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
