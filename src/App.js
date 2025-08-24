@@ -4429,10 +4429,9 @@ function App() {
         setCreatingScreenRect(null);
         setShowScreenNamePopup(false);
         setNewScreenName('');
-        setShowScreenContextMenu(false);
-        setSelectedScreenForContext(null);
-        setShowScreenRenamePopup(false);
-        setScreenRenameValue('');
+        setScreenContextMenu(null);
+        setScreenRenameDialog(null);
+        setRenameInputValue('');
       }
       
       // Apply normalized positions and bounds to state
@@ -4916,6 +4915,7 @@ function App() {
   };
 
   const handleScreenRightClick = (e, screen) => {
+    console.log('handleScreenRightClick called with screen:', screen);
     e.preventDefault();
     e.stopPropagation();
     setScreenContextMenu({
@@ -4926,6 +4926,7 @@ function App() {
   };
 
   const deleteSecondaryScreen = (screenId) => {
+    console.log('deleteSecondaryScreen called with screenId:', screenId);
     setSecondaryScreens(prev => prev.filter(screen => screen.id !== screenId));
     if (currentScreen === screenId) {
       setCurrentScreen('home');
@@ -4934,6 +4935,7 @@ function App() {
   };
 
   const handleScreenRename = (screen) => {
+    console.log('handleScreenRename called with screen:', screen);
     setScreenRenameDialog(screen);
     setRenameInputValue(screen.name);
     setScreenContextMenu(null);
@@ -5807,7 +5809,11 @@ function App() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => handleScreenRename(screenContextMenu.screen)}
+              onClick={(e) => {
+                console.log('Rename button clicked');
+                e.stopPropagation();
+                handleScreenRename(screenContextMenu.screen);
+              }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -5825,7 +5831,11 @@ function App() {
               📝 Rename
             </button>
             <button
-              onClick={() => deleteSecondaryScreen(screenContextMenu.screen.id)}
+              onClick={(e) => {
+                console.log('Delete button clicked');
+                e.stopPropagation();
+                deleteSecondaryScreen(screenContextMenu.screen.id);
+              }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
