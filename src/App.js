@@ -8019,6 +8019,7 @@ function App() {
                 key={screen.id}
                 className={`screen-tab ${currentScreen === screen.id ? 'active' : ''}`}
                 onClick={() => navigateToScreen(screen.id)}
+                onContextMenu={(e) => handleScreenRightClick(e, screen)}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
