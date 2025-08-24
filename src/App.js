@@ -4203,6 +4203,23 @@ function App() {
       };
     });
     
+    // Normalize home screen coordinates
+    let normalizedHomeScreen = null;
+    if (homeScreen) {
+      normalizedHomeScreen = {
+        ...homeScreen,
+        x: homeScreen.x - centerX,
+        y: homeScreen.y - centerY
+      };
+    }
+    
+    // Normalize secondary screen coordinates
+    const normalizedSecondaryScreens = secondaryScreens.map(screen => ({
+      ...screen,
+      x: screen.x - centerX,
+      y: screen.y - centerY
+    }));
+    
     // Normalize workspace bounds to center around (0,0)
     const width = workspaceBounds.maxX - workspaceBounds.minX;
     const height = workspaceBounds.maxY - workspaceBounds.minY;
@@ -4223,6 +4240,8 @@ function App() {
     return {
       normalizedPositions,
       normalizedBounds,
+      normalizedHomeScreen,
+      normalizedSecondaryScreens,
       centerOffset: { x: centerX, y: centerY },
       newPanOffset
     };
@@ -4403,15 +4422,16 @@ function App() {
       // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Calculate position to center on home screen using the same logic as navigateToScreen
+      // Calculate position to center on home screen using the normalized coordinates
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       let normalModePosition;
       
-      if (homeScreen) {
-        // Use exact same calculation as navigateToScreen function
+      if (normalization.normalizedHomeScreen) {
+        // Use normalized home screen coordinates
+        const normalizedHome = normalization.normalizedHomeScreen;
         normalModePosition = {
-          x: -(homeScreen.x + homeScreen.width / 2 - viewportWidth / 2),
-          y: -(homeScreen.y + homeScreen.height / 2 - viewportHeight / 2)
+          x: -(normalizedHome.x + normalizedHome.width / 2 - viewportWidth / 2),
+          y: -(normalizedHome.y + normalizedHome.height / 2 - viewportHeight / 2)
         };
       } else {
         // If no home screen, center on workspace origin
@@ -4442,6 +4462,12 @@ function App() {
       // Apply normalized positions and bounds to state
       setPanelPositions(normalization.normalizedPositions);
       setWorkspaceBounds(normalization.normalizedBounds);
+      
+      // Apply normalized screen coordinates
+      if (normalization.normalizedHomeScreen) {
+        setHomeScreen(normalization.normalizedHomeScreen);
+      }
+      setSecondaryScreens(normalization.normalizedSecondaryScreens);
       
       // Recalculate workspace bounds for normal mode (excludes layout-mode-only panels)
       setTimeout(() => {
