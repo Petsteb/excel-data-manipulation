@@ -4459,11 +4459,13 @@ function App() {
       // Navigate to home screen when exiting layout mode
       setCurrentScreen('home');
       
-      // Set the screen to home position after a delay
+      // Set the screen to home position after a delay (after restore timeout)
       setTimeout(() => {
+        console.log('About to set panOffset to:', normalModePosition);
         setPanOffset(normalModePosition);
         setNormalModeScreenPosition(normalModePosition);
-      }, 150);
+        console.log('Pan offset set successfully');
+      }, 250); // Increased to 250ms to happen after the restore timeout (200ms)
       
     }
   };
@@ -4975,6 +4977,7 @@ function App() {
   };
 
   const navigateToScreen = (screenId) => {
+    console.log('navigateToScreen called with:', screenId, 'isLayoutMode:', isLayoutMode);
     if (isLayoutMode) return; // Only allow navigation in normal mode
     
     const screen = screenId === 'home' ? homeScreen : secondaryScreens.find(s => s.id === screenId);
@@ -4982,6 +4985,7 @@ function App() {
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       const targetX = -(screen.x + screen.width / 2 - viewportWidth / 2);
       const targetY = -(screen.y + screen.height / 2 - viewportHeight / 2);
+      console.log('navigateToScreen setting panOffset to:', { x: targetX, y: targetY });
       setPanOffset({ x: targetX, y: targetY });
       setCurrentScreen(screenId);
     }
