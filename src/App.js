@@ -4023,6 +4023,19 @@ function App() {
     };
   };
 
+  // Get full viewport dimensions without padding for screen creation
+  const getFullViewportBoundaries = () => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) {
+      return { width: 1200, height: 800 }; // fallback
+    }
+    
+    return { 
+      width: boardRect.width, 
+      height: boardRect.height 
+    };
+  };
+
   // No boundary clamping - allow placement anywhere in workspace
   // Objects can be placed outside initial viewport via dynamic boundaries
 
@@ -4922,11 +4935,11 @@ function App() {
 
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover the entire visible viewport area
+    const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
+    // Cover the entire visible viewport area, accounting for CSS padding offset
     setCreatingScreenRect({
-      x: -panOffset.x,
-      y: -panOffset.y,
+      x: -panOffset.x - 20, // Account for left padding
+      y: -panOffset.y - 60, // Account for top padding
       width: viewportWidth,
       height: viewportHeight
     });
@@ -4934,11 +4947,11 @@ function App() {
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover the entire visible viewport area
+    const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
+    // Cover the entire visible viewport area, accounting for CSS padding offset
     setCreatingScreenRect({
-      x: -panOffset.x,
-      y: -panOffset.y,
+      x: -panOffset.x - 20, // Account for left padding
+      y: -panOffset.y - 60, // Account for top padding
       width: viewportWidth,
       height: viewportHeight
     });
@@ -4947,11 +4960,11 @@ function App() {
   // Update creating view rectangle to stay covering full viewport when panning
   useEffect(() => {
     if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
-      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
       setCreatingScreenRect(prev => ({
         ...prev,
-        x: -panOffset.x,
-        y: -panOffset.y,
+        x: -panOffset.x - 20, // Account for left padding
+        y: -panOffset.y - 60, // Account for top padding
         width: viewportWidth,
         height: viewportHeight
       }));
