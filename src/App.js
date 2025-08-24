@@ -304,6 +304,7 @@ function App() {
   const [modalContaAccount, setModalContaAccount] = useState('');
   const [modalAvailableAnafAccounts, setModalAvailableAnafAccounts] = useState([]);
   const [modalSelectedAnafAccount, setModalSelectedAnafAccount] = useState('');
+  const [hoveredAnafAccount, setHoveredAnafAccount] = useState(null);
   
   // Conta account selection modal states
   const [showContaSelectionModal, setShowContaSelectionModal] = useState(false);
@@ -2460,6 +2461,7 @@ function App() {
     setModalContaAccount('');
     setModalAvailableAnafAccounts([]);
     setModalSelectedAnafAccount('');
+    setHoveredAnafAccount(null);
   };
 
   // Conta modal handler functions
@@ -9689,21 +9691,16 @@ function App() {
                   color: GLOBAL_TEXT_COLOR,
                   borderRadius: '4px',
                   textAlign: 'center',
-                  border: '1px solid transparent',
+                  border: hoveredAnafAccount === anafAccount ? `1px solid ${GLOBAL_PRIMARY_COLOR}` : '1px solid transparent',
+                  backgroundColor: hoveredAnafAccount === anafAccount ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
                   marginBottom: '4px'
                 }}
                 onClick={() => {
                   setModalSelectedAnafAccount(anafAccount);
                   handleModalConfirm();
                 }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-                  e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.borderColor = 'transparent';
-                }}
+                onMouseEnter={() => setHoveredAnafAccount(anafAccount)}
+                onMouseLeave={() => setHoveredAnafAccount(null)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   {anafAccount}
