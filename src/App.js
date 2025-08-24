@@ -4824,6 +4824,7 @@ function App() {
   const startCreatingHomeView = () => {
     setViewModeStep('creating-home');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    // Center the view rectangle on the current viewport center
     setCreatingViewRect({
       x: -panOffset.x + viewportWidth * 0.1,
       y: -panOffset.y + viewportHeight * 0.1,
@@ -4835,12 +4836,32 @@ function App() {
   const startCreatingSecondaryView = () => {
     setViewModeStep('creating-secondary');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    // Center the view rectangle on the current viewport center
     setCreatingViewRect({
       x: -panOffset.x + viewportWidth * 0.1,
       y: -panOffset.y + viewportHeight * 0.1,
       width: viewportWidth * 0.8,
       height: viewportHeight * 0.8
     });
+  };
+
+  // Update creating view rectangle to stay centered when panning
+  useEffect(() => {
+    if (creatingViewRect && (viewModeStep === 'creating-home' || viewModeStep === 'creating-secondary')) {
+      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      setCreatingViewRect(prev => ({
+        ...prev,
+        x: -panOffset.x + viewportWidth * 0.1,
+        y: -panOffset.y + viewportHeight * 0.1
+      }));
+    }
+  }, [panOffset.x, panOffset.y, viewModeStep]);
+
+  const cancelViewCreation = () => {
+    setViewModeStep('idle');
+    setCreatingViewRect(null);
+    setShowViewNamePopup(false);
+    setNewViewName('');
   };
 
   const confirmViewCreation = () => {
@@ -5353,23 +5374,42 @@ function App() {
             </button>
             
             {viewModeStep === 'creating-home' && (
-              <button
-                className="view-mode-btn confirm-btn"
-                onClick={confirmViewCreation}
-                style={{
-                  padding: '8px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#2ecc71',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  minWidth: '100px'
-                }}
-                title="Confirm Home View"
-              >
-                ✓
-              </button>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button
+                  className="view-mode-btn confirm-btn"
+                  onClick={confirmViewCreation}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#2ecc71',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    flex: 1
+                  }}
+                  title="Confirm Home View"
+                >
+                  ✓
+                </button>
+                <button
+                  className="view-mode-btn cancel-btn"
+                  onClick={cancelViewCreation}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#e74c3c',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    flex: 1
+                  }}
+                  title="Cancel Home View Creation"
+                >
+                  ✕
+                </button>
+              </div>
             )}
             
             <button
@@ -5413,23 +5453,42 @@ function App() {
             </button>
             
             {viewModeStep === 'creating-secondary' && (
-              <button
-                className="view-mode-btn confirm-btn"
-                onClick={confirmViewCreation}
-                style={{
-                  padding: '8px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: '#2ecc71',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  minWidth: '100px'
-                }}
-                title="Confirm Secondary View"
-              >
-                ✓
-              </button>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button
+                  className="view-mode-btn confirm-btn"
+                  onClick={confirmViewCreation}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#2ecc71',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    flex: 1
+                  }}
+                  title="Confirm Secondary View"
+                >
+                  ✓
+                </button>
+                <button
+                  className="view-mode-btn cancel-btn"
+                  onClick={cancelViewCreation}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: '#e74c3c',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    flex: 1
+                  }}
+                  title="Cancel Secondary View Creation"
+                >
+                  ✕
+                </button>
+              </div>
             )}
             
             <button
