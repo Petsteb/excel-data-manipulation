@@ -4375,6 +4375,8 @@ function App() {
   // Toggle layout mode
   const toggleLayoutMode = async () => {
     const newLayoutMode = !isLayoutMode;
+    console.log('Toggling layout mode. Current isLayoutMode:', isLayoutMode, 'New mode:', newLayoutMode);
+    console.log('homeScreen exists:', !!homeScreen, 'currentScreen:', currentScreen);
     
     if (newLayoutMode) {
       // Save current normal mode screen position before entering layout mode
@@ -4446,16 +4448,18 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Set the screen to normal mode position after a delay and navigate to home screen
+      // Force navigation to home screen immediately when exiting layout mode
+      console.log('Immediately setting currentScreen to home');
+      setCurrentScreen('home');
+      
+      // Set the screen to normal mode position after a delay
       setTimeout(() => {
         setPanOffset(normalModePosition);
         // Update the stored normal mode position to match what we just set
         setNormalModeScreenPosition(normalModePosition);
         
-        // Always navigate to home screen when exiting layout mode
-        if (homeScreen) {
-          setCurrentScreen('home');
-        }
+        console.log('Position set, double-checking currentScreen is still home');
+        setCurrentScreen('home'); // Double-check to ensure it's set
       }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
