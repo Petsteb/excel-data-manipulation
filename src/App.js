@@ -4446,11 +4446,16 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Set the screen to normal mode position after a delay
+      // Set the screen to normal mode position after a delay and navigate to home screen
       setTimeout(() => {
         setPanOffset(normalModePosition);
         // Update the stored normal mode position to match what we just set
         setNormalModeScreenPosition(normalModePosition);
+        
+        // Always navigate to home screen when exiting layout mode
+        if (homeScreen) {
+          setCurrentScreen('home');
+        }
       }, 150);
       
       console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
