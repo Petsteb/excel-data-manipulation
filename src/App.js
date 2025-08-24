@@ -7945,8 +7945,8 @@ function App() {
             {/* Home Tab - always first */}
             {homeScreen && (
               <div
-                className={`view-tab ${currentScreen === 'home' ? 'active' : ''}`}
-                onClick={() => navigateToView('home')}
+                className={`screen-tab ${currentScreen === 'home' ? 'active' : ''}`}
+                onClick={() => navigateToScreen('home'))
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
@@ -8004,8 +8004,8 @@ function App() {
             {secondaryScreens.map((view, index) => (
               <div
                 key={screen.id}
-                className={`view-tab ${currentScreen === screen.id ? 'active' : ''}`}
-                onClick={() => navigateToView(screen.id)}
+                className={`screen-tab ${currentScreen === screen.id ? 'active' : ''}`}
+                onClick={() => navigateToScreen(screen.id))
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
