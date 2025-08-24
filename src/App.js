@@ -7946,7 +7946,7 @@ function App() {
             {homeScreen && (
               <div
                 className={`screen-tab ${currentScreen === 'home' ? 'active' : ''}`}
-                onClick={() => navigateToScreen('home'))
+                onClick={() => navigateToScreen('home')}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
@@ -8005,7 +8005,7 @@ function App() {
               <div
                 key={screen.id}
                 className={`screen-tab ${currentScreen === screen.id ? 'active' : ''}`}
-                onClick={() => navigateToScreen(screen.id))
+                onClick={() => navigateToScreen(screen.id)}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
