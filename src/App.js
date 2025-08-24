@@ -4935,11 +4935,11 @@ function App() {
 
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
-    const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
-    // Cover the entire visible viewport area, accounting for CSS padding offset
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    // Cover the entire usable board area (excluding navigation/padding)
     setCreatingScreenRect({
-      x: -panOffset.x - 20, // Account for left padding
-      y: -panOffset.y - 60, // Account for top padding
+      x: -panOffset.x,
+      y: -panOffset.y,
       width: viewportWidth,
       height: viewportHeight
     });
@@ -4947,24 +4947,24 @@ function App() {
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
-    const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
-    // Cover the entire visible viewport area, accounting for CSS padding offset
+    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+    // Cover the entire usable board area (excluding navigation/padding)
     setCreatingScreenRect({
-      x: -panOffset.x - 20, // Account for left padding
-      y: -panOffset.y - 60, // Account for top padding
+      x: -panOffset.x,
+      y: -panOffset.y,
       width: viewportWidth,
       height: viewportHeight
     });
   };
 
-  // Update creating view rectangle to stay covering full viewport when panning
+  // Update creating view rectangle to stay covering usable board area when panning
   useEffect(() => {
     if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
-      const { width: viewportWidth, height: viewportHeight } = getFullViewportBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       setCreatingScreenRect(prev => ({
         ...prev,
-        x: -panOffset.x - 20, // Account for left padding
-        y: -panOffset.y - 60, // Account for top padding
+        x: -panOffset.x,
+        y: -panOffset.y,
         width: viewportWidth,
         height: viewportHeight
       }));
