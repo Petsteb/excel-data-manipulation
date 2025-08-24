@@ -4768,11 +4768,12 @@ function App() {
 
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
-    // In view mode, only allow panning and interactions with top-right corner buttons
-    if (viewModeStep.includes('viewing')) {
+    // In view mode, only allow panning and interactions with top-right corner buttons and view mode controls
+    if (viewModeStep.includes('viewing') || viewModeStep.includes('creating')) {
       // Check if click is on top-right corner buttons (theme, language, etc.)
       const topRightButtons = document.querySelector('.top-controls');
       const viewTabs = document.querySelector('.view-navigation-tabs');
+      const viewModeControls = document.querySelector('.view-mode-controls');
       
       if (topRightButtons && topRightButtons.contains(e.target)) {
         return; // Allow interaction with top-right buttons
@@ -4782,7 +4783,11 @@ function App() {
         return; // Allow interaction with view tabs
       }
       
-      // Only allow panning in view mode
+      if (viewModeControls && viewModeControls.contains(e.target)) {
+        return; // Allow interaction with view mode control buttons
+      }
+      
+      // Allow panning in view mode (both viewing and creating)
       handlePanStart(e);
       return;
     }
@@ -5270,7 +5275,7 @@ function App() {
       </div>
 
       {/* View Mode Overlay and UI */}
-      {isViewMode && !viewModeStep.includes('viewing') && (
+      {isViewMode && !viewModeStep.includes('viewing') && !viewModeStep.includes('creating') && (
         <div 
           className="view-mode-overlay"
           style={{
@@ -5281,7 +5286,7 @@ function App() {
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             zIndex: 10000,
-            pointerEvents: viewModeStep.includes('creating') ? 'none' : 'auto'
+            pointerEvents: 'auto'
           }}
         />
       )}
