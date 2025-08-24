@@ -9,8 +9,20 @@ const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
 
-// Global text color variable for improved modularity
+// Global theme constants for improved modularity
 const GLOBAL_TEXT_COLOR = 'var(--theme-text-color, #333333)';
+const GLOBAL_PRIMARY_COLOR = 'var(--theme-primary, #4f46e5)';
+const GLOBAL_SECONDARY_COLOR = 'var(--theme-secondary, #10b981)';
+const GLOBAL_BORDER_COLOR = 'var(--theme-border-color, #e5e5e5)';
+const GLOBAL_SUCCESS_COLOR = '#10b981';
+const GLOBAL_ERROR_COLOR = '#ef4444';
+const GLOBAL_WARNING_COLOR = 'var(--theme-warning, #f59e0b)';
+const GLOBAL_BUTTON_BG = 'var(--theme-button-bg, #ffffff)';
+const GLOBAL_INPUT_BG = 'var(--theme-input-bg, #ffffff)';
+const GLOBAL_PANEL_BG = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+const GLOBAL_HOVER_BG = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
+const GLOBAL_SHADOW = 'var(--theme-shadow, 0 1px 3px rgba(0,0,0,0.1))';
+const GLOBAL_BACKDROP_FILTER = 'var(--theme-backdrop-filter, blur(25px))';
 
 // Universal Tooltip Component
 const Tooltip = ({ content, position = "top" }) => {
@@ -27,7 +39,7 @@ const Tooltip = ({ content, position = "top" }) => {
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '11px',
-          color: 'var(--theme-text-color, #333)',
+          color: GLOBAL_TEXT_COLOR,
           cursor: 'help',
           backgroundColor: 'var(--theme-tooltip-bg, rgba(255,255,255,0.1))'
         }}
@@ -581,13 +593,33 @@ function App() {
       document.documentElement.style.setProperty('--theme-shadow-hover', theme.shadowHover || '0 25px 50px rgba(139, 92, 246, 0.15)');
       document.documentElement.style.setProperty('--theme-border-color', theme.borderColor || 'rgba(255, 255, 255, 0.2)');
       
-      // Add theme-aware tooltip variables
+      // Add theme-aware variables
       if (theme.isDark) {
         document.documentElement.style.setProperty('--theme-text-color', '#ffffff');
         document.documentElement.style.setProperty('--theme-tooltip-bg', 'rgba(255, 255, 255, 0.1)');
+        document.documentElement.style.setProperty('--theme-secondary', '#10b981');
+        document.documentElement.style.setProperty('--theme-button-bg', 'rgba(255, 255, 255, 0.1)');
+        document.documentElement.style.setProperty('--theme-input-bg', 'rgba(255, 255, 255, 0.1)');
+        document.documentElement.style.setProperty('--theme-panel-bg', 'rgba(255, 255, 255, 0.05)');
+        document.documentElement.style.setProperty('--theme-hover-bg', 'rgba(255, 255, 255, 0.1)');
+        document.documentElement.style.setProperty('--theme-text-disabled', 'rgba(255, 255, 255, 0.5)');
+        document.documentElement.style.setProperty('--theme-secondary-bg', 'rgba(255, 255, 255, 0.05)');
+        document.documentElement.style.setProperty('--theme-warning', '#fbbf24');
+        document.documentElement.style.setProperty('--theme-warning-bg', 'rgba(251, 191, 36, 0.1)');
+        document.documentElement.style.setProperty('--theme-primary-light', 'rgba(99, 102, 241, 0.1)');
       } else {
         document.documentElement.style.setProperty('--theme-text-color', '#333333');
         document.documentElement.style.setProperty('--theme-tooltip-bg', 'rgba(0, 0, 0, 0.05)');
+        document.documentElement.style.setProperty('--theme-secondary', '#10b981');
+        document.documentElement.style.setProperty('--theme-button-bg', '#ffffff');
+        document.documentElement.style.setProperty('--theme-input-bg', '#ffffff');
+        document.documentElement.style.setProperty('--theme-panel-bg', 'rgba(0, 0, 0, 0.02)');
+        document.documentElement.style.setProperty('--theme-hover-bg', 'rgba(0, 0, 0, 0.05)');
+        document.documentElement.style.setProperty('--theme-text-disabled', 'rgba(0, 0, 0, 0.4)');
+        document.documentElement.style.setProperty('--theme-secondary-bg', 'rgba(0, 0, 0, 0.05)');
+        document.documentElement.style.setProperty('--theme-warning', '#f59e0b');
+        document.documentElement.style.setProperty('--theme-warning-bg', 'rgba(245, 158, 11, 0.1)');
+        document.documentElement.style.setProperty('--theme-primary-light', 'rgba(79, 70, 229, 0.1)');
       }
       
       const appElement = document.querySelector('.App');
@@ -2206,7 +2238,7 @@ function App() {
       borderRadius: '12px',
       border: '1px solid var(--theme-border-color)',
       backgroundColor: 'var(--theme-input-bg)',
-      color: 'var(--theme-text-color)',
+      color: GLOBAL_TEXT_COLOR,
       fontSize: '12px',
       width: '80px',
       outline: 'none',
@@ -2215,8 +2247,8 @@ function App() {
     submitButton: {
       padding: '0',
       borderRadius: '50%',
-      border: '1px solid #10b981',
-      backgroundColor: '#10b981',
+      border: `1px solid ${GLOBAL_SUCCESS_COLOR}`,
+      backgroundColor: GLOBAL_SUCCESS_COLOR,
       color: 'white',
       fontSize: '12px',
       cursor: 'pointer',
@@ -2231,8 +2263,8 @@ function App() {
     cancelButton: {
       padding: '0',
       borderRadius: '50%',
-      border: '1px solid #ef4444',
-      backgroundColor: '#ef4444',
+      border: `1px solid ${GLOBAL_ERROR_COLOR}`,
+      backgroundColor: GLOBAL_ERROR_COLOR,
       color: 'white',
       fontSize: '12px',
       cursor: 'pointer',
@@ -2248,8 +2280,8 @@ function App() {
       padding: '0',
       borderRadius: '50%',
       border: '1px solid var(--theme-border-color)',
-      backgroundColor: 'var(--theme-button-bg)',
-      color: 'var(--theme-text-color)',
+      backgroundColor: GLOBAL_BUTTON_BG,
+      color: GLOBAL_TEXT_COLOR,
       fontSize: '14px',
       cursor: 'pointer',
       width: '28px',
@@ -2267,14 +2299,14 @@ function App() {
     padding: '6px 12px',
     borderRadius: '16px',
     border: isFoundInFiles 
-      ? '2px solid #10b981' 
+      ? `2px solid ${GLOBAL_SUCCESS_COLOR}` 
       : '1px solid var(--theme-border-color)',
     backgroundColor: isSelected 
-      ? 'var(--theme-secondary, #10b981)' 
-      : 'var(--theme-button-bg)',
+      ? GLOBAL_SECONDARY_COLOR 
+      : GLOBAL_BUTTON_BG,
     color: isSelected 
       ? 'white' 
-      : 'var(--theme-text-color)',
+      : GLOBAL_TEXT_COLOR,
     fontSize: '12px',
     cursor: 'pointer',
     // Only transition specific properties to avoid unwanted visual effects
@@ -2300,11 +2332,11 @@ function App() {
   }, []);
 
   const handleAnafInputFocus = useCallback((e) => {
-    e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+    e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
   }, []);
 
   const handleAnafInputBlur = useCallback((e) => {
-    e.target.style.borderColor = 'var(--theme-border-color)';
+    e.target.style.borderColor = GLOBAL_BORDER_COLOR;
   }, []);
 
   // Account mapping functions
@@ -5089,8 +5121,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5108,7 +5140,7 @@ function App() {
                 transform: 'translate(-50%, -50%)',
                 fontSize: '18px',
                 fontWeight: 'bold',
-                color: 'var(--theme-primary, #4f46e5)',
+                color: GLOBAL_PRIMARY_COLOR,
                 textAlign: 'center',
                 pointerEvents: 'none',
                 zIndex: 100
@@ -5170,8 +5202,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5189,7 +5221,7 @@ function App() {
                 transform: 'translate(-50%, -50%)',
                 fontSize: '18px',
                 fontWeight: 'bold',
-                color: 'var(--theme-secondary, #10b981)',
+                color: GLOBAL_SECONDARY_COLOR,
                 textAlign: 'center',
                 pointerEvents: 'none',
                 zIndex: 100
@@ -5242,8 +5274,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5315,8 +5347,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5387,8 +5419,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5486,8 +5518,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -5585,8 +5617,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                opacity: 0.7,
+                color: GLOBAL_TEXT_COLOR, 
+                opacity: 0.8,
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}>
@@ -5625,14 +5657,14 @@ function App() {
                           padding: '6px 12px',
                           borderRadius: '16px',
                           border: isFoundInFiles 
-                            ? '2px solid #10b981' 
+                            ? `2px solid ${GLOBAL_SUCCESS_COLOR}` 
                             : '1px solid var(--theme-border-color)',
                           backgroundColor: isSelected 
-                            ? 'var(--theme-primary, #4f46e5)' 
-                            : 'var(--theme-button-bg)',
+                            ? GLOBAL_PRIMARY_COLOR 
+                            : GLOBAL_BUTTON_BG,
                           color: isSelected 
                             ? 'white' 
-                            : 'var(--theme-text-color)',
+                            : GLOBAL_TEXT_COLOR,
                           fontSize: '12px',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
@@ -5667,7 +5699,7 @@ function App() {
                           borderRadius: '12px',
                           border: '1px solid var(--theme-border-color)',
                           backgroundColor: 'var(--theme-input-bg)',
-                          color: 'var(--theme-text-color)',
+                          color: GLOBAL_TEXT_COLOR,
                           fontSize: '12px',
                           width: '80px'
                         }}
@@ -5720,8 +5752,8 @@ function App() {
                         padding: '6px 10px',
                         borderRadius: '50%',
                         border: '1px solid var(--theme-border-color)',
-                        backgroundColor: 'var(--theme-button-bg)',
-                        color: 'var(--theme-text-color)',
+                        backgroundColor: GLOBAL_BUTTON_BG,
+                        color: GLOBAL_TEXT_COLOR,
                         fontSize: '14px',
                         cursor: 'pointer',
                         width: '28px',
@@ -5827,11 +5859,11 @@ function App() {
                       borderRadius: '4px',
                       border: '1px solid var(--theme-border-color)',
                       backgroundColor: 'var(--theme-input-bg)',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       fontSize: '14px'
                     }}
                   />
-                  <span style={{ color: 'var(--theme-text-color)', fontSize: '14px' }}>→</span>
+                  <span style={{ color: GLOBAL_TEXT_COLOR, fontSize: '14px' }}>→</span>
                   <input
                     type="text"
                     value={endDate}
@@ -5844,7 +5876,7 @@ function App() {
                       borderRadius: '4px',
                       border: '1px solid var(--theme-border-color)',
                       backgroundColor: 'var(--theme-input-bg)',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       fontSize: '14px'
                     }}
                   />
@@ -5901,8 +5933,8 @@ function App() {
                 top: '2px', 
                 right: '8px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                opacity: 0.7,
+                color: GLOBAL_TEXT_COLOR, 
+                opacity: 0.8,
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}>
@@ -5944,9 +5976,9 @@ function App() {
                       style={{ 
                         marginBottom: '15px', 
                         padding: '10px', 
-                        border: `1px solid ${isContaSelected ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-border-color)'}`,
+                        border: `1px solid ${isContaSelected ? GLOBAL_PRIMARY_COLOR : GLOBAL_BORDER_COLOR}`,
                         borderRadius: '8px',
-                        backgroundColor: isContaSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--theme-panel-bg)',
+                        backgroundColor: isContaSelected ? 'var(--theme-primary-light, rgba(79, 70, 229, 0.1))' : GLOBAL_PANEL_BG,
                         opacity: shouldGrayOut ? 0.4 : 1,
                         transition: 'opacity 0.2s ease'
                       }}>
@@ -5975,7 +6007,7 @@ function App() {
                         <div style={{
                           padding: '8px',
                           marginBottom: '8px',
-                          backgroundColor: 'rgba(0,0,0,0.05)',
+                          backgroundColor: 'var(--theme-secondary-bg, rgba(0,0,0,0.05))',
                           borderRadius: '6px',
                           border: `2px solid ${isBalanced ? '#10b981' : '#ef4444'}`,
                           fontSize: '11px'
@@ -5992,13 +6024,13 @@ function App() {
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px', borderTop: '1px solid var(--theme-border-color)' }}>
                             <span style={{ 
-                              color: isBalanced ? '#10b981' : '#ef4444',
+                              color: isBalanced ? GLOBAL_SUCCESS_COLOR : GLOBAL_ERROR_COLOR,
                               fontWeight: 'bold'
                             }}>
                               <strong>Diff:</strong> {difference?.toFixed(2) || '0.00'}
                             </span>
                             <span style={{ 
-                              color: isBalanced ? '#10b981' : '#ef4444',
+                              color: isBalanced ? GLOBAL_SUCCESS_COLOR : GLOBAL_ERROR_COLOR,
                               fontWeight: 'bold',
                               fontSize: '10px'
                             }}>
@@ -6021,7 +6053,7 @@ function App() {
                               style={{
                                 padding: '3px 8px',
                                 borderRadius: '12px',
-                                backgroundColor: 'var(--theme-secondary, #10b981)',
+                                backgroundColor: GLOBAL_SECONDARY_COLOR,
                                 color: 'white',
                                 fontSize: '10px',
                                 display: 'flex',
@@ -6059,7 +6091,7 @@ function App() {
                               borderRadius: '12px',
                               border: '1px dashed var(--theme-secondary, #10b981)',
                               backgroundColor: 'transparent',
-                              color: 'var(--theme-secondary, #10b981)',
+                              color: GLOBAL_SECONDARY_COLOR,
                               fontSize: '10px',
                               cursor: 'pointer',
                               display: 'flex',
@@ -6100,9 +6132,9 @@ function App() {
                         width: '100%',
                         padding: '12px',
                         borderRadius: '8px',
-                        border: `2px dashed ${hasAvailableAccounts ? 'var(--theme-border-color)' : '#ccc'}`,
+                        border: `2px dashed ${hasAvailableAccounts ? GLOBAL_BORDER_COLOR : '#ccc'}`,
                         backgroundColor: 'transparent',
-                        color: hasAvailableAccounts ? GLOBAL_TEXT_COLOR : '#999',
+                        color: hasAvailableAccounts ? GLOBAL_TEXT_COLOR : 'var(--theme-text-disabled, #999)',
                         fontSize: '14px',
                         cursor: hasAvailableAccounts ? 'pointer' : 'not-allowed',
                         display: 'flex',
@@ -6117,14 +6149,14 @@ function App() {
                         : "All available conta accounts are already mapped. Add new accounts in the Account Selection panel first."}
                       onMouseOver={(e) => {
                         if (hasAvailableAccounts) {
-                          e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
-                          e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                          e.target.style.backgroundColor = GLOBAL_HOVER_BG;
+                          e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
                         }
                       }}
                       onMouseOut={(e) => {
                         if (hasAvailableAccounts) {
                           e.target.style.backgroundColor = 'transparent';
-                          e.target.style.borderColor = 'var(--theme-border-color)';
+                          e.target.style.borderColor = GLOBAL_BORDER_COLOR;
                         }
                       }}
                     >
@@ -6186,29 +6218,29 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                opacity: 0.7,
+                color: GLOBAL_TEXT_COLOR, 
+                opacity: 0.8,
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}>
                 sums-panel
               </div>
             )}
-            <h3 style={{ textAlign: 'center', color: 'var(--theme-text-color, #333)' }}>Account Sums</h3>
+            <h3 style={{ textAlign: 'center', color: GLOBAL_TEXT_COLOR }}>Account Sums</h3>
             
             {/* Conta Sums Section */}
             {Object.keys(accountSums).length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--theme-primary, #4f46e5)' }}>Conta Accounts</h4>
+                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: GLOBAL_PRIMARY_COLOR }}>Conta Accounts</h4>
                 {Object.entries(accountSums).map(([account, sum]) => (
                   <div key={account} style={{
                     padding: '10px',
                     margin: '5px 0',
-                    backgroundColor: 'var(--theme-button-bg)',
+                    backgroundColor: GLOBAL_BUTTON_BG,
                     borderRadius: '4px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    color: 'var(--theme-text-color, #333)'
+                    color: GLOBAL_TEXT_COLOR
                   }}>
                     <span>Account {account}:</span>
                     <strong>{sum.toFixed(2)}</strong>
@@ -6220,17 +6252,17 @@ function App() {
             {/* ANAF Sums Section */}
             {Object.keys(anafAccountSums).length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--theme-secondary, #10b981)' }}>ANAF Accounts</h4>
+                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: GLOBAL_SECONDARY_COLOR }}>ANAF Accounts</h4>
                 {Object.entries(anafAccountSums).map(([account, sum]) => (
                   <div key={`anaf-${account}`} style={{
                     padding: '10px',
                     margin: '5px 0',
-                    backgroundColor: 'var(--theme-button-bg)',
+                    backgroundColor: GLOBAL_BUTTON_BG,
                     borderRadius: '4px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     border: '1px solid var(--theme-secondary, #10b981)',
-                    color: 'var(--theme-text-color, #333)'
+                    color: GLOBAL_TEXT_COLOR
                   }}>
                     <span>ANAF {account}:</span>
                     <strong>{sum.toFixed(2)}</strong>
@@ -6262,7 +6294,7 @@ function App() {
                 )}
               </div>
             ) : (
-              <p style={{ textAlign: 'center', color: 'var(--theme-text-color, #666)' }}>No sums calculated yet</p>
+              <p style={{ textAlign: 'center', color: GLOBAL_TEXT_COLOR }}>No sums calculated yet</p>
             )}
           </div>
         </div>
@@ -6297,8 +6329,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                opacity: 0.7,
+                color: GLOBAL_TEXT_COLOR, 
+                opacity: 0.8,
                 userSelect: 'none',
                 pointerEvents: 'none' 
               }}>
@@ -6318,15 +6350,15 @@ function App() {
                 gap: '10px',
                 padding: '8px',
                 borderRadius: '6px',
-                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                backgroundColor: GLOBAL_PANEL_BG,
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
               }}>
                 <input
                   type="checkbox"
@@ -6351,15 +6383,15 @@ function App() {
                 gap: '10px',
                 padding: '8px',
                 borderRadius: '6px',
-                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                backgroundColor: GLOBAL_PANEL_BG,
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
               }}>
                 <input
                   type="checkbox"
@@ -6384,15 +6416,15 @@ function App() {
                 gap: '10px',
                 padding: '8px',
                 borderRadius: '6px',
-                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                backgroundColor: GLOBAL_PANEL_BG,
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
               }}>
                 <input
                   type="checkbox"
@@ -6462,8 +6494,8 @@ function App() {
               top: '4px', 
               right: '4px', 
               fontSize: '10px', 
-              color: 'var(--theme-text-color, #666)', 
-              backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+              color: GLOBAL_TEXT_COLOR, 
+              backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
               padding: '2px 4px', 
               borderRadius: '2px',
               fontFamily: 'monospace',
@@ -6511,8 +6543,8 @@ function App() {
                 top: '4px', 
                 right: '4px', 
                 fontSize: '10px', 
-                color: 'var(--theme-text-color, #666)', 
-                backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                color: GLOBAL_TEXT_COLOR, 
+                backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                 padding: '2px 4px', 
                 borderRadius: '2px',
                 fontFamily: 'monospace',
@@ -6566,7 +6598,7 @@ function App() {
                 </div>
               </div>
             ) : (
-              <p style={{ color: 'var(--theme-text-color, #666)', textAlign: 'center' }}>{t('mergeResultsWillAppearHere') || 'Merge results will appear here'}</p>
+              <p style={{ color: GLOBAL_TEXT_COLOR, textAlign: 'center' }}>{t('mergeResultsWillAppearHere') || 'Merge results will appear here'}</p>
             )}
           </div>
         </div>
@@ -6595,8 +6627,8 @@ function App() {
                   top: '4px', 
                   right: '4px', 
                   fontSize: '10px', 
-                  color: 'var(--theme-text-color, #666)', 
-                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  color: GLOBAL_TEXT_COLOR, 
+                  backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                   padding: '2px 4px', 
                   borderRadius: '2px',
                   fontFamily: 'monospace',
@@ -6632,7 +6664,7 @@ function App() {
                     <div style={{ 
                       textAlign: 'center', 
                       padding: '40px 20px', 
-                      color: 'var(--theme-text-color)', 
+                      color: GLOBAL_TEXT_COLOR, 
                       opacity: 0.6 
                     }}>
                       No Conta files uploaded yet
@@ -6665,8 +6697,8 @@ function App() {
                   top: '4px', 
                   right: '4px', 
                   fontSize: '10px', 
-                  color: 'var(--theme-text-color, #666)', 
-                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  color: GLOBAL_TEXT_COLOR, 
+                  backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                   padding: '2px 4px', 
                   borderRadius: '2px',
                   fontFamily: 'monospace',
@@ -6702,7 +6734,7 @@ function App() {
                     <div style={{ 
                       textAlign: 'center', 
                       padding: '40px 20px', 
-                      color: 'var(--theme-text-color)', 
+                      color: GLOBAL_TEXT_COLOR, 
                       opacity: 0.6 
                     }}>
                       No ANAF files uploaded yet
@@ -6735,8 +6767,8 @@ function App() {
                   top: '4px', 
                   right: '4px', 
                   fontSize: '10px', 
-                  color: 'var(--theme-text-color, #666)', 
-                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  color: GLOBAL_TEXT_COLOR, 
+                  backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                   padding: '2px 4px', 
                   borderRadius: '2px',
                   fontFamily: 'monospace',
@@ -6828,8 +6860,8 @@ function App() {
                   top: '4px', 
                   right: '4px', 
                   fontSize: '10px', 
-                  color: 'var(--theme-text-color, #666)', 
-                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  color: GLOBAL_TEXT_COLOR, 
+                  backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                   padding: '2px 4px', 
                   borderRadius: '2px',
                   fontFamily: 'monospace',
@@ -6846,7 +6878,7 @@ function App() {
                 <div style={{ marginBottom: '15px' }}>
                   <p style={{ 
                     fontSize: '14px', 
-                    color: 'var(--theme-text-color, #666)', 
+                    color: GLOBAL_TEXT_COLOR, 
                     margin: '0 0 10px 0',
                     lineHeight: '1.4'
                   }}>
@@ -6881,7 +6913,7 @@ function App() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '12px',
-                          border: `2px solid ${isLayoutModeOnly ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-border-color, #e5e5e5)'}`,
+                          border: `2px solid ${isLayoutModeOnly ? GLOBAL_PRIMARY_COLOR : 'var(--theme-border-color, #e5e5e5)'}`,
                           borderRadius: '8px',
                           backgroundColor: isLayoutModeOnly ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
                           cursor: 'pointer',
@@ -6892,7 +6924,7 @@ function App() {
                         onMouseEnter={(e) => {
                           if (!isLayoutModeOnly) {
                             e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.05)';
-                            e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                            e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -6905,14 +6937,14 @@ function App() {
                         <div>
                           <div style={{ 
                             fontWeight: '500',
-                            color: 'var(--theme-text-color)',
+                            color: GLOBAL_TEXT_COLOR,
                             marginBottom: '4px'
                           }}>
                             {panel.name}
                           </div>
                           <div style={{ 
                             fontSize: '12px',
-                            color: 'var(--theme-text-color, #666)',
+                            color: GLOBAL_TEXT_COLOR,
                             fontFamily: 'monospace'
                           }}>
                             ID: {panel.id}
@@ -6926,7 +6958,7 @@ function App() {
                           {isLayoutModeOnly && (
                             <span style={{
                               fontSize: '12px',
-                              backgroundColor: 'var(--theme-primary, #4f46e5)',
+                              backgroundColor: GLOBAL_PRIMARY_COLOR,
                               color: 'white',
                               padding: '2px 6px',
                               borderRadius: '4px',
@@ -6937,7 +6969,7 @@ function App() {
                           )}
                           <span style={{
                             fontSize: '16px',
-                            color: isLayoutModeOnly ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-text-color, #666)'
+                            color: isLayoutModeOnly ? GLOBAL_PRIMARY_COLOR : GLOBAL_TEXT_COLOR
                           }}>
                             {isLayoutModeOnly ? '✓' : '○'}
                           </span>
@@ -6954,7 +6986,7 @@ function App() {
                 }}>
                   <div style={{ 
                     fontSize: '13px', 
-                    color: 'var(--theme-text-color, #666)',
+                    color: GLOBAL_TEXT_COLOR,
                     marginBottom: '8px'
                   }}>
                     Currently {layoutModeOnlyPanels.length} panels set as layout-mode-only
@@ -6984,8 +7016,8 @@ function App() {
                   top: '4px', 
                   right: '4px', 
                   fontSize: '10px', 
-                  color: 'var(--theme-text-color, #666)', 
-                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  color: GLOBAL_TEXT_COLOR, 
+                  backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
                   padding: '2px 4px', 
                   borderRadius: '2px',
                   fontFamily: 'monospace',
@@ -7071,13 +7103,13 @@ function App() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-text-color)' }}>
+          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: GLOBAL_TEXT_COLOR }}>
             Account: {contextMenu.account}
           </div>
           
           {/* File Selection Section */}
           <div style={{ marginBottom: '12px', padding: '8px', borderRadius: '6px', backgroundColor: 'var(--theme-secondary-bg, rgba(0, 0, 0, 0.05))' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: GLOBAL_TEXT_COLOR }}>
               Source Files:
             </label>
             <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '11px' }}>
@@ -7113,8 +7145,8 @@ function App() {
                         marginBottom: '2px',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-button-bg)',
-                        color: isSelected ? 'white' : 'var(--theme-text-color)',
+                        backgroundColor: isSelected ? GLOBAL_PRIMARY_COLOR : GLOBAL_BUTTON_BG,
+                        color: isSelected ? 'white' : GLOBAL_TEXT_COLOR,
                         transition: 'all 0.2s ease'
                       }}
                     >
@@ -7128,7 +7160,7 @@ function App() {
                     </div>
                   );
                 }) : (
-                  <div style={{ color: 'var(--theme-text-color)', fontStyle: 'italic' }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontStyle: 'italic' }}>
                     No files detected for this account
                   </div>
                 );
@@ -7137,7 +7169,7 @@ function App() {
           </div>
           
           <div style={{ marginBottom: '8px', position: 'relative' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Filter Column:
             </label>
             <div
@@ -7150,7 +7182,7 @@ function App() {
                 padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
-                color: 'var(--theme-text-color)',
+                color: GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: 'pointer',
@@ -7212,7 +7244,7 @@ function App() {
                     style={{
                       padding: '8px 12px',
                       fontSize: '12px',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7252,7 +7284,7 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Filter Value:
             </label>
             <input
@@ -7270,7 +7302,7 @@ function App() {
                 backgroundColor: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 
                   'var(--theme-bg-color-disabled, rgba(128, 128, 128, 0.2))' : 'var(--theme-input-bg)',
                 color: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 
-                  'var(--theme-text-color-disabled, rgba(128, 128, 128, 0.6))' : 'var(--theme-text-color)',
+                  'var(--theme-text-color-disabled, rgba(128, 128, 128, 0.6))' : GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: getAccountConfig(contextMenu.account).filterColumn === 'cont' ? 'not-allowed' : 'text'
@@ -7281,7 +7313,7 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '12px', position: 'relative' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Sum Column:
             </label>
             <div
@@ -7294,7 +7326,7 @@ function App() {
                 padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
-                color: 'var(--theme-text-color)',
+                color: GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: 'pointer',
@@ -7354,7 +7386,7 @@ function App() {
                     style={{
                       padding: '8px 12px',
                       fontSize: '12px',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7438,13 +7470,13 @@ function App() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-text-color)' }}>
+          <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: GLOBAL_TEXT_COLOR }}>
             Account: {anafContextMenu.account}
           </div>
           
           {/* File Selection Section */}
           <div style={{ marginBottom: '12px', padding: '8px', borderRadius: '6px', backgroundColor: 'var(--theme-secondary-bg, rgba(0, 0, 0, 0.05))' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px', color: GLOBAL_TEXT_COLOR }}>
               Source Files:
             </label>
             <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '11px' }}>
@@ -7482,8 +7514,8 @@ function App() {
                         marginBottom: '2px',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? 'var(--theme-secondary, #10b981)' : 'var(--theme-button-bg)',
-                        color: isSelected ? 'white' : 'var(--theme-text-color)',
+                        backgroundColor: isSelected ? GLOBAL_SECONDARY_COLOR : GLOBAL_BUTTON_BG,
+                        color: isSelected ? 'white' : GLOBAL_TEXT_COLOR,
                         transition: 'all 0.2s ease'
                       }}
                     >
@@ -7497,7 +7529,7 @@ function App() {
                     </div>
                   );
                 }) : (
-                  <div style={{ color: 'var(--theme-text-color)', fontStyle: 'italic' }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontStyle: 'italic' }}>
                     No files detected for this account
                   </div>
                 );
@@ -7506,7 +7538,7 @@ function App() {
           </div>
           
           <div style={{ marginBottom: '8px', position: 'relative' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Filter Column:
             </label>
             <div
@@ -7519,7 +7551,7 @@ function App() {
                 padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
-                color: 'var(--theme-text-color)',
+                color: GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: 'pointer',
@@ -7582,7 +7614,7 @@ function App() {
                     style={{
                       padding: '8px 12px',
                       fontSize: '12px',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7622,7 +7654,7 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '8px', position: 'relative' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Filter Value:
             </label>
             <div
@@ -7636,7 +7668,7 @@ function App() {
                 padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
-                color: 'var(--theme-text-color)',
+                color: GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: 'pointer',
@@ -7687,7 +7719,7 @@ function App() {
                     style={{
                       padding: '8px 12px',
                       fontSize: '12px',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7727,7 +7759,7 @@ function App() {
           </div>
 
           <div style={{ marginBottom: '8px', position: 'relative' }}>
-            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+            <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
               Sum Column:
             </label>
             <div
@@ -7740,7 +7772,7 @@ function App() {
                 padding: '4px 20px 4px 4px',
                 fontSize: '12px',
                 backgroundColor: 'var(--theme-input-bg)',
-                color: 'var(--theme-text-color)',
+                color: GLOBAL_TEXT_COLOR,
                 border: '1px solid var(--theme-border-color)',
                 borderRadius: '2px',
                 cursor: 'pointer',
@@ -7802,7 +7834,7 @@ function App() {
                     style={{
                       padding: '8px 12px',
                       fontSize: '12px',
-                      color: 'var(--theme-text-color)',
+                      color: GLOBAL_TEXT_COLOR,
                       cursor: 'pointer',
                       borderRadius: index === 0 ? '8px 8px 0 0' : 
                                   index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7843,7 +7875,7 @@ function App() {
 
           <div style={{ marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontSize: '12px', color: 'var(--theme-text-color)', margin: '0' }}>
+              <label style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, margin: '0' }}>
                 Subtract:
               </label>
               <div 
@@ -7878,7 +7910,7 @@ function App() {
               transition: 'opacity 0.2s'
             }}>
               <div style={{ marginBottom: '8px', position: 'relative' }}>
-                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
                   Filter Column:
                 </label>
                 <div
@@ -7893,7 +7925,7 @@ function App() {
                     padding: '4px 20px 4px 4px',
                     fontSize: '12px',
                     backgroundColor: 'var(--theme-input-bg)',
-                    color: 'var(--theme-text-color)',
+                    color: GLOBAL_TEXT_COLOR,
                     border: '1px solid var(--theme-border-color)',
                     borderRadius: '2px',
                     cursor: isAnafSubtractionEnabled(anafContextMenu.account) ? 'pointer' : 'not-allowed',
@@ -7958,7 +7990,7 @@ function App() {
                         style={{
                           padding: '8px 12px',
                           fontSize: '12px',
-                          color: 'var(--theme-text-color)',
+                          color: GLOBAL_TEXT_COLOR,
                           cursor: 'pointer',
                           borderRadius: index === 0 ? '8px 8px 0 0' : 
                                       index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -7984,7 +8016,7 @@ function App() {
               </div>
 
               <div style={{ marginBottom: '8px', position: 'relative' }}>
-                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
                   Filter Value:
                 </label>
                 <div
@@ -8000,7 +8032,7 @@ function App() {
                     padding: '4px 20px 4px 4px',
                     fontSize: '12px',
                     backgroundColor: 'var(--theme-input-bg)',
-                    color: 'var(--theme-text-color)',
+                    color: GLOBAL_TEXT_COLOR,
                     border: '1px solid var(--theme-border-color)',
                     borderRadius: '2px',
                     cursor: isAnafSubtractionEnabled(anafContextMenu.account) ? 'pointer' : 'not-allowed',
@@ -8053,7 +8085,7 @@ function App() {
                         style={{
                           padding: '8px 12px',
                           fontSize: '12px',
-                          color: 'var(--theme-text-color)',
+                          color: GLOBAL_TEXT_COLOR,
                           cursor: 'pointer',
                           borderRadius: index === 0 ? '8px 8px 0 0' : 
                                       index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -8079,7 +8111,7 @@ function App() {
               </div>
 
               <div style={{ marginBottom: '8px', position: 'relative' }}>
-                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--theme-text-color)' }}>
+                <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: GLOBAL_TEXT_COLOR }}>
                   Sum Column:
                 </label>
                 <div
@@ -8094,7 +8126,7 @@ function App() {
                     padding: '4px 20px 4px 4px',
                     fontSize: '12px',
                     backgroundColor: 'var(--theme-input-bg)',
-                    color: 'var(--theme-text-color)',
+                    color: GLOBAL_TEXT_COLOR,
                     border: '1px solid var(--theme-border-color)',
                     borderRadius: '2px',
                     cursor: isAnafSubtractionEnabled(anafContextMenu.account) ? 'pointer' : 'not-allowed',
@@ -8158,7 +8190,7 @@ function App() {
                         style={{
                           padding: '8px 12px',
                           fontSize: '12px',
-                          color: 'var(--theme-text-color)',
+                          color: GLOBAL_TEXT_COLOR,
                           cursor: 'pointer',
                           borderRadius: index === 0 ? '8px 8px 0 0' : 
                                       index === arr.length - 1 ? '0 0 8px 8px' : '0',
@@ -8289,7 +8321,7 @@ function App() {
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  color: 'var(--theme-text-color)',
+                  color: GLOBAL_TEXT_COLOR,
                   borderRadius: '4px',
                   textAlign: 'center',
                   border: '1px solid transparent',
@@ -8301,7 +8333,7 @@ function App() {
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-                  e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                  e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = 'transparent';
@@ -8373,7 +8405,7 @@ function App() {
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  color: 'var(--theme-text-color)',
+                  color: GLOBAL_TEXT_COLOR,
                   borderRadius: '4px',
                   textAlign: 'center',
                   border: '1px solid transparent',
@@ -8385,7 +8417,7 @@ function App() {
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-                  e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                  e.target.style.borderColor = GLOBAL_PRIMARY_COLOR;
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = 'transparent';
