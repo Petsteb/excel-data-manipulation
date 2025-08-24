@@ -4644,14 +4644,19 @@ function App() {
   const handlePanStart = (e) => {
     if (draggedElement) return;
     
-    // In view mode, only allow interactions with theme/language buttons and view controls
+    // In view mode, allow panning but block other interactions except for specific UI elements
     if (isViewMode) {
       const isOnThemeButton = e.target.closest('.theme-toggle') || e.target.closest('.language-toggle');
       const isOnViewControls = e.target.closest('.view-mode-controls') || e.target.closest('.view-mode-btn') || e.target.closest('.view-mode-dropdown');
+      const isOnViewTabs = e.target.closest('.view-navigation-tabs');
+      const isOnTopControls = e.target.closest('.top-controls');
       
-      if (!isOnThemeButton && !isOnViewControls) {
-        return; // Block all other interactions in view mode
+      // If clicking on UI controls, don't start panning - let the UI handle it
+      if (isOnThemeButton || isOnViewControls || isOnViewTabs || isOnTopControls) {
+        return;
       }
+      
+      // For all other clicks in view mode, allow panning
     }
     
     // Allow panning on empty space (not on panels) or when right-clicking in layout mode
@@ -4768,30 +4773,6 @@ function App() {
 
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
-    // In view mode, only allow panning and interactions with top-right corner buttons and view mode controls
-    if (viewModeStep.includes('viewing') || viewModeStep.includes('creating')) {
-      // Check if click is on top-right corner buttons (theme, language, etc.)
-      const topRightButtons = document.querySelector('.top-controls');
-      const viewTabs = document.querySelector('.view-navigation-tabs');
-      const viewModeControls = document.querySelector('.view-mode-controls');
-      
-      if (topRightButtons && topRightButtons.contains(e.target)) {
-        return; // Allow interaction with top-right buttons
-      }
-      
-      if (viewTabs && viewTabs.contains(e.target)) {
-        return; // Allow interaction with view tabs
-      }
-      
-      if (viewModeControls && viewModeControls.contains(e.target)) {
-        return; // Allow interaction with view mode control buttons
-      }
-      
-      // Allow panning in view mode (both viewing and creating)
-      handlePanStart(e);
-      return;
-    }
-    
     handlePanStart(e);
   };
 
