@@ -307,6 +307,11 @@ function App() {
     { id: 'worksheet-selection-panel', name: 'Worksheet Selection Panel', type: 'panel', active: true },
     { id: 'final-summary-panel', name: 'Final Summary Panel', type: 'panel', active: true }
   ]);
+  
+  // Layout-mode-only panels configuration
+  const [layoutModeOnlyPanels, setLayoutModeOnlyPanels] = useState(['anaf-header-panel', 'anaf-date-panel', 'sums-panel']);
+  const [showLayoutControlPanel, setShowLayoutControlPanel] = useState(false);
+  
   const [showContaFilesPopup, setShowContaFilesPopup] = useState(false);
   const [showAnafFilesPopup, setShowAnafFilesPopup] = useState(false);
   const [showDateColumnsPopup, setShowDateColumnsPopup] = useState(false);
@@ -3967,7 +3972,6 @@ function App() {
     // Calculate core bounds from active panels and buttons only
     Object.entries(panelPositions).filter(([elementId]) => {
       // Exclude layout-mode-only panels from workspace calculations when not in layout mode
-      const layoutModeOnlyPanels = ['anaf-header-panel', 'anaf-date-panel', 'sums-panel'];
       if (layoutModeOnlyPanels.includes(elementId) && !layoutModeOverride) {
         return false;
       }
@@ -4193,8 +4197,8 @@ function App() {
     
     // Repopulate matrix with active panel positions only
     Object.entries(panelPositions).filter(([elementId]) => {
-      // Include ANAF header, date, and sums panels in collision detection when in layout mode
-      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel' || elementId === 'sums-panel') && isLayoutMode) {
+      // Include layout-mode-only panels in collision detection when in layout mode
+      if (layoutModeOnlyPanels.includes(elementId) && isLayoutMode) {
         return true;
       }
       // Only include panels that are in the availablePanels list and active, or buttons
@@ -4237,8 +4241,8 @@ function App() {
     // Populate matrix with active panels and buttons only
     // Adjust coordinates to matrix space (subtract minX, minY offset)
     Object.entries(panelPositions).filter(([elementId]) => {
-      // Include ANAF header, date, and sums panels in collision detection when in layout mode
-      if ((elementId === 'anaf-header-panel' || elementId === 'anaf-date-panel' || elementId === 'sums-panel') && isLayoutMode) {
+      // Include layout-mode-only panels in collision detection when in layout mode
+      if (layoutModeOnlyPanels.includes(elementId) && isLayoutMode) {
         return true;
       }
       // Only include panels that are in the availablePanels list and active, or buttons
@@ -4989,6 +4993,14 @@ function App() {
         >
           DEV
         </button>
+        <button 
+          className="layout-button"
+          onClick={() => setShowLayoutControlPanel(true)}
+          title="Configure Layout Mode Only Panels"
+          style={{ fontSize: '14px', fontWeight: 'bold' }}
+        >
+          ⚙️
+        </button>
       </div>
       
       {(processingSummary || contabilitateFiles.length > 0 || anafFiles.length > 0) && (
@@ -5332,7 +5344,7 @@ function App() {
             height: `${getVisualPosition('anaf-header-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10,
-            display: isLayoutMode ? 'block' : 'none'
+            display: layoutModeOnlyPanels.includes('anaf-header-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
           {isLayoutMode && (
@@ -5431,7 +5443,7 @@ function App() {
             height: `${getVisualPosition('anaf-date-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10,
-            display: isLayoutMode ? 'block' : 'none'
+            display: layoutModeOnlyPanels.includes('anaf-date-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
           {isLayoutMode && (
@@ -6131,7 +6143,7 @@ function App() {
             height: `${getVisualPosition('sums-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             zIndex: 10,
-            display: isLayoutMode ? 'block' : 'none'
+            display: layoutModeOnlyPanels.includes('sums-panel') ? (isLayoutMode ? 'block' : 'none') : 'block'
           }}
         >
           {isLayoutMode && (
@@ -6719,6 +6731,162 @@ function App() {
                       );
                     });
                   })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layout Control Panel */}
+        {showLayoutControlPanel && (
+          <div className="popup-overlay" onClick={() => setShowLayoutControlPanel(false)}>
+            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+              {isDeveloperMode && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '4px', 
+                  right: '4px', 
+                  fontSize: '10px', 
+                  color: 'var(--theme-text-color, #666)', 
+                  backgroundColor: 'var(--theme-bg-color, rgba(0,0,0,0.1))', 
+                  padding: '2px 4px', 
+                  borderRadius: '2px',
+                  fontFamily: 'monospace',
+                  zIndex: 1000
+                }}>
+                  layout-control-panel
+                </div>
+              )}
+              <div className="popup-header">
+                <h3>Layout Mode Only Panels</h3>
+                <button className="close-btn" onClick={() => setShowLayoutControlPanel(false)}>×</button>
+              </div>
+              <div className="popup-body">
+                <div style={{ marginBottom: '15px' }}>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    color: 'var(--theme-text-color, #666)', 
+                    margin: '0 0 10px 0',
+                    lineHeight: '1.4'
+                  }}>
+                    Select panels that should only be visible in layout mode. These panels won't interfere with workspace calculations but remain active.
+                  </p>
+                </div>
+                <div className="panels-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '8px',
+                  maxHeight: '400px',
+                  overflowY: 'auto'
+                }}>
+                  {availablePanels.filter(panel => panel.active).map(panel => {
+                    const isLayoutModeOnly = layoutModeOnlyPanels.includes(panel.id);
+                    
+                    return (
+                      <button
+                        key={panel.id}
+                        className={`panel-config-btn ${isLayoutModeOnly ? 'layout-mode-only' : ''}`}
+                        onClick={() => {
+                          if (isLayoutModeOnly) {
+                            // Remove from layout-mode-only list
+                            setLayoutModeOnlyPanels(prev => prev.filter(id => id !== panel.id));
+                          } else {
+                            // Add to layout-mode-only list
+                            setLayoutModeOnlyPanels(prev => [...prev, panel.id]);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px',
+                          border: `2px solid ${isLayoutModeOnly ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-border-color, #e5e5e5)'}`,
+                          borderRadius: '8px',
+                          backgroundColor: isLayoutModeOnly ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          fontSize: '14px',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isLayoutModeOnly) {
+                            e.target.style.backgroundColor = 'rgba(79, 70, 229, 0.05)';
+                            e.target.style.borderColor = 'var(--theme-primary, #4f46e5)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isLayoutModeOnly) {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.borderColor = 'var(--theme-border-color, #e5e5e5)';
+                          }
+                        }}
+                      >
+                        <div>
+                          <div style={{ 
+                            fontWeight: '500',
+                            color: 'var(--theme-text-color)',
+                            marginBottom: '4px'
+                          }}>
+                            {panel.name}
+                          </div>
+                          <div style={{ 
+                            fontSize: '12px',
+                            color: 'var(--theme-text-color, #666)',
+                            fontFamily: 'monospace'
+                          }}>
+                            ID: {panel.id}
+                          </div>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          {isLayoutModeOnly && (
+                            <span style={{
+                              fontSize: '12px',
+                              backgroundColor: 'var(--theme-primary, #4f46e5)',
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: '500'
+                            }}>
+                              LAYOUT ONLY
+                            </span>
+                          )}
+                          <span style={{
+                            fontSize: '16px',
+                            color: isLayoutModeOnly ? 'var(--theme-primary, #4f46e5)' : 'var(--theme-text-color, #666)'
+                          }}>
+                            {isLayoutModeOnly ? '✓' : '○'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ 
+                  marginTop: '15px', 
+                  paddingTop: '15px', 
+                  borderTop: '1px solid var(--theme-border-color)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: 'var(--theme-text-color, #666)',
+                    marginBottom: '8px'
+                  }}>
+                    Currently {layoutModeOnlyPanels.length} panels set as layout-mode-only
+                  </div>
+                  {layoutModeOnlyPanels.length > 0 && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setLayoutModeOnlyPanels([])}
+                      style={{ fontSize: '12px' }}
+                    >
+                      Clear All
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
