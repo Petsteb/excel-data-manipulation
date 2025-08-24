@@ -4923,35 +4923,37 @@ function App() {
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Center the view rectangle on the current viewport center
+    // Cover the entire visible viewport area
     setCreatingScreenRect({
-      x: -panOffset.x + viewportWidth * 0.1,
-      y: -panOffset.y + viewportHeight * 0.1,
-      width: viewportWidth * 0.8,
-      height: viewportHeight * 0.8
+      x: -panOffset.x,
+      y: -panOffset.y,
+      width: viewportWidth,
+      height: viewportHeight
     });
   };
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Center the view rectangle on the current viewport center
+    // Cover the entire visible viewport area
     setCreatingScreenRect({
-      x: -panOffset.x + viewportWidth * 0.1,
-      y: -panOffset.y + viewportHeight * 0.1,
-      width: viewportWidth * 0.8,
-      height: viewportHeight * 0.8
+      x: -panOffset.x,
+      y: -panOffset.y,
+      width: viewportWidth,
+      height: viewportHeight
     });
   };
 
-  // Update creating view rectangle to stay centered when panning
+  // Update creating view rectangle to stay covering full viewport when panning
   useEffect(() => {
     if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       setCreatingScreenRect(prev => ({
         ...prev,
-        x: -panOffset.x + viewportWidth * 0.1,
-        y: -panOffset.y + viewportHeight * 0.1
+        x: -panOffset.x,
+        y: -panOffset.y,
+        width: viewportWidth,
+        height: viewportHeight
       }));
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
