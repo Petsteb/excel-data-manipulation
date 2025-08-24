@@ -4036,6 +4036,23 @@ function App() {
     };
   };
 
+  // Get screen creation boundaries - full width/height but respect top navigation
+  const getScreenCreationBoundaries = () => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) {
+      return { width: 1200, height: 800 }; // fallback
+    }
+    
+    // Only account for top padding (navigation bar), extend to all other edges
+    const availableWidth = boardRect.width; // Full width
+    const availableHeight = boardRect.height - 60; // Only subtract top navigation (60px)
+    
+    return { 
+      width: Math.max(0, availableWidth), 
+      height: Math.max(0, availableHeight) 
+    };
+  };
+
   // No boundary clamping - allow placement anywhere in workspace
   // Objects can be placed outside initial viewport via dynamic boundaries
 
@@ -4935,8 +4952,8 @@ function App() {
 
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover the entire usable board area (excluding navigation/padding)
+    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+    // Cover the entire viewable area (excluding only top navigation)
     setCreatingScreenRect({
       x: -panOffset.x,
       y: -panOffset.y,
@@ -4947,8 +4964,8 @@ function App() {
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover the entire usable board area (excluding navigation/padding)
+    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+    // Cover the entire viewable area (excluding only top navigation)
     setCreatingScreenRect({
       x: -panOffset.x,
       y: -panOffset.y,
@@ -4957,10 +4974,10 @@ function App() {
     });
   };
 
-  // Update creating view rectangle to stay covering usable board area when panning
+  // Update creating view rectangle to stay covering viewable area when panning
   useEffect(() => {
     if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
-      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
       setCreatingScreenRect(prev => ({
         ...prev,
         x: -panOffset.x,
