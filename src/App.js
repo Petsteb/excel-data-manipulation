@@ -5810,26 +5810,65 @@ function App() {
           >
             <button
               onClick={(e) => {
-                console.log('Rename button clicked');
+                console.log('Rename button clicked - event:', e);
+                console.log('screenContextMenu:', screenContextMenu);
+                e.preventDefault();
                 e.stopPropagation();
-                handleScreenRename(screenContextMenu.screen);
+                try {
+                  handleScreenRename(screenContextMenu.screen);
+                } catch (error) {
+                  console.error('Error in rename handler:', error);
+                }
+              }}
+              onMouseDown={(e) => {
+                console.log('Rename button mouse down');
+                e.stopPropagation();
+              }}
+              onMouseUp={(e) => {
+                console.log('Rename button mouse up');
+                e.stopPropagation();
               }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: 'none',
-                backgroundColor: 'transparent',
+                border: '2px solid red',
+                backgroundColor: 'rgba(255,0,0,0.1)',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '14px',
                 color: '#333',
-                borderBottom: '1px solid #f0f0f0'
+                borderBottom: '1px solid #f0f0f0',
+                zIndex: 99999,
+                position: 'relative'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) => {
+                console.log('Rename button hover');
+                e.target.style.backgroundColor = '#f8f9fa';
+              }}
+              onMouseLeave={(e) => {
+                console.log('Rename button leave');
+                e.target.style.backgroundColor = 'transparent';
+              }}
             >
               📝 Rename
             </button>
+            <div 
+              style={{
+                padding: '8px 12px', 
+                cursor: 'pointer', 
+                backgroundColor: '#e6f3ff',
+                fontSize: '12px',
+                color: '#0066cc',
+                borderBottom: '1px solid #f0f0f0'
+              }}
+              onClick={(e) => {
+                console.log('TEST RENAME DIV CLICKED');
+                e.stopPropagation();
+                handleScreenRename(screenContextMenu.screen);
+              }}
+            >
+              🔧 TEST RENAME
+            </div>
             <button
               onClick={(e) => {
                 console.log('Delete button clicked');
