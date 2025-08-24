@@ -4036,16 +4036,16 @@ function App() {
     };
   };
 
-  // Get screen creation boundaries - full width/height but respect top navigation
+  // Get screen creation boundaries - full width/height for true edge-to-edge coverage
   const getScreenCreationBoundaries = () => {
     const boardRect = boardRef.current?.getBoundingClientRect();
     if (!boardRect) {
       return { width: 1200, height: 800 }; // fallback
     }
     
-    // Only account for top padding (navigation bar), extend to all other edges
+    // Use full dimensions - position handles navigation offset
     const availableWidth = boardRect.width; // Full width
-    const availableHeight = boardRect.height - 60; // Only subtract top navigation (60px)
+    const availableHeight = boardRect.height; // Full height
     
     return { 
       width: Math.max(0, availableWidth), 
@@ -4953,24 +4953,24 @@ function App() {
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-    // Cover the entire viewable area (excluding only top navigation)
+    // Cover from below navigation bar to bottom edge
     setCreatingScreenRect({
       x: -panOffset.x,
-      y: -panOffset.y,
+      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
       width: viewportWidth,
-      height: viewportHeight
+      height: viewportHeight - 60 // Adjust height since we start lower
     });
   };
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-    // Cover the entire viewable area (excluding only top navigation)
+    // Cover from below navigation bar to bottom edge
     setCreatingScreenRect({
       x: -panOffset.x,
-      y: -panOffset.y,
+      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
       width: viewportWidth,
-      height: viewportHeight
+      height: viewportHeight - 60 // Adjust height since we start lower
     });
   };
 
@@ -4981,9 +4981,9 @@ function App() {
       setCreatingScreenRect(prev => ({
         ...prev,
         x: -panOffset.x,
-        y: -panOffset.y,
+        y: -panOffset.y + 60, // Start below navigation bar (60px offset)
         width: viewportWidth,
-        height: viewportHeight
+        height: viewportHeight - 60 // Adjust height since we start lower
       }));
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
