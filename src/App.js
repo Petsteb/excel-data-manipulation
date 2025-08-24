@@ -296,11 +296,8 @@ function App() {
   const [creatingScreenRect, setCreatingScreenRect] = useState(null); // Temporary rectangle while creating screen
   const [showScreenNamePopup, setShowScreenNamePopup] = useState(false);
   const [newScreenName, setNewScreenName] = useState('');
-  const [showScreenContextMenu, setShowScreenContextMenu] = useState(false);
-  const [screenContextMenuPosition, setScreenContextMenuPosition] = useState({ x: 0, y: 0 });
-  const [selectedScreenForContext, setSelectedScreenForContext] = useState(null);
-  const [showScreenRenamePopup, setShowScreenRenamePopup] = useState(false);
-  const [screenRenameValue, setScreenRenameValue] = useState('');
+  const [screenContextMenu, setScreenContextMenu] = useState(null);
+  const [screenRenameDialog, setScreenRenameDialog] = useState(null);
   const [panelPositions, setPanelPositions] = useState({
     'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -549,13 +546,13 @@ function App() {
 
   // Handle document clicks to close context menu
   useEffect(() => {
-    if (contextMenu || anafContextMenu || mappingContextMenu || showScreenContextMenu) {
+    if (contextMenu || anafContextMenu || mappingContextMenu || screenContextMenu) {
       document.addEventListener('click', handleDocumentClick);
       return () => {
         document.removeEventListener('click', handleDocumentClick);
       };
     }
-  }, [contextMenu, anafContextMenu, mappingContextMenu, showScreenContextMenu]);
+  }, [contextMenu, anafContextMenu, mappingContextMenu, screenContextMenu]);
 
   // Apply theme when component mounts and currentTheme changes
   useEffect(() => {
@@ -3136,9 +3133,11 @@ function App() {
     if (mappingContextMenu) {
       setMappingContextMenu(null);
     }
-    if (showScreenContextMenu) {
-      setShowScreenContextMenu(false);
-      setSelectedScreenForContext(null);
+    if (screenContextMenu) {
+      setScreenContextMenu(null);
+    }
+    if (screenRenameDialog) {
+      setScreenRenameDialog(null);
     }
   };
 
@@ -4917,9 +4916,12 @@ function App() {
 
   const handleScreenRightClick = (e, screen) => {
     e.preventDefault();
-    setSelectedScreenForContext(screen);
-    setScreenContextMenuPosition({ x: e.clientX, y: e.clientY });
-    setShowScreenContextMenu(true);
+    e.stopPropagation();
+    setScreenContextMenu({
+      screen: screen,
+      x: e.clientX,
+      y: e.clientY
+    });
   };
 
   const deleteSecondaryScreen = (screenId) => {
@@ -4927,40 +4929,157 @@ function App() {
     if (currentScreen === screenId) {
       setCurrentScreen('home');
     }
-    // Close context menu if open
-    setShowScreenContextMenu(false);
-    setSelectedScreenForContext(null);
+    setScreenContextMenu(null);
   };
 
-  const startScreenRename = () => {
-    if (selectedScreenForContext) {
-      setScreenRenameValue(selectedScreenForContext.name);
-      setShowScreenRenamePopup(true);
-      setShowScreenContextMenu(false);
-    }
+  const handleScreenRename = (screen) => {
+    setScreenRenameDialog({
+      screen: screen,
+      value: screen.name
+    });
+    setScreenContextMenu(null);
   };
 
-  const saveScreenRename = () => {
-    if (selectedScreenForContext && screenRenameValue.trim()) {
+  const saveScreenRename = (newName) => {
+    if (screenRenameDialog && newName.trim()) {
       setSecondaryScreens(prev => prev.map(screen => 
-        screen.id === selectedScreenForContext.id 
-          ? { ...screen, name: screenRenameValue.trim() }
+        screen.id === screenRenameDialog.screen.id 
+          ? { ...screen, name: newName.trim() }
           : screen
       ));
-      setShowScreenRenamePopup(false);
-      setSelectedScreenForContext(null);
-      setScreenRenameValue('');
     }
+    setScreenRenameDialog(null);
   };
 
   const cancelScreenRename = () => {
-    setShowScreenRenamePopup(false);
-    setSelectedScreenForContext(null);
-    setScreenRenameValue('');
+    setScreenRenameDialog(null);
   };
 
   const showHomeScreen = () => {
     setScreenModeStep(screenModeStep === 'viewing-home' ? 'idle' : 'viewing-home');
+  };
+
+  // Screen Rename Dialog Component
+  const ScreenRenameDialog = ({ screen, initialValue, onSave, onCancel }) => {
+    const [inputValue, setInputValue] = useState(initialValue);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        onSave(inputValue.trim());
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10002
+        }}
+        onClick={onCancel}
+      >
+        <div 
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            padding: '24px',
+            minWidth: '320px',
+            maxWidth: '500px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 style={{ 
+            margin: '0 0 16px 0', 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            color: '#333' 
+          }}>
+            Rename Screen
+          </h3>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter screen name..."
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                marginBottom: '20px',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#007bff'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  backgroundColor: '#f8f9fa',
+                  color: '#666',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e9ecef'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!inputValue.trim()}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  backgroundColor: inputValue.trim() ? '#007bff' : '#ccc',
+                  color: 'white',
+                  cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => {
+                  if (inputValue.trim()) {
+                    e.target.style.backgroundColor = '#0056b3';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (inputValue.trim()) {
+                    e.target.style.backgroundColor = '#007bff';
+                  }
+                }}
+              >
+                Rename
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   const showSecondaryScreens = () => {
@@ -5781,126 +5900,80 @@ function App() {
       )}
 
       {/* Screen Context Menu */}
-      {showScreenContextMenu && (
+      {screenContextMenu && (
         <div 
-          className="popup-overlay" 
-          onClick={() => setShowScreenContextMenu(false)}
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10000
+          }}
+          onClick={() => setScreenContextMenu(null)}
         >
           <div 
-            className="context-menu"
             style={{
               position: 'absolute',
-              left: `${screenContextMenuPosition.x}px`,
-              top: `${screenContextMenuPosition.y}px`,
-              backgroundColor: 'white',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              zIndex: 10003,
-              minWidth: '120px'
+              left: `${screenContextMenu.x}px`,
+              top: `${screenContextMenu.y}px`,
+              backgroundColor: '#ffffff',
+              border: '1px solid #e0e0e0',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 10001,
+              minWidth: '140px',
+              overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="context-menu-item"
-              onClick={startScreenRename}
+              onClick={() => handleScreenRename(screenContextMenu.screen)}
               style={{
                 width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                backgroundColor: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              Rename
-            </button>
-            <button
-              className="context-menu-item"
-              onClick={() => selectedScreenForContext && deleteSecondaryScreen(selectedScreenForContext.id)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
+                padding: '12px 16px',
                 border: 'none',
                 backgroundColor: 'transparent',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '14px',
-                color: '#e74c3c'
+                color: '#333',
+                borderBottom: '1px solid #f0f0f0'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
-              Delete
+              📝 Rename
+            </button>
+            <button
+              onClick={() => deleteSecondaryScreen(screenContextMenu.screen.id)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#dc3545'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              🗑️ Delete
             </button>
           </div>
         </div>
       )}
 
-      {/* Screen Rename Popup */}
-      {showScreenRenamePopup && (
-        <div 
-          className="popup-overlay" 
-          onClick={cancelScreenRename}
-        >
-          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-header">
-              <h3>Rename Screen</h3>
-              <button 
-                className="close-btn" 
-                onClick={cancelScreenRename}
-              >×</button>
-            </div>
-            <div className="popup-body">
-              <label htmlFor="screen-rename-input">Screen Name:</label>
-              <input
-                id="screen-rename-input"
-                type="text"
-                value={screenRenameValue}
-                onChange={(e) => setScreenRenameValue(e.target.value)}
-                placeholder="Enter screen name..."
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  marginTop: '5px'
-                }}
-                autoFocus
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && screenRenameValue.trim()) {
-                    saveScreenRename();
-                  } else if (e.key === 'Escape') {
-                    cancelScreenRename();
-                  }
-                }}
-              />
-            </div>
-            <div className="popup-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={cancelScreenRename}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={saveScreenRename}
-                disabled={!screenRenameValue.trim()}
-                style={{
-                  opacity: screenRenameValue.trim() ? 1 : 0.5,
-                  cursor: screenRenameValue.trim() ? 'pointer' : 'not-allowed'
-                }}
-              >
-                Rename
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Screen Rename Dialog */}
+      {screenRenameDialog && (
+        <ScreenRenameDialog 
+          screen={screenRenameDialog.screen}
+          initialValue={screenRenameDialog.value}
+          onSave={saveScreenRename}
+          onCancel={cancelScreenRename}
+        />
       )}
       
       {(processingSummary || contabilitateFiles.length > 0 || anafFiles.length > 0) && (
