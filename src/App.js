@@ -7262,26 +7262,6 @@ function App() {
                               }}
                             >
                               {anafAccount}
-                              <button
-                                onClick={() => handleRemoveMapping(contaAccount, anafAccount)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'white',
-                                  cursor: 'pointer',
-                                  fontSize: '10px',
-                                  padding: '0',
-                                  width: '12px',
-                                  height: '12px',
-                                  borderRadius: '50%',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                                title="Remove mapping"
-                              >
-                                ×
-                              </button>
                             </span>
                           ))}
                           <button
@@ -9613,13 +9593,21 @@ function App() {
             position: 'fixed',
             left: mappingContextMenu.x,
             top: mappingContextMenu.y,
-            backgroundColor: 'var(--theme-panel-bg)',
-            border: '1px solid var(--theme-border-color)',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            zIndex: 1000,
-            minWidth: '180px'
+            background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
+            backdropFilter: 'blur(25px)',
+            WebkitBackdropFilter: 'blur(25px)',
+            borderRadius: '12px',
+            border: '1px solid var(--glass-border, rgba(0, 0, 0, 0.1))',
+            boxShadow: `
+              0 8px 32px var(--glass-shadow, rgba(0, 0, 0, 0.15)),
+              inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.8)),
+              inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
+            `,
+            zIndex: 99999,
+            minWidth: '180px',
+            padding: '12px'
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
