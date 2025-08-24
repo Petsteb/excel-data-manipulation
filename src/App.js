@@ -292,7 +292,7 @@ function App() {
   const [homeView, setHomeView] = useState(null); // { x, y, width, height }
   const [secondaryViews, setSecondaryViews] = useState([]); // [{ id, name, x, y, width, height, color }]
   const [currentView, setCurrentView] = useState('home'); // 'home' or view id
-  const [tabOrientation, setTabOrientation] = useState('vertical'); // 'horizontal' or 'vertical'
+  const [tabPosition, setTabPosition] = useState('left'); // 'left', 'right', 'top', 'bottom'
   const [creatingViewRect, setCreatingViewRect] = useState(null); // Temporary rectangle while creating view
   const [showViewNamePopup, setShowViewNamePopup] = useState(false);
   const [newViewName, setNewViewName] = useState('');
@@ -505,8 +505,8 @@ function App() {
         if (settings.secondaryViews) {
           setSecondaryViews(settings.secondaryViews);
         }
-        if (settings.tabOrientation) {
-          setTabOrientation(settings.tabOrientation);
+        if (settings.tabPosition) {
+          setTabPosition(settings.tabPosition);
         }
         
         // Force recalculation of workspace bounds and collision matrix based on current panels
@@ -540,7 +540,7 @@ function App() {
     if (homeView || secondaryViews.length > 0) {
       saveViewSettings();
     }
-  }, [homeView, secondaryViews, tabOrientation]);
+  }, [homeView, secondaryViews, tabPosition]);
 
   // Handle document clicks to close context menu
   useEffect(() => {
@@ -4356,7 +4356,7 @@ function App() {
         ...settings,
         homeView,
         secondaryViews,
-        tabOrientation
+        tabPosition
       });
     } catch (error) {
       console.error('Failed to save view settings:', error);
@@ -4644,6 +4644,16 @@ function App() {
   const handlePanStart = (e) => {
     if (draggedElement) return;
     
+    // In view mode, only allow interactions with theme/language buttons and view controls
+    if (isViewMode) {
+      const isOnThemeButton = e.target.closest('.theme-toggle') || e.target.closest('.language-toggle');
+      const isOnViewControls = e.target.closest('.view-mode-controls') || e.target.closest('.view-mode-btn') || e.target.closest('.view-mode-dropdown');
+      
+      if (!isOnThemeButton && !isOnViewControls) {
+        return; // Block all other interactions in view mode
+      }
+    }
+    
     // Allow panning on empty space (not on panels) or when right-clicking in layout mode
     const isRightClick = e.button === 2;
     const isOnPanel = e.target.closest('.panel');
@@ -4758,6 +4768,25 @@ function App() {
 
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
+    // In view mode, only allow panning and interactions with top-right corner buttons
+    if (viewModeStep.includes('viewing')) {
+      // Check if click is on top-right corner buttons (theme, language, etc.)
+      const topRightButtons = document.querySelector('.top-controls');
+      const viewTabs = document.querySelector('.view-navigation-tabs');
+      
+      if (topRightButtons && topRightButtons.contains(e.target)) {
+        return; // Allow interaction with top-right buttons
+      }
+      
+      if (viewTabs && viewTabs.contains(e.target)) {
+        return; // Allow interaction with view tabs
+      }
+      
+      // Only allow panning in view mode
+      handlePanStart(e);
+      return;
+    }
+    
     handlePanStart(e);
   };
 
@@ -5241,7 +5270,7 @@ function App() {
       </div>
 
       {/* View Mode Overlay and UI */}
-      {isViewMode && (
+      {isViewMode && !viewModeStep.includes('viewing') && (
         <div 
           className="view-mode-overlay"
           style={{
@@ -5252,7 +5281,7 @@ function App() {
             bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             zIndex: 10000,
-            pointerEvents: viewModeStep.includes('viewing') || viewModeStep.includes('creating') ? 'none' : 'auto'
+            pointerEvents: viewModeStep.includes('creating') ? 'none' : 'auto'
           }}
         />
       )}
@@ -5272,26 +5301,49 @@ function App() {
             zIndex: 10001
           }}
         >
-          {/* Tab Orientation Toggle */}
-          <button
-            className="view-mode-btn"
-            onClick={() => setTabOrientation(tabOrientation === 'vertical' ? 'horizontal' : 'vertical')}
-            disabled={secondaryViews.length === 0}
-            style={{
-              padding: '10px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: secondaryViews.length === 0 ? 'rgba(128, 128, 128, 0.5)' : GLOBAL_PRIMARY_COLOR,
-              color: 'white',
-              cursor: secondaryViews.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              minWidth: '100px'
-            }}
-            title={secondaryViews.length === 0 ? 'No secondary views to configure' : `Switch to ${tabOrientation === 'vertical' ? 'horizontal' : 'vertical'} tabs`}
-          >
-            {tabOrientation === 'vertical' ? '📋 HORIZONTAL' : '📋 VERTICAL'}
-          </button>
+          {/* Tab Position Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <label 
+              style={{ 
+                color: 'white', 
+                fontSize: '10px', 
+                fontWeight: 'bold', 
+                marginBottom: '3px', 
+                display: 'block' 
+              }}
+            >
+              TAB POSITION: {tabPosition.toUpperCase()}
+            </label>
+            <select
+              className="view-mode-dropdown"
+              value={tabPosition}
+              onChange={(e) => setTabPosition(e.target.value)}
+              disabled={secondaryViews.length === 0}
+              style={{
+                padding: '8px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: secondaryViews.length === 0 ? 'rgba(128, 128, 128, 0.5)' : GLOBAL_PRIMARY_COLOR,
+                color: 'white',
+                cursor: secondaryViews.length === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                minWidth: '100px',
+                appearance: 'none',
+                backgroundImage: secondaryViews.length === 0 ? 'none' : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                backgroundSize: '16px',
+                paddingRight: '32px'
+              }}
+              title={secondaryViews.length === 0 ? 'No secondary views to configure' : 'Select tab position'}
+            >
+              <option value="left" style={{ backgroundColor: '#2c3e50', color: 'white' }}>← Left Border</option>
+              <option value="right" style={{ backgroundColor: '#2c3e50', color: 'white' }}>→ Right Border</option>
+              <option value="top" style={{ backgroundColor: '#2c3e50', color: 'white' }}>↑ Top Border</option>
+              <option value="bottom" style={{ backgroundColor: '#2c3e50', color: 'white' }}>↓ Bottom Border</option>
+            </select>
+          </div>
 
           {/* Home View Section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -5425,8 +5477,9 @@ function App() {
             top: `${creatingViewRect.y + panOffset.y}px`,
             width: `${creatingViewRect.width}px`,
             height: `${creatingViewRect.height}px`,
-            border: `3px dashed ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            border: `4px dashed ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
+            backgroundColor: 'transparent',
+            boxShadow: `inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 2px ${viewModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
             zIndex: 10001,
             pointerEvents: 'none',
             borderRadius: '8px'
@@ -7646,20 +7699,34 @@ function App() {
             className="view-navigation-tabs"
             style={{
               position: 'fixed',
-              ...(tabOrientation === 'vertical' ? {
-                left: '10px',
+              ...(tabPosition === 'left' ? {
+                left: '0px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
-              } : {
-                bottom: '10px',
+                gap: '2px'
+              } : tabPosition === 'right' ? {
+                right: '0px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+              } : tabPosition === 'top' ? {
+                top: '0px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 flexDirection: 'row',
-                gap: '8px'
+                gap: '2px'
+              } : {
+                bottom: '0px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '2px'
               }),
               zIndex: 1000
             }}
@@ -7670,7 +7737,7 @@ function App() {
                 className={`view-tab ${currentView === 'home' ? 'active' : ''}`}
                 onClick={() => navigateToView('home')}
                 style={{
-                  ...(tabOrientation === 'vertical' ? {
+                  ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
                     height: '60px',
                     display: 'flex',
@@ -7690,7 +7757,9 @@ function App() {
                   }),
                   backgroundColor: currentView === 'home' ? GLOBAL_SUCCESS_COLOR : 'rgba(16, 185, 129, 0.8)',
                   color: 'white',
-                  borderRadius: tabOrientation === 'vertical' ? '0 8px 8px 0' : '8px 8px 0 0',
+                  borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
+                             tabPosition === 'right' ? '8px 0 0 8px' :
+                             tabPosition === 'top' ? '8px 8px 0 0' : '0 0 8px 8px',
                   cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'bold',
@@ -7703,7 +7772,9 @@ function App() {
                 onMouseEnter={(e) => {
                   if (currentView !== 'home') {
                     e.target.style.backgroundColor = GLOBAL_SUCCESS_COLOR;
-                    e.target.style.transform = tabOrientation === 'vertical' ? 'translateX(2px)' : 'translateY(-2px)';
+                    e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
+                                              tabPosition === 'right' ? 'translateX(-2px)' :
+                                              tabPosition === 'top' ? 'translateY(2px)' : 'translateY(-2px)';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -7725,7 +7796,7 @@ function App() {
                 className={`view-tab ${currentView === view.id ? 'active' : ''}`}
                 onClick={() => navigateToView(view.id)}
                 style={{
-                  ...(tabOrientation === 'vertical' ? {
+                  ...(tabPosition === 'left' || tabPosition === 'right' ? {
                     width: '40px',
                     minHeight: '60px',
                     display: 'flex',
@@ -7745,7 +7816,9 @@ function App() {
                   }),
                   backgroundColor: currentView === view.id ? view.color : `${view.color}cc`,
                   color: 'white',
-                  borderRadius: tabOrientation === 'vertical' ? '0 8px 8px 0' : '8px 8px 0 0',
+                  borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
+                             tabPosition === 'right' ? '8px 0 0 8px' :
+                             tabPosition === 'top' ? '8px 8px 0 0' : '0 0 8px 8px',
                   cursor: 'pointer',
                   fontSize: '10px',
                   fontWeight: 'bold',
@@ -7760,7 +7833,9 @@ function App() {
                 onMouseEnter={(e) => {
                   if (currentView !== view.id) {
                     e.target.style.backgroundColor = view.color;
-                    e.target.style.transform = tabOrientation === 'vertical' ? 'translateX(2px)' : 'translateY(-2px)';
+                    e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
+                                              tabPosition === 'right' ? 'translateX(-2px)' :
+                                              tabPosition === 'top' ? 'translateY(2px)' : 'translateY(-2px)';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -7773,7 +7848,7 @@ function App() {
                 <div style={{ 
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: tabOrientation === 'vertical' ? 'normal' : 'nowrap',
+                  whiteSpace: (tabPosition === 'left' || tabPosition === 'right') ? 'normal' : 'nowrap',
                   maxWidth: '100%'
                 }}>
                   {view.name}
