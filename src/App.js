@@ -4402,22 +4402,28 @@ function App() {
       // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Calculate position to center on home screen
+      // Calculate position to center on home screen using the same logic as navigateToScreen
+      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       let normalModePosition;
+      
       if (homeScreen) {
-        // Center view on home screen
-        const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+        // Use exact same calculation as navigateToScreen function
+        console.log('HomeScreen coordinates:', homeScreen);
+        console.log('Viewport dimensions:', { viewportWidth, viewportHeight });
+        
         normalModePosition = {
           x: -(homeScreen.x + homeScreen.width / 2 - viewportWidth / 2),
           y: -(homeScreen.y + homeScreen.height / 2 - viewportHeight / 2)
         };
+        
+        console.log('Calculated normalModePosition:', normalModePosition);
       } else {
-        // If no home screen, just center on workspace origin
-        const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+        // If no home screen, center on workspace origin
         normalModePosition = {
           x: viewportWidth / 2,
           y: viewportHeight / 2
         };
+        console.log('No homeScreen, using origin position:', normalModePosition);
       }
       
       // Save the normalized layout and calculated normal mode position
