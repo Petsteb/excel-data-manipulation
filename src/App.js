@@ -4375,8 +4375,6 @@ function App() {
   // Toggle layout mode
   const toggleLayoutMode = async () => {
     const newLayoutMode = !isLayoutMode;
-    console.log('Toggling layout mode. Current isLayoutMode:', isLayoutMode, 'New mode:', newLayoutMode);
-    console.log('homeScreen exists:', !!homeScreen, 'currentScreen:', currentScreen);
     
     if (newLayoutMode) {
       // Save current normal mode screen position before entering layout mode
@@ -4404,18 +4402,22 @@ function App() {
       // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Calculate what the normal mode view position should be
+      // Calculate position to center on home screen
       let normalModePosition;
       if (homeScreen) {
-        // Use homeScreen position if configured
+        // Center view on home screen
         const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
         normalModePosition = {
           x: -(homeScreen.x + homeScreen.width / 2 - viewportWidth / 2),
           y: -(homeScreen.y + homeScreen.height / 2 - viewportHeight / 2)
         };
       } else {
-        // Fallback to calculated center (excluding layout-mode-only panels)
-        normalModePosition = centerViewOnWorkspace(false);
+        // If no home screen, just center on workspace origin
+        const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+        normalModePosition = {
+          x: viewportWidth / 2,
+          y: viewportHeight / 2
+        };
       }
       
       // Save the normalized layout and calculated normal mode position
@@ -4448,22 +4450,15 @@ function App() {
       
       setCollisionMatrix(null);
       
-      // Force navigation to home screen immediately when exiting layout mode
-      console.log('Immediately setting currentScreen to home');
+      // Navigate to home screen when exiting layout mode
       setCurrentScreen('home');
       
-      // Set the screen to normal mode position after a delay
+      // Set the screen to home position after a delay
       setTimeout(() => {
         setPanOffset(normalModePosition);
-        // Update the stored normal mode position to match what we just set
         setNormalModeScreenPosition(normalModePosition);
-        
-        console.log('Position set, double-checking currentScreen is still home');
-        setCurrentScreen('home'); // Double-check to ensure it's set
       }, 150);
       
-      console.log(`Workspace normalized: center was at (${normalization.centerOffset.x.toFixed(1)}, ${normalization.centerOffset.y.toFixed(1)}), now at (0, 0)`);
-      console.log(`Normal mode view position calculated: (${normalModePosition.x.toFixed(1)}, ${normalModePosition.y.toFixed(1)})`);
     }
   };
 
