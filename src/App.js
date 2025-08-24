@@ -4952,38 +4952,38 @@ function App() {
 
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover usable area but extend to edges by adding back the padding
+    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+    // Cover from below navigation bar to bottom edge
     setCreatingScreenRect({
-      x: -panOffset.x - 20, // Extend to left edge (add back left padding)
-      y: -panOffset.y,
-      width: viewportWidth + 40, // Add back left(20) + right(20) padding
-      height: viewportHeight + 20 // Add back bottom padding (20px)
+      x: -panOffset.x,
+      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+      width: viewportWidth,
+      height: viewportHeight - 60 // Adjust height since we start lower
     });
   };
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
-    const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
-    // Cover usable area but extend to edges by adding back the padding
+    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+    // Cover from below navigation bar to bottom edge
     setCreatingScreenRect({
-      x: -panOffset.x - 20, // Extend to left edge (add back left padding)
-      y: -panOffset.y,
-      width: viewportWidth + 40, // Add back left(20) + right(20) padding
-      height: viewportHeight + 20 // Add back bottom padding (20px)
+      x: -panOffset.x,
+      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+      width: viewportWidth,
+      height: viewportHeight - 60 // Adjust height since we start lower
     });
   };
 
   // Update creating view rectangle to stay covering viewable area when panning
   useEffect(() => {
     if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
-      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
       setCreatingScreenRect(prev => ({
         ...prev,
-        x: -panOffset.x - 20, // Extend to left edge (add back left padding)
-        y: -panOffset.y,
-        width: viewportWidth + 40, // Add back left(20) + right(20) padding
-        height: viewportHeight + 20 // Add back bottom padding (20px)
+        x: -panOffset.x,
+        y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+        width: viewportWidth,
+        height: viewportHeight - 60 // Adjust height since we start lower
       }));
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
