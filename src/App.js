@@ -4828,6 +4828,15 @@ function App() {
     setIsPanning(false);
   };
 
+  // Wheel event handler to disable scrolling when panning is disabled
+  const handleWheel = (e) => {
+    // Block scrolling when panning is disabled in normal mode
+    if (!isLayoutMode && isPanningDisabled) {
+      e.preventDefault();
+      return false;
+    }
+  };
+
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
     handlePanStart(e);
@@ -6025,7 +6034,7 @@ function App() {
 
       <main 
         ref={boardRef}
-        className={`app-main board ${isPanning ? 'panning' : ''}`}
+        className={`app-main board ${isPanning ? 'panning' : ''} ${(!isLayoutMode && isPanningDisabled) ? 'panning-disabled' : ''}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseDown={handleMouseDown}
@@ -6033,6 +6042,7 @@ function App() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onContextMenu={handleContextMenu}
+        onWheel={handleWheel}
       >
         {/* Grid Board - all panels positioned absolutely */}
         {/* Panel 1 - Contabilitate Upload */}

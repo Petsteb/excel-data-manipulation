@@ -273,6 +273,17 @@
   user-select: none;
 }
 
+/* Hide scroll bars and disable overflow when panning is disabled */
+.app-main.board.panning-disabled {
+  overflow: hidden !important;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer and Edge */
+}
+
+.app-main.board.panning-disabled::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 
 
 
