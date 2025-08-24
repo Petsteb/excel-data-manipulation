@@ -9,6 +9,9 @@ const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
 
+// Global text color variable for improved modularity
+const GLOBAL_TEXT_COLOR = 'var(--theme-text-color, #333333)';
+
 // Universal Tooltip Component
 const Tooltip = ({ content, position = "top" }) => {
   return (
@@ -5908,7 +5911,7 @@ function App() {
             )}
             <div>
               <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Account Mapping</h3>
-              <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--theme-text-secondary)' }}>
+              <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8 }}>
                 Map each Conta account to multiple ANAF accounts
               </p>
               
@@ -5953,7 +5956,7 @@ function App() {
                         justifyContent: 'space-between',
                         marginBottom: '8px'
                       }}>
-                        <strong style={{ fontSize: '14px', color: 'var(--theme-text-color)' }}>
+                        <strong style={{ fontSize: '14px', color: GLOBAL_TEXT_COLOR }}>
                           {contaAccount}
                         </strong>
                         {shouldGrayOut && (
@@ -5978,12 +5981,12 @@ function App() {
                           fontSize: '11px'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: 'var(--theme-text-color)' }}>
+                            <span style={{ color: GLOBAL_TEXT_COLOR }}>
                               <strong>Sum1 (Conta):</strong> {contaSum?.toFixed(2) || '0.00'}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: 'var(--theme-text-color)' }}>
+                            <span style={{ color: GLOBAL_TEXT_COLOR }}>
                               <strong>Sum2 (ANAF):</strong> {anafSum?.toFixed(2) || '0.00'}
                             </span>
                           </div>
@@ -6007,7 +6010,7 @@ function App() {
                       
                       <div>
                         {mappedAnafAccounts.length > 0 && (
-                          <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', marginBottom: '5px' }}>
+                          <div style={{ fontSize: '11px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, marginBottom: '5px' }}>
                             Mapped ANAF accounts:
                           </div>
                         )}
@@ -6071,7 +6074,7 @@ function App() {
                           </button>
                         </div>
                         {mappedAnafAccounts.length === 0 && (
-                          <div style={{ fontSize: '11px', color: 'var(--theme-text-secondary)', fontStyle: 'italic', marginTop: '5px' }}>
+                          <div style={{ fontSize: '11px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, fontStyle: 'italic', marginTop: '5px' }}>
                             No ANAF accounts mapped yet
                           </div>
                         )}
@@ -6099,7 +6102,7 @@ function App() {
                         borderRadius: '8px',
                         border: `2px dashed ${hasAvailableAccounts ? 'var(--theme-border-color)' : '#ccc'}`,
                         backgroundColor: 'transparent',
-                        color: hasAvailableAccounts ? 'var(--theme-text-color)' : '#999',
+                        color: hasAvailableAccounts ? GLOBAL_TEXT_COLOR : '#999',
                         fontSize: '14px',
                         cursor: hasAvailableAccounts ? 'pointer' : 'not-allowed',
                         display: 'flex',
@@ -6303,13 +6306,28 @@ function App() {
               </div>
             )}
             
-            <h3>Summary Worksheets</h3>
-            <p style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--theme-text-color, #666)' }}>
+            <h3 style={{ color: GLOBAL_TEXT_COLOR, marginBottom: '8px' }}>Summary Worksheets</h3>
+            <p style={{ fontSize: '14px', marginBottom: '15px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.4' }}>
               Select which worksheets to include in the generated summary file:
             </p>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '10px',
+                padding: '8px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+              }}>
                 <input
                   type="checkbox"
                   checked={selectedWorksheets.relationsSummary}
@@ -6317,14 +6335,32 @@ function App() {
                     ...selectedWorksheets,
                     relationsSummary: e.target.checked
                   })}
+                  style={{ marginTop: '2px' }}
                 />
-                <span>Relations Summary</span>
-                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
-                  (ANAF ↔ Conta account relationships and differences)
-                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Relations Summary</div>
+                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                    (ANAF ↔ Conta account relationships and differences)
+                  </div>
+                </div>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '10px',
+                padding: '8px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+              }}>
                 <input
                   type="checkbox"
                   checked={selectedWorksheets.accountsSummary}
@@ -6332,14 +6368,32 @@ function App() {
                     ...selectedWorksheets,
                     accountsSummary: e.target.checked
                   })}
+                  style={{ marginTop: '2px' }}
                 />
-                <span>Accounts Summary</span>
-                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
-                  (All account sums and file usage)
-                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Accounts Summary</div>
+                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                    (All account sums and file usage)
+                  </div>
+                </div>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '10px',
+                padding: '8px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--theme-panel-bg, rgba(255,255,255,0.05))',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-hover-bg, rgba(255,255,255,0.1))';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'var(--theme-panel-bg, rgba(255,255,255,0.05))';
+              }}>
                 <input
                   type="checkbox"
                   checked={selectedWorksheets.anafMergedData}
@@ -6347,14 +6401,17 @@ function App() {
                     ...selectedWorksheets,
                     anafMergedData: e.target.checked
                   })}
+                  style={{ marginTop: '2px' }}
                 />
-                <span>ANAF Merged Data</span>
-                <span style={{ fontSize: '12px', color: 'var(--theme-text-color, #666)' }}>
-                  (All ANAF files combined into one table)
-                  {anafFiles.length === 0 && (
-                    <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - No ANAF files loaded</em>
-                  )}
-                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>ANAF Merged Data</div>
+                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                    (All ANAF files combined into one table)
+                    {anafFiles.length === 0 && (
+                      <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - No ANAF files loaded</em>
+                    )}
+                  </div>
+                </div>
               </label>
             </div>
             
