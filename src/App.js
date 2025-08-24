@@ -4877,7 +4877,7 @@ function App() {
     if (!creatingScreenRect) return;
     
     if (screenModeStep === 'creating-home') {
-      setHomeView({ ...creatingScreenRect });
+      setHomeScreen({ ...creatingScreenRect });
       setScreenModeStep('idle');
       setCreatingScreenRect(null);
     } else if (screenModeStep === 'creating-secondary') {
