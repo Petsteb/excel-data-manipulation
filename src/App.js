@@ -4029,13 +4029,25 @@ function App() {
   };
 
   // Center view on the actual panel positions
-  const centerViewOnWorkspace = () => {
+  const centerViewOnWorkspace = (includeLayoutModeOnlyPanels = isLayoutMode) => {
     const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
     
-    // Calculate the actual bounds of all panels based on current positions
+    // Calculate the actual bounds of panels based on current positions
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     
-    Object.values(panelPositions).forEach(pos => {
+    Object.entries(panelPositions).forEach(([elementId, pos]) => {
+      // Exclude layout-mode-only panels when not including them
+      if (!includeLayoutModeOnlyPanels && layoutModeOnlyPanels.includes(elementId)) {
+        return;
+      }
+      
+      // Only include panels that are in the availablePanels list and active, or buttons
+      const panel = availablePanels.find(p => p.id === elementId);
+      const button = availableButtons.find(b => b.id === elementId);
+      if (!((panel && panel.active) || button)) {
+        return;
+      }
+      
       const x = pos.x || 0;
       const y = pos.y || 0;
       const width = pos.width || DEFAULT_PANEL_WIDTH;
@@ -4295,8 +4307,8 @@ function App() {
       // When exiting layout mode, normalize coordinates and calculate normal mode view
       const normalization = normalizeWorkspaceCoordinates();
       
-      // Calculate what the normal mode view position should be
-      const normalModePosition = centerViewOnWorkspace();
+      // Calculate what the normal mode view position should be (excluding layout-mode-only panels)
+      const normalModePosition = centerViewOnWorkspace(false);
       
       // Save the normalized layout and calculated normal mode position
       await saveLayoutSettings(normalization.normalizedPositions, normalization.normalizedBounds);
@@ -4587,10 +4599,22 @@ function App() {
           minPanY = -(workspaceBounds.maxY - viewportHeight);
         } else {
           // Normal mode: Restrict to core workspace only (panels and small buffer)
-          // Calculate the actual bounds of all panels
+          // Calculate the actual bounds of all panels, excluding layout-mode-only panels
           let coreMinX = Infinity, coreMaxX = -Infinity, coreMinY = Infinity, coreMaxY = -Infinity;
           
-          Object.values(panelPositions).forEach(pos => {
+          Object.entries(panelPositions).forEach(([elementId, pos]) => {
+            // Exclude layout-mode-only panels from normal mode panning calculations
+            if (layoutModeOnlyPanels.includes(elementId)) {
+              return;
+            }
+            
+            // Only include panels that are in the availablePanels list and active, or buttons
+            const panel = availablePanels.find(p => p.id === elementId);
+            const button = availableButtons.find(b => b.id === elementId);
+            if (!((panel && panel.active) || button)) {
+              return;
+            }
+            
             const x = pos.x || 0;
             const y = pos.y || 0;
             const width = pos.width || DEFAULT_PANEL_WIDTH;
