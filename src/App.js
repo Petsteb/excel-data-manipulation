@@ -322,6 +322,7 @@ function App() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [normalModeScreenPosition, setNormalModeScreenPosition] = useState({ x: 0, y: 0 }); // Store last normal mode screen position
+  const [isPanningDisabled, setIsPanningDisabled] = useState(false); // Disable panning in normal mode
   const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
     { id: 'contabilitate-upload-panel', name: 'Contabilitate Upload Panel', type: 'panel', active: true },
@@ -4408,22 +4409,16 @@ function App() {
       
       if (homeScreen) {
         // Use exact same calculation as navigateToScreen function
-        console.log('HomeScreen coordinates:', homeScreen);
-        console.log('Viewport dimensions:', { viewportWidth, viewportHeight });
-        
         normalModePosition = {
           x: -(homeScreen.x + homeScreen.width / 2 - viewportWidth / 2),
           y: -(homeScreen.y + homeScreen.height / 2 - viewportHeight / 2)
         };
-        
-        console.log('Calculated normalModePosition:', normalModePosition);
       } else {
         // If no home screen, center on workspace origin
         normalModePosition = {
           x: viewportWidth / 2,
           y: viewportHeight / 2
         };
-        console.log('No homeScreen, using origin position:', normalModePosition);
       }
       
       // Save the normalized layout and calculated normal mode position
@@ -4461,10 +4456,8 @@ function App() {
       
       // Set the screen to home position after a delay (after restore timeout)
       setTimeout(() => {
-        console.log('About to set panOffset to:', normalModePosition);
         setPanOffset(normalModePosition);
         setNormalModeScreenPosition(normalModePosition);
-        console.log('Pan offset set successfully');
       }, 250); // Increased to 250ms to happen after the restore timeout (200ms)
       
     }
@@ -4676,6 +4669,11 @@ function App() {
   // Panning functionality with improved performance
   const handlePanStart = (e) => {
     if (draggedElement) return;
+    
+    // Check if panning is disabled in normal mode
+    if (!isLayoutMode && isPanningDisabled) {
+      return; // Block panning when disabled in normal mode
+    }
     
     // In screen mode, allow panning but block other interactions except for specific UI elements
     if (isScreenMode) {
@@ -4977,7 +4975,6 @@ function App() {
   };
 
   const navigateToScreen = (screenId) => {
-    console.log('navigateToScreen called with:', screenId, 'isLayoutMode:', isLayoutMode);
     if (isLayoutMode) return; // Only allow navigation in normal mode
     
     const screen = screenId === 'home' ? homeScreen : secondaryScreens.find(s => s.id === screenId);
@@ -4985,7 +4982,6 @@ function App() {
       const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
       const targetX = -(screen.x + screen.width / 2 - viewportWidth / 2);
       const targetY = -(screen.y + screen.height / 2 - viewportHeight / 2);
-      console.log('navigateToScreen setting panOffset to:', { x: targetX, y: targetY });
       setPanOffset({ x: targetX, y: targetY });
       setCurrentScreen(screenId);
     }
@@ -5329,6 +5325,20 @@ function App() {
           style={{ fontSize: '14px', fontWeight: 'bold' }}
         >
           ⚙️
+        </button>
+        <button 
+          className={`layout-button ${isPanningDisabled ? 'active' : ''}`}
+          onClick={() => setIsPanningDisabled(!isPanningDisabled)}
+          title="Toggle Panning (Normal Mode Only)"
+          style={{ 
+            fontSize: '12px', 
+            fontWeight: 'bold',
+            opacity: !isLayoutMode ? 1 : 0.5,
+            cursor: !isLayoutMode ? 'pointer' : 'not-allowed'
+          }}
+          disabled={isLayoutMode}
+        >
+          📌 {isPanningDisabled ? 'LOCKED' : 'FREE'}
         </button>
         <button 
           className={`layout-button ${isScreenMode ? 'active' : ''}`}
