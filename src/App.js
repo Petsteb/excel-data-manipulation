@@ -5733,7 +5733,7 @@ function App() {
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newScreenName.trim()) {
-                    saveSecondaryView();
+                    saveSecondaryScreen();
                   }
                 }}
                 autoFocus
