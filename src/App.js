@@ -4915,7 +4915,6 @@ function App() {
   };
 
   const handleScreenRightClick = (e, screen) => {
-    console.log('handleScreenRightClick called with screen:', screen);
     e.preventDefault();
     e.stopPropagation();
     setScreenContextMenu({
@@ -4926,7 +4925,6 @@ function App() {
   };
 
   const deleteSecondaryScreen = (screenId) => {
-    console.log('deleteSecondaryScreen called with screenId:', screenId);
     setSecondaryScreens(prev => prev.filter(screen => screen.id !== screenId));
     if (currentScreen === screenId) {
       setCurrentScreen('home');
@@ -4935,7 +4933,6 @@ function App() {
   };
 
   const handleScreenRename = (screen) => {
-    console.log('handleScreenRename called with screen:', screen);
     setScreenRenameDialog(screen);
     setRenameInputValue(screen.name);
     setScreenContextMenu(null);
@@ -5789,7 +5786,7 @@ function App() {
             top: 0,
             right: 0,
             bottom: 0,
-            zIndex: 10000
+            zIndex: 999999
           }}
           onClick={() => setScreenContextMenu(null)}
         >
@@ -5802,7 +5799,7 @@ function App() {
               border: '1px solid #e0e0e0',
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              zIndex: 10001,
+              zIndex: 1000000,
               minWidth: '140px',
               overflow: 'hidden'
             }}
@@ -5810,68 +5807,27 @@ function App() {
           >
             <button
               onClick={(e) => {
-                console.log('Rename button clicked - event:', e);
-                console.log('screenContextMenu:', screenContextMenu);
-                e.preventDefault();
                 e.stopPropagation();
-                try {
-                  handleScreenRename(screenContextMenu.screen);
-                } catch (error) {
-                  console.error('Error in rename handler:', error);
-                }
-              }}
-              onMouseDown={(e) => {
-                console.log('Rename button mouse down');
-                e.stopPropagation();
-              }}
-              onMouseUp={(e) => {
-                console.log('Rename button mouse up');
-                e.stopPropagation();
+                handleScreenRename(screenContextMenu.screen);
               }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid red',
-                backgroundColor: 'rgba(255,0,0,0.1)',
+                border: 'none',
+                backgroundColor: 'transparent',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '14px',
                 color: '#333',
-                borderBottom: '1px solid #f0f0f0',
-                zIndex: 99999,
-                position: 'relative'
+                borderBottom: '1px solid #f0f0f0'
               }}
-              onMouseEnter={(e) => {
-                console.log('Rename button hover');
-                e.target.style.backgroundColor = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                console.log('Rename button leave');
-                e.target.style.backgroundColor = 'transparent';
-              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
               📝 Rename
             </button>
-            <div 
-              style={{
-                padding: '8px 12px', 
-                cursor: 'pointer', 
-                backgroundColor: '#e6f3ff',
-                fontSize: '12px',
-                color: '#0066cc',
-                borderBottom: '1px solid #f0f0f0'
-              }}
-              onClick={(e) => {
-                console.log('TEST RENAME DIV CLICKED');
-                e.stopPropagation();
-                handleScreenRename(screenContextMenu.screen);
-              }}
-            >
-              🔧 TEST RENAME
-            </div>
             <button
               onClick={(e) => {
-                console.log('Delete button clicked');
                 e.stopPropagation();
                 deleteSecondaryScreen(screenContextMenu.screen.id);
               }}
@@ -5907,7 +5863,7 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10002
+            zIndex: 1000002
           }}
           onClick={cancelScreenRename}
         >
