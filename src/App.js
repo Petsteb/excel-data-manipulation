@@ -298,6 +298,7 @@ function App() {
   const [newScreenName, setNewScreenName] = useState('');
   const [screenContextMenu, setScreenContextMenu] = useState(null);
   const [screenRenameDialog, setScreenRenameDialog] = useState(null);
+  const [renameInputValue, setRenameInputValue] = useState('');
   const [panelPositions, setPanelPositions] = useState({
     'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
@@ -4933,154 +4934,32 @@ function App() {
   };
 
   const handleScreenRename = (screen) => {
-    setScreenRenameDialog({
-      screen: screen,
-      value: screen.name
-    });
+    setScreenRenameDialog(screen);
+    setRenameInputValue(screen.name);
     setScreenContextMenu(null);
   };
 
-  const saveScreenRename = (newName) => {
-    if (screenRenameDialog && newName.trim()) {
+  const saveScreenRename = () => {
+    if (screenRenameDialog && renameInputValue.trim()) {
       setSecondaryScreens(prev => prev.map(screen => 
-        screen.id === screenRenameDialog.screen.id 
-          ? { ...screen, name: newName.trim() }
+        screen.id === screenRenameDialog.id 
+          ? { ...screen, name: renameInputValue.trim() }
           : screen
       ));
     }
     setScreenRenameDialog(null);
+    setRenameInputValue('');
   };
 
   const cancelScreenRename = () => {
     setScreenRenameDialog(null);
+    setRenameInputValue('');
   };
 
   const showHomeScreen = () => {
     setScreenModeStep(screenModeStep === 'viewing-home' ? 'idle' : 'viewing-home');
   };
 
-  // Screen Rename Dialog Component
-  const ScreenRenameDialog = ({ screen, initialValue, onSave, onCancel }) => {
-    const [inputValue, setInputValue] = useState(initialValue);
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (inputValue.trim()) {
-        onSave(inputValue.trim());
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onCancel();
-      }
-    };
-
-    return (
-      <div 
-        style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10002
-        }}
-        onClick={onCancel}
-      >
-        <div 
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            padding: '24px',
-            minWidth: '320px',
-            maxWidth: '500px'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 style={{ 
-            margin: '0 0 16px 0', 
-            fontSize: '18px', 
-            fontWeight: '600', 
-            color: '#333' 
-          }}>
-            Rename Screen
-          </h3>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Enter screen name..."
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                marginBottom: '20px',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-            />
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={onCancel}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  backgroundColor: '#f8f9fa',
-                  color: '#666',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#e9ecef'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!inputValue.trim()}
-                style={{
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  backgroundColor: inputValue.trim() ? '#007bff' : '#ccc',
-                  color: 'white',
-                  cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '14px'
-                }}
-                onMouseEnter={(e) => {
-                  if (inputValue.trim()) {
-                    e.target.style.backgroundColor = '#0056b3';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (inputValue.trim()) {
-                    e.target.style.backgroundColor = '#007bff';
-                  }
-                }}
-              >
-                Rename
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
 
   const showSecondaryScreens = () => {
     setScreenModeStep(screenModeStep === 'viewing-secondary' ? 'idle' : 'viewing-secondary');
@@ -5968,12 +5847,117 @@ function App() {
 
       {/* Screen Rename Dialog */}
       {screenRenameDialog && (
-        <ScreenRenameDialog 
-          screen={screenRenameDialog.screen}
-          initialValue={screenRenameDialog.value}
-          onSave={saveScreenRename}
-          onCancel={cancelScreenRename}
-        />
+        <div 
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10002
+          }}
+          onClick={cancelScreenRename}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              padding: '24px',
+              minWidth: '320px',
+              maxWidth: '500px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ 
+              margin: '0 0 16px 0', 
+              fontSize: '18px', 
+              fontWeight: '600', 
+              color: '#333' 
+            }}>
+              Rename Screen
+            </h3>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (renameInputValue.trim()) {
+                saveScreenRename();
+              }
+            }}>
+              <input
+                type="text"
+                value={renameInputValue}
+                onChange={(e) => setRenameInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    cancelScreenRename();
+                  }
+                }}
+                placeholder="Enter screen name..."
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  marginBottom: '20px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+              />
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={cancelScreenRename}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    backgroundColor: '#f8f9fa',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#e9ecef'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!renameInputValue.trim()}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: renameInputValue.trim() ? '#007bff' : '#ccc',
+                    color: 'white',
+                    cursor: renameInputValue.trim() ? 'pointer' : 'not-allowed',
+                    fontSize: '14px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (renameInputValue.trim()) {
+                      e.target.style.backgroundColor = '#0056b3';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (renameInputValue.trim()) {
+                      e.target.style.backgroundColor = '#007bff';
+                    }
+                  }}
+                >
+                  Rename
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       
       {(processingSummary || contabilitateFiles.length > 0 || anafFiles.length > 0) && (
