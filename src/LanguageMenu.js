@@ -58,11 +58,7 @@ function LanguageMenu({ currentLanguage, onLanguageChange, t }) {
         onClick={() => setIsOpen(!isOpen)}
         title={t ? t('changeLanguage') : "Change Language"}
       >
-        <img 
-          src={require('./language.png')}
-          alt="Language" 
-          className="language-icon" 
-        />
+        <span className="language-icon">🌐</span>
       </button>
       
       {isOpen && (

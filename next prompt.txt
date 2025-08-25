@@ -1,1 +1,0 @@
-the interval for the anaf file should not check only on the "TERM_PLATA" column but also on "SCADENTA". the interval should be checked on the scadenta column first then if the value in scadenta is null it should check with the value in the term plata column. keep the same logic with the delay of 1 month and fixed 25 day

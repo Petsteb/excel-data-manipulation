@@ -1015,17 +1015,23 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  background-image: url('./info.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  filter: brightness(0) saturate(100%) invert(25%) sepia(87%) saturate(4012%) hue-rotate(238deg) brightness(93%) contrast(89%);
+  border-radius: 50%;
+  background-color: #3b82f6;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 16px;
   transition: all 0.2s ease;
   vertical-align: middle;
 }
 
+.tooltip-trigger::after {
+  content: "i";
+}
+
 .tooltip-trigger:hover {
-  filter: brightness(0) saturate(100%) invert(25%) sepia(87%) saturate(4012%) hue-rotate(238deg) brightness(73%) contrast(89%);
+  background-color: #2563eb;
   transform: scale(1.1);
 }
 

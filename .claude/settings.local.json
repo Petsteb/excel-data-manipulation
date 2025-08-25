@@ -52,7 +52,10 @@
       "Bash(rg:*)",
       "Bash(del nul)",
       "Bash(del \"nul\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "WebSearch",
+      "Bash(git revert:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
