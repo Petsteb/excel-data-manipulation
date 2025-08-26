@@ -14,12 +14,10 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   padding: 0;
   box-sizing: border-box;
-  position: relative;
 }
 
 .language-toggle-btn:hover {
@@ -34,7 +32,7 @@
   opacity: 0.8;
   transition: opacity 0.3s ease;
   filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%);
-  transform: translateX(-0.5px) translateY(-0.5px);
+  display: block;
 }
 
 .language-toggle-btn:hover .language-icon {
