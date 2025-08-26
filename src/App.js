@@ -6072,11 +6072,33 @@ function App() {
               const handleMouseMove = (e) => {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-                const newX = initialScreenX + deltaX;
-                const newY = initialScreenY + deltaY;
+                let newX = initialScreenX + deltaX;
+                let newY = initialScreenY + deltaY;
                 
-                // No snapping logic here - screen moves freely
-                // Snapping will be handled visually in the crosshairs display
+                // Implement actual snapping logic
+                if (selectedPanelsForCentering.length > 0) {
+                  const selectedBounds = calculateSelectedPanelsBounds();
+                  if (selectedBounds) {
+                    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+                    
+                    // Calculate screen center position
+                    const screenCenterX = newX + viewportWidth / 2;
+                    const screenCenterY = newY + viewportHeight / 2;
+                    
+                    // Calculate distance to content center
+                    const snapThreshold = 30;
+                    const deltaToContentX = Math.abs(screenCenterX - selectedBounds.center.x);
+                    const deltaToContentY = Math.abs(screenCenterY - selectedBounds.center.y);
+                    
+                    // Snap if close enough
+                    if (deltaToContentX < snapThreshold && deltaToContentY < snapThreshold) {
+                      // Adjust screen position so its center aligns with content center
+                      newX = selectedBounds.center.x - viewportWidth / 2;
+                      newY = selectedBounds.center.y - viewportHeight / 2;
+                    }
+                  }
+                }
+                
                 setCreatingScreenRect(prev => ({
                   ...prev,
                   x: newX,
