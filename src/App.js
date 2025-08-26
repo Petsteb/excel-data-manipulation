@@ -5129,7 +5129,10 @@ function App() {
 
   // Handle panel selection for centering (Ctrl+Click)
   const handlePanelSelection = (panelId, event) => {
+    console.log('handlePanelSelection called:', { panelId, ctrlKey: event.ctrlKey, isScreenMode, screenModeStep });
+    
     if (!isScreenMode || (!screenModeStep.includes('creating'))) {
+      console.log('Not in screen creation mode');
       return false; // Only allow selection during screen creation
     }
     
@@ -5137,19 +5140,21 @@ function App() {
       event.preventDefault();
       event.stopPropagation();
       
+      console.log('Ctrl+Click detected, toggling panel selection:', panelId);
+      
       setSelectedPanelsForCentering(prev => {
-        if (prev.includes(panelId)) {
-          // Deselect panel
-          return prev.filter(id => id !== panelId);
-        } else {
-          // Select panel
-          return [...prev, panelId];
-        }
+        const newSelection = prev.includes(panelId) 
+          ? prev.filter(id => id !== panelId)  // Deselect panel
+          : [...prev, panelId];  // Select panel
+        
+        console.log('Selected panels updated:', newSelection);
+        return newSelection;
       });
       
       return true; // Handled
     }
     
+    console.log('No Ctrl key detected');
     return false; // Not handled
   };
 
@@ -6921,6 +6926,7 @@ function App() {
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
+          onClick={(e) => handlePanelSelection('contabilitate-summary-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('contabilitate-summary-panel').x}px`,
@@ -6928,7 +6934,12 @@ function App() {
             width: `${getVisualPosition('contabilitate-summary-panel').width}px`,
             height: `${getVisualPosition('contabilitate-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            ...(selectedPanelsForCentering.includes('contabilitate-summary-panel') && {
+              border: '3px solid #ff6b35',
+              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
+              backgroundColor: 'rgba(255, 107, 53, 0.1)'
+            })
           }}
         >
           {isLayoutMode && !isScreenMode && (
@@ -8170,6 +8181,7 @@ function App() {
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'final-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
+          onClick={(e) => handlePanelSelection('final-summary-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('final-summary-panel').x}px`,
@@ -8177,7 +8189,12 @@ function App() {
             width: `${getVisualPosition('final-summary-panel').width}px`,
             height: `${getVisualPosition('final-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10
+            zIndex: 10,
+            ...(selectedPanelsForCentering.includes('final-summary-panel') && {
+              border: '3px solid #ff6b35',
+              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
+              backgroundColor: 'rgba(255, 107, 53, 0.1)'
+            })
           }}
         >
           {isLayoutMode && !isScreenMode && (
