@@ -664,9 +664,24 @@ function App() {
             } else {
               console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
             }
-            // Clear console to hide the activation command
+            // Clear console and try to clear history
             setTimeout(() => {
               console.clear();
+              // Try to clear console history by overriding it
+              try {
+                if (window.console.history) {
+                  window.console.history.length = 0;
+                }
+                // Additional methods to clear history
+                if (typeof window.console._commandHistory !== 'undefined') {
+                  window.console._commandHistory = [];
+                }
+                if (typeof console._history !== 'undefined') {
+                  console._history = [];
+                }
+              } catch (e) {
+                // Ignore errors if history clearing fails
+              }
             }, 100);
           }, 0);
           return newState;
@@ -677,6 +692,16 @@ function App() {
         // Also clear console for invalid attempts to hide the command
         setTimeout(() => {
           console.clear();
+          try {
+            if (window.console.history) {
+              window.console.history.length = 0;
+            }
+            if (typeof window.console._commandHistory !== 'undefined') {
+              window.console._commandHistory = [];
+            }
+          } catch (e) {
+            // Ignore errors
+          }
         }, 1000);
         return false;
       }
@@ -686,9 +711,22 @@ function App() {
     const deactivateDevMode = () => {
       setIsDeveloperMode(false);
       console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
-      // Clear console to hide the deactivation command
+      // Clear console and history to hide the deactivation command
       setTimeout(() => {
         console.clear();
+        try {
+          if (window.console.history) {
+            window.console.history.length = 0;
+          }
+          if (typeof window.console._commandHistory !== 'undefined') {
+            window.console._commandHistory = [];
+          }
+          if (typeof console._history !== 'undefined') {
+            console._history = [];
+          }
+        } catch (e) {
+          // Ignore errors if history clearing fails
+        }
       }, 100);
     };
 
@@ -705,9 +743,34 @@ function App() {
       const originalEval = window.eval;
       window.eval = function(code) {
         if (code === 'activateDeveloperMode("cea mai buna parola")') {
+          // Try to manipulate DevTools console history immediately
+          setTimeout(() => {
+            try {
+              // Additional attempts to clear various console history implementations
+              if (window.console._history) window.console._history = [];
+              if (window.console.history) window.console.history = [];
+              if (window.__console_history__) window.__console_history__ = [];
+              
+              // Try to trigger a new line in console to push the command out of immediate history
+              console.log(''); // Empty log to push history
+              console.clear();
+            } catch (e) {
+              console.clear(); // Fallback to just clearing
+            }
+          }, 50);
           return activateDevMode("cea mai buna parola");
         }
         if (code === 'deactivateDeveloperMode()') {
+          setTimeout(() => {
+            try {
+              if (window.console._history) window.console._history = [];
+              if (window.console.history) window.console.history = [];
+              console.log(''); 
+              console.clear();
+            } catch (e) {
+              console.clear();
+            }
+          }, 50);
           return deactivateDevMode();
         }
         return originalEval.call(this, code);
