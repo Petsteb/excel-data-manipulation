@@ -288,6 +288,15 @@
   user-select: none;
 }
 
+/* Screen creation mode - disable panel interactions except for selection */
+.app-main.board.screen-creation-mode .panel * {
+  pointer-events: none !important;
+}
+
+.app-main.board.screen-creation-mode .panel {
+  pointer-events: auto !important;
+}
+
 /* Hide scroll bars and disable overflow when panning is disabled */
 .app-main.board.panning-disabled {
   overflow: hidden !important;

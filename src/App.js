@@ -6032,8 +6032,34 @@ function App() {
             backgroundColor: 'transparent',
             boxShadow: `inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 2px ${screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
             zIndex: 10001,
-            pointerEvents: 'none',
-            borderRadius: '8px'
+            pointerEvents: 'auto',
+            borderRadius: '8px',
+            cursor: 'move'
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const initialScreenX = creatingScreenRect.x;
+            const initialScreenY = creatingScreenRect.y;
+
+            const handleMouseMove = (e) => {
+              const deltaX = e.clientX - startX;
+              const deltaY = e.clientY - startY;
+              setCreatingScreenRect(prev => ({
+                ...prev,
+                x: initialScreenX + deltaX,
+                y: initialScreenY + deltaY
+              }));
+            };
+
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
           }}
         >
           <div
@@ -6734,7 +6760,7 @@ function App() {
 
       <main 
         ref={boardRef}
-        className={`app-main board ${isPanning ? 'panning' : ''} ${(!isLayoutMode && isPanningDisabled) ? 'panning-disabled' : ''}`}
+        className={`app-main board ${isPanning ? 'panning' : ''} ${(!isLayoutMode && isPanningDisabled) ? 'panning-disabled' : ''} ${(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') ? 'screen-creation-mode' : ''}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseDown={handleMouseDown}
@@ -6830,6 +6856,23 @@ function App() {
               </button>
             </div>
           </div>
+
+          {/* Block interactions during screen creation */}
+          {(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1000,
+                pointerEvents: 'auto',
+                cursor: selectedPanelsForCentering.includes('contabilitate-upload-panel') ? 'default' : 'pointer'
+              }}
+              onClick={(e) => handlePanelSelection('contabilitate-upload-panel', e)}
+            />
+          )}
         </div>
 
         {/* Panel 2 - ANAF Upload */}
@@ -6917,6 +6960,23 @@ function App() {
               </button>
             </div>
           </div>
+
+          {/* Block interactions during screen creation */}
+          {(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1000,
+                pointerEvents: 'auto',
+                cursor: selectedPanelsForCentering.includes('anaf-upload-panel') ? 'default' : 'pointer'
+              }}
+              onClick={(e) => handlePanelSelection('anaf-upload-panel', e)}
+            />
+          )}
         </div>
         
         {/* Panel 3 - Contabilitate Summary */}
