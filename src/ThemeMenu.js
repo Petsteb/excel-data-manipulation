@@ -716,6 +716,21 @@ const themes = {
     borderColor: 'rgba(239, 68, 68, 0.3)',
     isDark: true,
     deletable: true
+  },
+
+  mecha: {
+    name: 'Mecha',
+    primary: '#ff6b35',
+    primaryHover: '#e55a2b',
+    primaryLight: '#ff8555',
+    accent: '#9ca3af',
+    background: '#2a2d47',
+    cardBg: '#3a3e5a',
+    shadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+    shadowHover: '0 20px 40px rgba(0, 0, 0, 0.6)',
+    borderColor: 'rgba(255, 107, 53, 0.3)',
+    isDark: true,
+    deletable: true
   }
 };
 
