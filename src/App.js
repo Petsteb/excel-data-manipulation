@@ -322,7 +322,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('home'); // 'home' or screen id
   const [tabPosition, setTabPosition] = useState('left'); // 'left', 'right', 'top', 'bottom'
   const [creatingScreenRect, setCreatingScreenRect] = useState(null); // Temporary rectangle while creating screen
-  const [contentCenteringInfo, setContentCenteringInfo] = useState(null); // Content bounds for centering helper
+  const [selectedPanelsForCentering, setSelectedPanelsForCentering] = useState([]); // Panels selected for centering
   const [showScreenNamePopup, setShowScreenNamePopup] = useState(false);
   const [newScreenName, setNewScreenName] = useState('');
   const [screenContextMenu, setScreenContextMenu] = useState(null);
@@ -5089,109 +5089,96 @@ function App() {
     }
   };
 
-  // Calculate content area for smart screen centering
-  const calculateContentBounds = () => {
-    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-    const viewportLeft = -panOffset.x;
-    const viewportTop = -panOffset.y;
-    const viewportRight = viewportLeft + viewportWidth;
-    const viewportBottom = viewportTop + viewportHeight;
+  // Calculate bounds for selected panels
+  const calculateSelectedPanelsBounds = () => {
+    if (selectedPanelsForCentering.length === 0) {
+      return null;
+    }
     
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    let hasVisibleContent = false;
     
-    // Check all panels that are visible within the current viewport
-    Object.entries(panelPositions).forEach(([panelId, pos]) => {
-      // Skip layout-mode-only panels when not in layout mode
-      if (layoutModeOnlyPanels.includes(panelId) && !isLayoutMode) return;
-      
-      // Check if panel exists and is active
-      const panel = availablePanels.find(p => p.id === panelId);
-      const button = availableButtons.find(b => b.id === panelId);
-      if (!((panel && panel.active) || button)) return;
-      
-      const panelLeft = pos.x || 0;
-      const panelTop = pos.y || 0;
-      const panelWidth = pos.width || DEFAULT_PANEL_WIDTH;
-      const panelHeight = pos.height || DEFAULT_PANEL_HEIGHT;
-      const panelRight = panelLeft + panelWidth;
-      const panelBottom = panelTop + panelHeight;
-      
-      // Check if panel is at least partially visible in viewport
-      if (panelRight > viewportLeft && panelLeft < viewportRight && 
-          panelBottom > viewportTop && panelTop < viewportBottom) {
+    selectedPanelsForCentering.forEach(panelId => {
+      const pos = panelPositions[panelId];
+      if (pos) {
+        const left = pos.x || 0;
+        const top = pos.y || 0;
+        const width = pos.width || DEFAULT_PANEL_WIDTH;
+        const height = pos.height || DEFAULT_PANEL_HEIGHT;
+        const right = left + width;
+        const bottom = top + height;
         
-        // Only include panels that fit entirely within the viewport
-        if (panelLeft >= viewportLeft && panelRight <= viewportRight && 
-            panelTop >= viewportTop && panelBottom <= viewportBottom) {
-          minX = Math.min(minX, panelLeft);
-          maxX = Math.max(maxX, panelRight);
-          minY = Math.min(minY, panelTop);
-          maxY = Math.max(maxY, panelBottom);
-          hasVisibleContent = true;
-        }
+        minX = Math.min(minX, left);
+        maxX = Math.max(maxX, right);
+        minY = Math.min(minY, top);
+        maxY = Math.max(maxY, bottom);
       }
     });
     
-    if (!hasVisibleContent) {
-      return null; // No content to center on
-    }
-    
-    // Add some padding around the content
-    const padding = 40;
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
     const contentCenterX = minX + contentWidth / 2;
     const contentCenterY = minY + contentHeight / 2;
     
     return {
-      contentBounds: { left: minX, top: minY, right: maxX, bottom: maxY },
-      contentCenter: { x: contentCenterX, y: contentCenterY },
-      suggestedScreen: {
-        x: contentCenterX - viewportWidth / 2,
-        y: contentCenterY - viewportHeight / 2,
-        width: viewportWidth,
-        height: viewportHeight
-      }
+      bounds: { left: minX, top: minY, right: maxX, bottom: maxY },
+      center: { x: contentCenterX, y: contentCenterY },
+      width: contentWidth,
+      height: contentHeight
     };
+  };
+
+  // Handle panel selection for centering (Ctrl+Click)
+  const handlePanelSelection = (panelId, event) => {
+    if (!isScreenMode || (!screenModeStep.includes('creating'))) {
+      return false; // Only allow selection during screen creation
+    }
+    
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      setSelectedPanelsForCentering(prev => {
+        if (prev.includes(panelId)) {
+          // Deselect panel
+          return prev.filter(id => id !== panelId);
+        } else {
+          // Select panel
+          return [...prev, panelId];
+        }
+      });
+      
+      return true; // Handled
+    }
+    
+    return false; // Not handled
   };
 
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
+    setSelectedPanelsForCentering([]); // Clear previous selections
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
     
-    // Calculate content bounds for centering helper
-    const contentInfo = calculateContentBounds();
-    setContentCenteringInfo(contentInfo);
-    
-    // Position screen to cover the visible viewport area (or suggested centered area)
-    const screenRect = contentInfo ? contentInfo.suggestedScreen : {
+    // Start with default viewport coverage
+    setCreatingScreenRect({
       x: -panOffset.x,
       y: -panOffset.y,
       width: viewportWidth,
       height: viewportHeight
-    };
-    
-    setCreatingScreenRect(screenRect);
+    });
   };
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
+    setSelectedPanelsForCentering([]); // Clear previous selections
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
     
-    // Calculate content bounds for centering helper
-    const contentInfo = calculateContentBounds();
-    setContentCenteringInfo(contentInfo);
-    
-    // Position screen to cover the visible viewport area (or suggested centered area)
-    const screenRect = contentInfo ? contentInfo.suggestedScreen : {
+    // Start with default viewport coverage
+    setCreatingScreenRect({
       x: -panOffset.x,
       y: -panOffset.y,
       width: viewportWidth,
       height: viewportHeight
-    };
-    
-    setCreatingScreenRect(screenRect);
+    });
   };
 
   // Update creating view rectangle to stay covering viewable area when panning
@@ -5208,10 +5195,48 @@ function App() {
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
 
+  // Handle screen snapping to selected content center
+  useEffect(() => {
+    if (!creatingScreenRect || selectedPanelsForCentering.length === 0) return;
+    if (!(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) return;
+    
+    const selectedBounds = calculateSelectedPanelsBounds();
+    if (!selectedBounds) return;
+    
+    const screenCenterX = creatingScreenRect.x + creatingScreenRect.width / 2;
+    const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
+    
+    const snapThreshold = 20;
+    const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
+    const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
+    
+    let shouldSnap = false;
+    let newX = creatingScreenRect.x;
+    let newY = creatingScreenRect.y;
+    
+    if (deltaX < snapThreshold) {
+      newX = selectedBounds.center.x - creatingScreenRect.width / 2;
+      shouldSnap = true;
+    }
+    
+    if (deltaY < snapThreshold) {
+      newY = selectedBounds.center.y - creatingScreenRect.height / 2;
+      shouldSnap = true;
+    }
+    
+    if (shouldSnap) {
+      setCreatingScreenRect(prev => ({
+        ...prev,
+        x: newX,
+        y: newY
+      }));
+    }
+  }, [creatingScreenRect, selectedPanelsForCentering, screenModeStep]);
+
   const cancelScreenCreation = () => {
     setScreenModeStep('idle');
     setCreatingScreenRect(null);
-    setContentCenteringInfo(null);
+    setSelectedPanelsForCentering([]);
     setShowScreenNamePopup(false);
     setNewScreenName('');
   };
@@ -5223,7 +5248,7 @@ function App() {
       setHomeScreen({ ...creatingScreenRect });
       setScreenModeStep('idle');
       setCreatingScreenRect(null);
-      setContentCenteringInfo(null);
+      setSelectedPanelsForCentering([]);
     } else if (screenModeStep === 'creating-secondary') {
       setShowScreenNamePopup(true);
     }
@@ -5242,7 +5267,7 @@ function App() {
     setSecondaryScreens(prev => [...prev, newScreen]);
     setScreenModeStep('idle');
     setCreatingScreenRect(null);
-    setContentCenteringInfo(null);
+    setSelectedPanelsForCentering([]);
     setShowScreenNamePopup(false);
     setNewScreenName('');
   };
@@ -6024,95 +6049,145 @@ function App() {
         </div>
       )}
 
-      {/* Content Centering Helper Lines */}
-      {contentCenteringInfo && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
-        <>
-          {/* Content bounds outline */}
-          <div
-            style={{
-              position: 'absolute',
-              left: `${contentCenteringInfo.contentBounds.left + panOffset.x}px`,
-              top: `${contentCenteringInfo.contentBounds.top + panOffset.y}px`,
-              width: `${contentCenteringInfo.contentBounds.right - contentCenteringInfo.contentBounds.left}px`,
-              height: `${contentCenteringInfo.contentBounds.bottom - contentCenteringInfo.contentBounds.top}px`,
-              border: '2px solid rgba(255, 165, 0, 0.8)',
-              backgroundColor: 'rgba(255, 165, 0, 0.1)',
-              borderRadius: '4px',
-              zIndex: 10000,
-              pointerEvents: 'none'
-            }}
-          >
+      {/* Panel Selection Helper Lines */}
+      {creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && selectedPanelsForCentering.length > 0 && (() => {
+        const selectedBounds = calculateSelectedPanelsBounds();
+        if (!selectedBounds) return null;
+        
+        const screenCenterX = creatingScreenRect.x + creatingScreenRect.width / 2;
+        const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
+        
+        // Calculate snap threshold and check if centers are close
+        const snapThreshold = 20;
+        const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
+        const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
+        const shouldSnapX = deltaX < snapThreshold;
+        const shouldSnapY = deltaY < snapThreshold;
+        
+        return (
+          <>
+            {/* Selected panels outline */}
             <div
               style={{
                 position: 'absolute',
-                top: '-25px',
-                left: '0',
-                backgroundColor: 'rgba(255, 165, 0, 0.9)',
-                color: 'white',
-                padding: '2px 8px',
-                borderRadius: '3px',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                whiteSpace: 'nowrap'
+                left: `${selectedBounds.bounds.left + panOffset.x}px`,
+                top: `${selectedBounds.bounds.top + panOffset.y}px`,
+                width: `${selectedBounds.width}px`,
+                height: `${selectedBounds.height}px`,
+                border: '3px solid rgba(255, 165, 0, 0.9)',
+                backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                borderRadius: '6px',
+                zIndex: 10000,
+                pointerEvents: 'none'
               }}
             >
-              Content Area
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-30px',
+                  left: '0',
+                  backgroundColor: 'rgba(255, 165, 0, 0.95)',
+                  color: 'white',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Selected Content Area
+              </div>
             </div>
-          </div>
 
-          {/* Center crosshairs */}
-          <div
-            style={{
-              position: 'absolute',
-              left: `${contentCenteringInfo.contentCenter.x + panOffset.x - 10}px`,
-              top: `${contentCenteringInfo.contentCenter.y + panOffset.y}px`,
-              width: '20px',
-              height: '2px',
-              backgroundColor: 'rgba(255, 165, 0, 0.9)',
-              zIndex: 10002,
-              pointerEvents: 'none'
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              left: `${contentCenteringInfo.contentCenter.x + panOffset.x}px`,
-              top: `${contentCenteringInfo.contentCenter.y + panOffset.y - 10}px`,
-              width: '2px',
-              height: '20px',
-              backgroundColor: 'rgba(255, 165, 0, 0.9)',
-              zIndex: 10002,
-              pointerEvents: 'none'
-            }}
-          />
+            {/* Content center crosshairs */}
+            <div
+              style={{
+                position: 'absolute',
+                left: `${selectedBounds.center.x + panOffset.x - 15}px`,
+                top: `${selectedBounds.center.y + panOffset.y}px`,
+                width: '30px',
+                height: '3px',
+                backgroundColor: 'rgba(255, 165, 0, 0.9)',
+                zIndex: 10003,
+                pointerEvents: 'none'
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: `${selectedBounds.center.x + panOffset.x}px`,
+                top: `${selectedBounds.center.y + panOffset.y - 15}px`,
+                width: '3px',
+                height: '30px',
+                backgroundColor: 'rgba(255, 165, 0, 0.9)',
+                zIndex: 10003,
+                pointerEvents: 'none'
+              }}
+            />
 
-          {/* Screen center crosshairs */}
-          <div
-            style={{
-              position: 'absolute',
-              left: `${creatingScreenRect.x + creatingScreenRect.width / 2 + panOffset.x - 15}px`,
-              top: `${creatingScreenRect.y + creatingScreenRect.height / 2 + panOffset.y}px`,
-              width: '30px',
-              height: '2px',
-              backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
-              zIndex: 10002,
-              pointerEvents: 'none'
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              left: `${creatingScreenRect.x + creatingScreenRect.width / 2 + panOffset.x}px`,
-              top: `${creatingScreenRect.y + creatingScreenRect.height / 2 + panOffset.y - 15}px`,
-              width: '2px',
-              height: '30px',
-              backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
-              zIndex: 10002,
-              pointerEvents: 'none'
-            }}
-          />
-        </>
-      )}
+            {/* Screen center crosshairs */}
+            <div
+              style={{
+                position: 'absolute',
+                left: `${screenCenterX + panOffset.x - 20}px`,
+                top: `${screenCenterY + panOffset.y}px`,
+                width: '40px',
+                height: '3px',
+                backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+                zIndex: 10003,
+                pointerEvents: 'none',
+                opacity: shouldSnapX ? 1 : 0.7
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: `${screenCenterX + panOffset.x}px`,
+                top: `${screenCenterY + panOffset.y - 20}px`,
+                width: '3px',
+                height: '40px',
+                backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+                zIndex: 10003,
+                pointerEvents: 'none',
+                opacity: shouldSnapY ? 1 : 0.7
+              }}
+            />
+
+            {/* Connection lines when snapping */}
+            {shouldSnapX && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${Math.min(screenCenterX, selectedBounds.center.x) + panOffset.x}px`,
+                  top: `${screenCenterY + panOffset.y - 1}px`,
+                  width: `${Math.abs(screenCenterX - selectedBounds.center.x)}px`,
+                  height: '2px',
+                  backgroundColor: '#00ff00',
+                  zIndex: 10004,
+                  pointerEvents: 'none',
+                  opacity: 0.8
+                }}
+              />
+            )}
+            
+            {shouldSnapY && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${screenCenterX + panOffset.x - 1}px`,
+                  top: `${Math.min(screenCenterY, selectedBounds.center.y) + panOffset.y}px`,
+                  width: '2px',
+                  height: `${Math.abs(screenCenterY - selectedBounds.center.y)}px`,
+                  backgroundColor: '#00ff00',
+                  zIndex: 10004,
+                  pointerEvents: 'none',
+                  opacity: 0.8
+                }}
+              />
+            )}
+          </>
+        );
+      })()}
 
       {/* View Visualization Rectangles */}
       {(screenModeStep === 'viewing-home' || screenModeStep === 'viewing-secondary') && (
@@ -6676,6 +6751,7 @@ function App() {
           onDragEnter={(e) => handleDragEnter(e, 'conta')}
           onDragLeave={(e) => handleDragLeave(e, 'conta')}
           onDrop={handleContaDrop}
+          onClick={(e) => handlePanelSelection('contabilitate-upload-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('contabilitate-upload-panel').x}px`,
@@ -6688,6 +6764,11 @@ function App() {
               backgroundColor: 'var(--theme-primary-light, rgba(79, 70, 229, 0.1))',
               border: '2px dashed var(--theme-primary, #4f46e5)',
               boxShadow: '0 0 10px var(--theme-primary-light, rgba(79, 70, 229, 0.3))'
+            }),
+            ...(selectedPanelsForCentering.includes('contabilitate-upload-panel') && {
+              border: '3px solid #ff6b35',
+              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
+              backgroundColor: 'rgba(255, 107, 53, 0.1)'
             })
           }}
         >
@@ -6757,6 +6838,7 @@ function App() {
           onDragEnter={(e) => handleDragEnter(e, 'anaf')}
           onDragLeave={(e) => handleDragLeave(e, 'anaf')}
           onDrop={handleAnafDrop}
+          onClick={(e) => handlePanelSelection('anaf-upload-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('anaf-upload-panel').x}px`,
@@ -6769,6 +6851,11 @@ function App() {
               backgroundColor: 'var(--theme-secondary-light, rgba(16, 185, 129, 0.1))',
               border: '2px dashed var(--theme-secondary, #10b981)',
               boxShadow: '0 0 10px var(--theme-secondary-light, rgba(16, 185, 129, 0.3))'
+            }),
+            ...(selectedPanelsForCentering.includes('anaf-upload-panel') && {
+              border: '3px solid #ff6b35',
+              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
+              backgroundColor: 'rgba(255, 107, 53, 0.1)'
             })
           }}
         >
