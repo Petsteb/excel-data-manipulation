@@ -326,6 +326,11 @@
   position: relative;
 }
 
+/* Disable panel transitions during instant navigation */
+.instant-navigation .panel {
+  transition: none !important;
+}
+
 .panel:hover {
   border-color: var(--theme-primary);
   box-shadow: 0 6px 24px rgba(var(--theme-primary-rgb), 0.2);
@@ -659,6 +664,8 @@
 .panel:not(.dragging) {
   transition: transform 0.1s ease-out;
 }
+
+/* Additional transition disabling (duplicate removed below) */
 
 .file-list {
   margin-top: 20px;

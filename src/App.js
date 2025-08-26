@@ -5362,11 +5362,24 @@ function App() {
     
     const screen = screenId === 'home' ? homeScreen : secondaryScreens.find(s => s.id === screenId);
     if (screen) {
+      // Temporarily disable panel transitions for instant screen switching
+      const boardElement = boardRef.current;
+      if (boardElement) {
+        boardElement.classList.add('instant-navigation');
+      }
+      
       const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
       const targetX = -(screen.x + screen.width / 2 - viewportWidth / 2);
       const targetY = -(screen.y + screen.height / 2 - viewportHeight / 2);
       setPanOffset({ x: targetX, y: targetY });
       setCurrentScreen(screenId);
+      
+      // Re-enable transitions after a brief moment
+      setTimeout(() => {
+        if (boardElement) {
+          boardElement.classList.remove('instant-navigation');
+        }
+      }, 50); // Very brief delay to ensure the position change is applied instantly
     }
   };
 
