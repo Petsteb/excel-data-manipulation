@@ -4,6 +4,10 @@ const fs = require('fs');
 const ExcelJS = require('exceljs');
 const XLSX = require('xlsx');
 
+// Suppress Electron cache errors
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+
 // Settings storage
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
