@@ -687,9 +687,6 @@ function App() {
       global.deactivateDeveloperMode = deactivateDevMode;
     }
 
-    // Add console instructions
-    console.log('💡 Developer mode available. Type: activateDeveloperMode("cea mai buna parola")');
-
     // Cleanup function
     return () => {
       if (typeof window !== 'undefined') {
