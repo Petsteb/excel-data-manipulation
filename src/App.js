@@ -5749,7 +5749,7 @@ function App() {
   }
 
   return (
-    <div className={`App layout-mode ${!isGridVisible ? 'grid-hidden' : ''}`}>
+    <div className={`App ${isLayoutMode ? 'layout-mode' : ''} ${!isGridVisible ? 'grid-hidden' : ''}`}>
       <div className="top-menu-bar">
         <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
         <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />

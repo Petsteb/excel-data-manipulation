@@ -340,12 +340,17 @@
   box-shadow: var(--theme-shadow);
   border: 2px solid var(--theme-border-color);
   transition: all 0.2s ease;
-  cursor: move;
+  cursor: default;
   user-select: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* Only show move cursor when in layout mode */
+.layout-mode .panel {
+  cursor: move;
 }
 
 /* Disable panel transitions during instant navigation */
