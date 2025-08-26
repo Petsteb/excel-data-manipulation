@@ -5954,8 +5954,25 @@ function App() {
                 border: `3px solid ${GLOBAL_SUCCESS_COLOR}`,
                 borderRadius: '8px',
                 zIndex: 10001,
-                pointerEvents: 'none'
+                pointerEvents: 'auto'
               }}
+              onMouseDown={(e) => {
+                if (e.button === 0) { // Left mouse button
+                  // Pass through to board for panning
+                  handlePanStart(e);
+                }
+              }}
+              onMouseMove={(e) => {
+                if (isPanning) {
+                  handlePanMove(e);
+                }
+              }}
+              onMouseUp={(e) => {
+                if (isPanning) {
+                  handleMouseUp();
+                }
+              }}
+              onContextMenu={(e) => handleScreenRightClick(e, { id: 'home', name: 'Home' })}
             >
               <div
                 style={{
@@ -6000,6 +6017,22 @@ function App() {
                 borderRadius: '8px',
                 zIndex: 10001,
                 pointerEvents: 'auto'
+              }}
+              onMouseDown={(e) => {
+                if (e.button === 0) { // Left mouse button
+                  // Pass through to board for panning
+                  handlePanStart(e);
+                }
+              }}
+              onMouseMove={(e) => {
+                if (isPanning) {
+                  handlePanMove(e);
+                }
+              }}
+              onMouseUp={(e) => {
+                if (isPanning) {
+                  handleMouseUp();
+                }
               }}
               onContextMenu={(e) => handleScreenRightClick(e, screen)}
             >
