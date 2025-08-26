@@ -680,66 +680,38 @@ function App() {
       console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
     };
 
-    // Attach to both window and globalThis for better compatibility using non-enumerable properties
+    // Create hidden access method that doesn't appear in autocomplete
     if (typeof window !== 'undefined') {
-      Object.defineProperty(window, 'activateDeveloperMode', {
-        value: activateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-      Object.defineProperty(window, 'deactivateDeveloperMode', {
-        value: deactivateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-    }
-    
-    if (typeof globalThis !== 'undefined') {
-      Object.defineProperty(globalThis, 'activateDeveloperMode', {
-        value: activateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-      Object.defineProperty(globalThis, 'deactivateDeveloperMode', {
-        value: deactivateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-    }
-
-    // Also add a simple global function without namespace
-    if (typeof global !== 'undefined') {
-      Object.defineProperty(global, 'activateDeveloperMode', {
-        value: activateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
-      Object.defineProperty(global, 'deactivateDeveloperMode', {
-        value: deactivateDevMode,
-        writable: false,
-        enumerable: false,
-        configurable: true
-      });
+      // Store the function in console object to avoid window autocomplete
+      if (!window.console.hidden) {
+        window.console.hidden = {};
+      }
+      window.console.hidden.dev = activateDevMode;
+      window.console.hidden.devOff = deactivateDevMode;
+      
+      // Create an eval-based access method
+      const originalEval = window.eval;
+      window.eval = function(code) {
+        if (code === 'activateDeveloperMode("cea mai buna parola")') {
+          return activateDevMode("cea mai buna parola");
+        }
+        if (code === 'deactivateDeveloperMode()') {
+          return deactivateDevMode();
+        }
+        return originalEval.call(this, code);
+      };
     }
 
     // Cleanup function
     return () => {
       if (typeof window !== 'undefined') {
-        delete window.activateDeveloperMode;
-        delete window.deactivateDeveloperMode;
-      }
-      if (typeof globalThis !== 'undefined') {
-        delete globalThis.activateDeveloperMode;
-        delete globalThis.deactivateDeveloperMode;
-      }
-      if (typeof global !== 'undefined') {
-        delete global.activateDeveloperMode;
-        delete global.deactivateDeveloperMode;
+        if (window.console && window.console.hidden) {
+          delete window.console.hidden.dev;
+          delete window.console.hidden.devOff;
+          if (Object.keys(window.console.hidden).length === 0) {
+            delete window.console.hidden;
+          }
+        }
       }
     };
   }, []);
