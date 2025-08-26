@@ -288,13 +288,11 @@
   user-select: none;
 }
 
-/* Screen creation mode - disable panel interactions except for selection */
-.app-main.board.screen-creation-mode .panel * {
-  pointer-events: none !important;
-}
-
-.app-main.board.screen-creation-mode .panel {
-  pointer-events: auto !important;
+/* Panel selection highlighting during screen creation */
+.panel.selected-for-centering {
+  border: 3px solid #ff6b35 !important;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
+  background-color: rgba(255, 107, 53, 0.1) !important;
 }
 
 /* Hide scroll bars and disable overflow when panning is disabled */

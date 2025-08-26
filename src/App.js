@@ -5127,12 +5127,9 @@ function App() {
     };
   };
 
-  // Handle panel selection for centering (Ctrl+Click)
+  // Handle panel selection for centering (Ctrl+Click) - Universal handler
   const handlePanelSelection = (panelId, event) => {
-    console.log('handlePanelSelection called:', { panelId, ctrlKey: event.ctrlKey, isScreenMode, screenModeStep });
-    
     if (!isScreenMode || (!screenModeStep.includes('creating'))) {
-      console.log('Not in screen creation mode');
       return false; // Only allow selection during screen creation
     }
     
@@ -5140,22 +5137,35 @@ function App() {
       event.preventDefault();
       event.stopPropagation();
       
-      console.log('Ctrl+Click detected, toggling panel selection:', panelId);
-      
       setSelectedPanelsForCentering(prev => {
         const newSelection = prev.includes(panelId) 
           ? prev.filter(id => id !== panelId)  // Deselect panel
           : [...prev, panelId];  // Select panel
         
-        console.log('Selected panels updated:', newSelection);
+        console.log('Panel selection updated:', newSelection);
         return newSelection;
       });
       
       return true; // Handled
     }
     
-    console.log('No Ctrl key detected');
     return false; // Not handled
+  };
+
+  // Universal click handler for all panels during screen creation
+  const handleUniversalClick = (event) => {
+    if (!isScreenMode || (!screenModeStep.includes('creating'))) {
+      return;
+    }
+
+    // Find the closest panel element
+    const panelElement = event.target.closest('[data-panel]');
+    if (panelElement) {
+      const panelId = panelElement.getAttribute('data-panel');
+      if (panelId) {
+        handlePanelSelection(panelId, event);
+      }
+    }
   };
 
   const startCreatingHomeScreen = () => {
@@ -6031,37 +6041,12 @@ function App() {
             border: `4px dashed ${screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
             backgroundColor: 'transparent',
             boxShadow: `inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 2px ${screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'}`,
-            zIndex: 10001,
-            pointerEvents: 'auto',
-            borderRadius: '8px',
-            cursor: 'move'
-          }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const initialScreenX = creatingScreenRect.x;
-            const initialScreenY = creatingScreenRect.y;
-
-            const handleMouseMove = (e) => {
-              const deltaX = e.clientX - startX;
-              const deltaY = e.clientY - startY;
-              setCreatingScreenRect(prev => ({
-                ...prev,
-                x: initialScreenX + deltaX,
-                y: initialScreenY + deltaY
-              }));
-            };
-
-            const handleMouseUp = () => {
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-            };
-
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
+            zIndex: 9999, // Lower than helper overlays but above content
+            pointerEvents: 'none', // Don't block interactions
+            borderRadius: '8px'
           }}
         >
+          {/* Screen label */}
           <div
             style={{
               position: 'absolute',
@@ -6072,10 +6057,63 @@ function App() {
               padding: '5px 10px',
               borderRadius: '4px',
               fontSize: '12px',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              pointerEvents: 'none'
             }}
           >
             {screenModeStep === 'creating-home' ? 'HOME SCREEN' : 'SECONDARY SCREEN'}
+          </div>
+
+          {/* Draggable handle */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              width: '60px',
+              height: '30px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              border: '2px solid ' + (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'),
+              borderRadius: '4px',
+              cursor: 'move',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              color: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+              pointerEvents: 'auto',
+              zIndex: 10002
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const initialScreenX = creatingScreenRect.x;
+              const initialScreenY = creatingScreenRect.y;
+
+              const handleMouseMove = (e) => {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                setCreatingScreenRect(prev => ({
+                  ...prev,
+                  x: initialScreenX + deltaX,
+                  y: initialScreenY + deltaY
+                }));
+              };
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
+
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+          >
+            DRAG
           </div>
         </div>
       )}
@@ -6760,7 +6798,7 @@ function App() {
 
       <main 
         ref={boardRef}
-        className={`app-main board ${isPanning ? 'panning' : ''} ${(!isLayoutMode && isPanningDisabled) ? 'panning-disabled' : ''} ${(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') ? 'screen-creation-mode' : ''}`}
+        className={`app-main board ${isPanning ? 'panning' : ''} ${(!isLayoutMode && isPanningDisabled) ? 'panning-disabled' : ''}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseDown={handleMouseDown}
@@ -6769,11 +6807,12 @@ function App() {
         onMouseLeave={handleMouseUp}
         onContextMenu={handleContextMenu}
         onWheel={handleWheel}
+        onClick={handleUniversalClick}
       >
         {/* Grid Board - all panels positioned absolutely */}
         {/* Panel 1 - Contabilitate Upload */}
         <div 
-          className="upload-section panel"
+          className={`upload-section panel ${selectedPanelsForCentering.includes('contabilitate-upload-panel') ? 'selected-for-centering' : ''}`}
           data-panel="contabilitate-upload-panel"
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-upload-panel', type: 'panel' })}
@@ -6782,7 +6821,6 @@ function App() {
           onDragEnter={(e) => handleDragEnter(e, 'conta')}
           onDragLeave={(e) => handleDragLeave(e, 'conta')}
           onDrop={handleContaDrop}
-          onClick={(e) => handlePanelSelection('contabilitate-upload-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('contabilitate-upload-panel').x}px`,
@@ -6795,11 +6833,6 @@ function App() {
               backgroundColor: 'var(--theme-primary-light, rgba(79, 70, 229, 0.1))',
               border: '2px dashed var(--theme-primary, #4f46e5)',
               boxShadow: '0 0 10px var(--theme-primary-light, rgba(79, 70, 229, 0.3))'
-            }),
-            ...(selectedPanelsForCentering.includes('contabilitate-upload-panel') && {
-              border: '3px solid #ff6b35',
-              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
-              backgroundColor: 'rgba(255, 107, 53, 0.1)'
             })
           }}
         >
@@ -6856,28 +6889,11 @@ function App() {
               </button>
             </div>
           </div>
-
-          {/* Block interactions during screen creation */}
-          {(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1000,
-                pointerEvents: 'auto',
-                cursor: selectedPanelsForCentering.includes('contabilitate-upload-panel') ? 'default' : 'pointer'
-              }}
-              onClick={(e) => handlePanelSelection('contabilitate-upload-panel', e)}
-            />
-          )}
         </div>
 
         {/* Panel 2 - ANAF Upload */}
         <div 
-          className="upload-section panel"
+          className={`upload-section panel ${selectedPanelsForCentering.includes('anaf-upload-panel') ? 'selected-for-centering' : ''}`}
           data-panel="anaf-upload-panel"
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'anaf-upload-panel', type: 'panel' })}
@@ -6886,7 +6902,6 @@ function App() {
           onDragEnter={(e) => handleDragEnter(e, 'anaf')}
           onDragLeave={(e) => handleDragLeave(e, 'anaf')}
           onDrop={handleAnafDrop}
-          onClick={(e) => handlePanelSelection('anaf-upload-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('anaf-upload-panel').x}px`,
@@ -6899,11 +6914,6 @@ function App() {
               backgroundColor: 'var(--theme-secondary-light, rgba(16, 185, 129, 0.1))',
               border: '2px dashed var(--theme-secondary, #10b981)',
               boxShadow: '0 0 10px var(--theme-secondary-light, rgba(16, 185, 129, 0.3))'
-            }),
-            ...(selectedPanelsForCentering.includes('anaf-upload-panel') && {
-              border: '3px solid #ff6b35',
-              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
-              backgroundColor: 'rgba(255, 107, 53, 0.1)'
             })
           }}
         >
@@ -6960,33 +6970,15 @@ function App() {
               </button>
             </div>
           </div>
-
-          {/* Block interactions during screen creation */}
-          {(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary') && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1000,
-                pointerEvents: 'auto',
-                cursor: selectedPanelsForCentering.includes('anaf-upload-panel') ? 'default' : 'pointer'
-              }}
-              onClick={(e) => handlePanelSelection('anaf-upload-panel', e)}
-            />
-          )}
         </div>
         
         {/* Panel 3 - Contabilitate Summary */}
         <div 
-          className="uploaded-files-summary panel"
+          className={`uploaded-files-summary panel ${selectedPanelsForCentering.includes('contabilitate-summary-panel') ? 'selected-for-centering' : ''}`}
           data-panel="contabilitate-summary-panel"
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'contabilitate-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
-          onClick={(e) => handlePanelSelection('contabilitate-summary-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('contabilitate-summary-panel').x}px`,
@@ -6994,12 +6986,7 @@ function App() {
             width: `${getVisualPosition('contabilitate-summary-panel').width}px`,
             height: `${getVisualPosition('contabilitate-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10,
-            ...(selectedPanelsForCentering.includes('contabilitate-summary-panel') && {
-              border: '3px solid #ff6b35',
-              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
-              backgroundColor: 'rgba(255, 107, 53, 0.1)'
-            })
+            zIndex: 10
           }}
         >
           {isLayoutMode && !isScreenMode && (
@@ -8236,12 +8223,11 @@ function App() {
         
         {/* Panel 9 - Final Summary */}
         <div 
-          className="merged-files-section panel"
+          className={`merged-files-section panel ${selectedPanelsForCentering.includes('final-summary-panel') ? 'selected-for-centering' : ''}`}
           data-panel="final-summary-panel"
           draggable={isLayoutMode && !isScreenMode}
           onDragStart={(e) => handleDragStart(e, { id: 'final-summary-panel', type: 'panel' })}
           onDragEnd={handleDragEnd}
-          onClick={(e) => handlePanelSelection('final-summary-panel', e)}
           style={{
             position: 'absolute',
             left: `${getVisualPosition('final-summary-panel').x}px`,
@@ -8249,12 +8235,7 @@ function App() {
             width: `${getVisualPosition('final-summary-panel').width}px`,
             height: `${getVisualPosition('final-summary-panel').height}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10,
-            ...(selectedPanelsForCentering.includes('final-summary-panel') && {
-              border: '3px solid #ff6b35',
-              boxShadow: '0 0 15px rgba(255, 107, 53, 0.6)',
-              backgroundColor: 'rgba(255, 107, 53, 0.1)'
-            })
+            zIndex: 10
           }}
         >
           {isLayoutMode && !isScreenMode && (
