@@ -657,19 +657,27 @@ function App() {
       if (code === 'cea mai buna parola') {
         setIsDeveloperMode(prev => {
           const newState = !prev;
-          // Use setTimeout to log after state update to prevent duplicate logs
+          // Use setTimeout to log after state update and clear console history
           setTimeout(() => {
             if (newState) {
               console.log('🎉 Developer mode activated! All developer buttons are now visible.');
             } else {
               console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
             }
+            // Clear console to hide the activation command
+            setTimeout(() => {
+              console.clear();
+            }, 100);
           }, 0);
           return newState;
         });
         return true;
       } else {
         console.log('❌ Invalid code. Developer mode not changed.');
+        // Also clear console for invalid attempts to hide the command
+        setTimeout(() => {
+          console.clear();
+        }, 1000);
         return false;
       }
     };
@@ -678,6 +686,10 @@ function App() {
     const deactivateDevMode = () => {
       setIsDeveloperMode(false);
       console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
+      // Clear console to hide the deactivation command
+      setTimeout(() => {
+        console.clear();
+      }, 100);
     };
 
     // Create hidden access method that doesn't appear in autocomplete
