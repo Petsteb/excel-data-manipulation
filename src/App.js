@@ -9097,8 +9097,8 @@ function App() {
         <div
           style={{
             position: 'fixed',
-            left: contextMenu.x,
-            top: contextMenu.y,
+            left: Math.min(contextMenu.x, window.innerWidth - 320), // Ensure menu doesn't exceed right edge
+            top: Math.min(contextMenu.y, window.innerHeight - 500), // Ensure menu doesn't exceed bottom edge
             background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
             backdropFilter: 'blur(25px)',
             WebkitBackdropFilter: 'blur(25px)',
@@ -9110,7 +9110,9 @@ function App() {
               inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
             `,
             zIndex: 99999,
-            minWidth: '200px',
+            width: '300px', // Fixed width instead of minWidth
+            maxHeight: '400px', // Add max height
+            overflowY: 'auto', // Make it scrollable
             padding: '12px'
           }}
           onClick={(e) => e.stopPropagation()}
@@ -9464,8 +9466,8 @@ function App() {
         <div
           style={{
             position: 'fixed',
-            left: anafContextMenu.x,
-            top: anafContextMenu.y,
+            left: Math.min(anafContextMenu.x, window.innerWidth - 320), // Ensure menu doesn't exceed right edge
+            top: Math.min(anafContextMenu.y, window.innerHeight - 500), // Ensure menu doesn't exceed bottom edge
             background: 'var(--glass-bg, rgba(255, 255, 255, 0.85))',
             backdropFilter: 'blur(25px)',
             WebkitBackdropFilter: 'blur(25px)',
@@ -9477,7 +9479,9 @@ function App() {
               inset 0 -1px 0 var(--glass-lowlight, rgba(0, 0, 0, 0.05))
             `,
             zIndex: 99999,
-            minWidth: '250px',
+            width: '300px', // Fixed width instead of minWidth
+            maxHeight: '400px', // Add max height
+            overflowY: 'auto', // Make it scrollable
             padding: '12px'
           }}
           onClick={(e) => e.stopPropagation()}
