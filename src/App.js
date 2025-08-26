@@ -9,6 +9,7 @@ import idIconLight from './assets/icons/light/id.png';
 import settingIconLight from './assets/icons/light/setting.png';
 import allDirectionsIconLight from './assets/icons/light/all-directions.png';
 import displayFrameIconLight from './assets/icons/light/display-frame.png';
+import dotGridIconLight from './assets/icons/light/dot-grid.png';
 
 // Icon imports - dark mode
 import dashboardIconDark from './assets/icons/dark/dashboard.png';
@@ -16,6 +17,7 @@ import idIconDark from './assets/icons/dark/id.png';
 import settingIconDark from './assets/icons/dark/setting.png';
 import allDirectionsIconDark from './assets/icons/dark/all-directions.png';
 import displayFrameIconDark from './assets/icons/dark/display-frame.png';
+import dotGridIconDark from './assets/icons/dark/dot-grid.png';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
@@ -30,7 +32,8 @@ const getIcon = (iconName, currentTheme) => {
     id: { light: idIconLight, dark: idIconDark },
     setting: { light: settingIconLight, dark: settingIconDark },
     allDirections: { light: allDirectionsIconLight, dark: allDirectionsIconDark },
-    displayFrame: { light: displayFrameIconLight, dark: displayFrameIconDark }
+    displayFrame: { light: displayFrameIconLight, dark: displayFrameIconDark },
+    dotGrid: { light: dotGridIconLight, dark: dotGridIconDark }
   };
   
   return icons[iconName] ? icons[iconName][isDarkMode ? 'dark' : 'light'] : null;
@@ -5823,7 +5826,7 @@ function App() {
               }}
             >
               <img 
-                src={getIcon('grid', currentTheme)} 
+                src={getIcon('dotGrid', currentTheme)} 
                 alt="Grid Toggle" 
                 style={{ width: '16px', height: '16px' }} 
               />
