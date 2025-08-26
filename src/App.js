@@ -557,7 +557,7 @@ function App() {
           
           // If homeScreen exists and we're in normal mode, navigate to it
           if (settings.homeScreen && !isLayoutMode) {
-            const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+            const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
             const targetX = -(settings.homeScreen.x + settings.homeScreen.width / 2 - viewportWidth / 2);
             const targetY = -(settings.homeScreen.y + settings.homeScreen.height / 2 - viewportHeight / 2);
             setPanOffset({ x: targetX, y: targetY });
@@ -4630,7 +4630,7 @@ function App() {
       const normalization = normalizeWorkspaceCoordinates();
       
       // Calculate position to center on home screen using the normalized coordinates
-      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
       let normalModePosition;
       
       if (normalization.normalizedHomeScreen) {
