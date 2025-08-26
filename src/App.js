@@ -351,7 +351,7 @@ function App() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [normalModeScreenPosition, setNormalModeScreenPosition] = useState({ x: 0, y: 0 }); // Store last normal mode screen position
-  const [isPanningDisabled, setIsPanningDisabled] = useState(false); // Disable panning in normal mode
+  const [isPanningDisabled, setIsPanningDisabled] = useState(true); // Disable panning in normal mode by default
   const panAnimationFrame = useRef(null);
   const [availablePanels] = useState([
     { id: 'contabilitate-upload-panel', name: 'Contabilitate Upload Panel', type: 'panel', active: true },
@@ -386,7 +386,7 @@ function App() {
     minY: 0,
     maxY: 800   // Initial viewport height
   });
-  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [isIdMode, setIsIdMode] = useState(false);
 
   // Refs for separate popups
   const contaPopupBodyRef = useRef(null);
@@ -5467,11 +5467,11 @@ function App() {
           <img src={getIcon('dashboard', currentTheme)} alt="Layout" className="layout-icon" />
         </button>
         <button 
-          className={`layout-button ${isDeveloperMode ? 'active' : ''}`}
-          onClick={() => setIsDeveloperMode(!isDeveloperMode)}
-          title="Toggle Developer Mode"
+          className={`layout-button ${isIdMode ? 'active' : ''}`}
+          onClick={() => setIsIdMode(!isIdMode)}
+          title="Toggle ID Mode"
         >
-          <img src={getIcon('id', currentTheme)} alt="Developer" className="layout-icon" />
+          <img src={getIcon('id', currentTheme)} alt="ID" className="layout-icon" />
         </button>
         <button 
           className="layout-button"
@@ -6347,7 +6347,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6428,7 +6428,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6500,7 +6500,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6573,7 +6573,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6645,7 +6645,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6744,7 +6744,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -6843,7 +6843,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -7159,7 +7159,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '2px', 
@@ -7424,7 +7424,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -7535,7 +7535,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -7700,7 +7700,7 @@ function App() {
               onMouseDown={(e) => handleResizeStart(e, 'generate-summary-button')}
             />
           )}
-          {isDeveloperMode && (
+          {isIdMode && (
             <div style={{ 
               position: 'absolute', 
               top: '4px', 
@@ -7749,7 +7749,7 @@ function App() {
             />
           )}
           <div className="panel-content">
-            {isDeveloperMode && (
+            {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '4px', 
@@ -7833,7 +7833,7 @@ function App() {
         {showContaFilesPopup && (
           <div className="popup-overlay" onClick={() => setShowContaFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-              {isDeveloperMode && (
+              {isIdMode && (
                 <div style={{ 
                   position: 'absolute', 
                   top: '4px', 
@@ -7903,7 +7903,7 @@ function App() {
         {showAnafFilesPopup && (
           <div className="popup-overlay" onClick={() => setShowAnafFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-              {isDeveloperMode && (
+              {isIdMode && (
                 <div style={{ 
                   position: 'absolute', 
                   top: '4px', 
@@ -7973,7 +7973,7 @@ function App() {
         {showDateColumnsPopup && (
           <div className="popup-overlay" onClick={() => setShowDateColumnsPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-              {isDeveloperMode && (
+              {isIdMode && (
                 <div style={{ 
                   position: 'absolute', 
                   top: '4px', 
@@ -8066,7 +8066,7 @@ function App() {
         {showLayoutControlPanel && (
           <div className="popup-overlay" onClick={() => setShowLayoutControlPanel(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-              {isDeveloperMode && (
+              {isIdMode && (
                 <div style={{ 
                   position: 'absolute', 
                   top: '4px', 
@@ -8222,7 +8222,7 @@ function App() {
         {showMergedFilesPopup && processingSummary && (
           <div className="popup-overlay" onClick={() => setShowMergedFilesPopup(false)}>
             <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-              {isDeveloperMode && (
+              {isIdMode && (
                 <div style={{ 
                   position: 'absolute', 
                   top: '4px', 

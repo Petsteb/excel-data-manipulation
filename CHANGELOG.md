@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic y=x default behavior
   - Input validation and error handling
 
-- **Developer Experience**:
+- **ID Experience**:
   - Comprehensive debugging and logging
   - Proper error boundaries
   - Type safety and validation
