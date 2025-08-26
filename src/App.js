@@ -387,6 +387,7 @@ function App() {
     maxY: 800   // Initial viewport height
   });
   const [isIdMode, setIsIdMode] = useState(false);
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
   // Refs for separate popups
   const contaPopupBodyRef = useRef(null);
@@ -648,6 +649,40 @@ function App() {
       return () => clearTimeout(saveTimeout);
     }
   }, [panOffset, isLayoutMode, isPanning, isLoading, normalModeScreenPosition]);
+
+  // Console command listener for developer mode
+  useEffect(() => {
+    const handleConsoleCommand = (event) => {
+      // Check if the user typed the secret code in console
+      if (event.code === 'Enter' && event.target.tagName === 'TEXTAREA') {
+        return; // Don't interfere with textarea input
+      }
+    };
+
+    // Global developer mode activation function
+    window.activateDeveloperMode = (code) => {
+      if (code === 'cea mai buna parola') {
+        setIsDeveloperMode(true);
+        console.log('🎉 Developer mode activated! All developer buttons are now visible.');
+        return true;
+      } else {
+        console.log('❌ Invalid code. Developer mode not activated.');
+        return false;
+      }
+    };
+
+    // Global developer mode deactivation function
+    window.deactivateDeveloperMode = () => {
+      setIsDeveloperMode(false);
+      console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
+    };
+
+    // Cleanup function
+    return () => {
+      delete window.activateDeveloperMode;
+      delete window.deactivateDeveloperMode;
+    };
+  }, []);
 
   // Apply theme to CSS variables
   const applyTheme = (themeKey) => {
@@ -5459,69 +5494,74 @@ function App() {
       <div className="top-menu-bar">
         <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
         <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
-        <button 
-          className={`layout-button ${isLayoutMode ? 'active' : ''}`}
-          onClick={toggleLayoutMode}
-          title="Toggle Layout Mode"
-        >
-          <img src={getIcon('dashboard', currentTheme)} alt="Layout" className="layout-icon" />
-        </button>
-        <button 
-          className={`layout-button ${isIdMode ? 'active' : ''}`}
-          onClick={() => setIsIdMode(!isIdMode)}
-          title="Toggle ID Mode"
-        >
-          <img src={getIcon('id', currentTheme)} alt="ID" className="layout-icon" />
-        </button>
-        <button 
-          className="layout-button"
-          onClick={() => setShowLayoutControlPanel(true)}
-          title="Configure Layout Mode Only Panels"
-        >
-          <img src={getIcon('setting', currentTheme)} alt="Settings" className="layout-icon" />
-        </button>
-        <button 
-          className={`layout-button ${isPanningDisabled ? 'active' : ''}`}
-          onClick={() => setIsPanningDisabled(!isPanningDisabled)}
-          title="Toggle Panning (Normal Mode Only)"
-          style={{ 
-            fontSize: '12px', 
-            fontWeight: 'bold',
-            opacity: !isLayoutMode ? 1 : 0.5,
-            cursor: !isLayoutMode ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          disabled={isLayoutMode}
-        >
-          <img 
-            src={getIcon('allDirections', currentTheme)} 
-            alt="Toggle Panning" 
-            style={{ width: '16px', height: '16px' }} 
-          />
-        </button>
-        <button 
-          className={`layout-button ${isScreenMode ? 'active' : ''}`}
-          onClick={toggleScreenMode}
-          title="Screen Mode - Configure Custom Screens"
-          style={{ 
-            fontSize: '14px', 
-            fontWeight: 'bold',
-            opacity: isLayoutMode ? 1 : 0.5,
-            cursor: isLayoutMode ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          disabled={!isLayoutMode}
-        >
-          <img 
-            src={getIcon('displayFrame', currentTheme)} 
-            alt="Screen Mode" 
-            style={{ width: '16px', height: '16px' }} 
-          />
-        </button>
+        {/* Developer Mode Only Buttons */}
+        {isDeveloperMode && (
+          <>
+            <button 
+              className={`layout-button ${isLayoutMode ? 'active' : ''}`}
+              onClick={toggleLayoutMode}
+              title="Toggle Layout Mode"
+            >
+              <img src={getIcon('dashboard', currentTheme)} alt="Layout" className="layout-icon" />
+            </button>
+            <button 
+              className="layout-button"
+              onClick={() => setShowLayoutControlPanel(true)}
+              title="Configure Layout Mode Only Panels"
+            >
+              <img src={getIcon('setting', currentTheme)} alt="Settings" className="layout-icon" />
+            </button>
+            <button 
+              className={`layout-button ${isIdMode ? 'active' : ''}`}
+              onClick={() => setIsIdMode(!isIdMode)}
+              title="Toggle ID Mode"
+            >
+              <img src={getIcon('id', currentTheme)} alt="ID" className="layout-icon" />
+            </button>
+            <button 
+              className={`layout-button ${isPanningDisabled ? 'active' : ''}`}
+              onClick={() => setIsPanningDisabled(!isPanningDisabled)}
+              title="Toggle Panning (Normal Mode Only)"
+              style={{ 
+                fontSize: '12px', 
+                fontWeight: 'bold',
+                opacity: !isLayoutMode ? 1 : 0.5,
+                cursor: !isLayoutMode ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              disabled={isLayoutMode}
+            >
+              <img 
+                src={getIcon('allDirections', currentTheme)} 
+                alt="Toggle Panning" 
+                style={{ width: '16px', height: '16px' }} 
+              />
+            </button>
+            <button 
+              className={`layout-button ${isScreenMode ? 'active' : ''}`}
+              onClick={toggleScreenMode}
+              title="Screen Mode - Configure Custom Screens"
+              style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold',
+                opacity: isLayoutMode ? 1 : 0.5,
+                cursor: isLayoutMode ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              disabled={!isLayoutMode}
+            >
+              <img 
+                src={getIcon('displayFrame', currentTheme)} 
+                alt="Screen Mode" 
+                style={{ width: '16px', height: '16px' }} 
+              />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Screen Mode Overlay and UI */}
