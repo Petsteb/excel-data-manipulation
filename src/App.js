@@ -7784,7 +7784,7 @@ function App() {
               onMouseDown={(e) => handleResizeStart(e, 'account-mapping-panel')}
             />
           )}
-          <div className="panel-content">
+          <div className="panel-content" style={{ height: '100%', padding: '16px', boxSizing: 'border-box' }}>
             {isIdMode && (
               <div style={{ 
                 position: 'absolute', 
@@ -7807,7 +7807,12 @@ function App() {
                 </p>
               </div>
               
-              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px' }}>
+              <div style={{ 
+                flex: 1, 
+                overflowY: 'auto', 
+                marginBottom: '15px',
+                minHeight: 0 // Important: allows flex child to shrink below content size
+              }}>
                 {Object.keys(accountMappings).map(contaAccount => {
                   const mappedAnafAccounts = accountMappings[contaAccount] || [];
                   const isContaSelected = selectedAccounts.includes(contaAccount);
