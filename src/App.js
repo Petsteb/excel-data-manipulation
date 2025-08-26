@@ -4691,6 +4691,11 @@ function App() {
       setTimeout(() => {
         setPanOffset(normalModePosition);
         setNormalModeScreenPosition(normalModePosition);
+        
+        // Navigate to home screen after layout mode is fully exited
+        if (homeScreen) {
+          navigateToScreen('home');
+        }
       }, 250); // Increased to 250ms to happen after the restore timeout (200ms)
       
     }
