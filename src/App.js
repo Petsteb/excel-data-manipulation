@@ -652,15 +652,8 @@ function App() {
 
   // Console command listener for developer mode
   useEffect(() => {
-    const handleConsoleCommand = (event) => {
-      // Check if the user typed the secret code in console
-      if (event.code === 'Enter' && event.target.tagName === 'TEXTAREA') {
-        return; // Don't interfere with textarea input
-      }
-    };
-
     // Global developer mode activation function
-    window.activateDeveloperMode = (code) => {
+    const activateDevMode = (code) => {
       if (code === 'cea mai buna parola') {
         setIsDeveloperMode(true);
         console.log('🎉 Developer mode activated! All developer buttons are now visible.');
@@ -672,15 +665,45 @@ function App() {
     };
 
     // Global developer mode deactivation function
-    window.deactivateDeveloperMode = () => {
+    const deactivateDevMode = () => {
       setIsDeveloperMode(false);
       console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
     };
 
+    // Attach to both window and globalThis for better compatibility
+    if (typeof window !== 'undefined') {
+      window.activateDeveloperMode = activateDevMode;
+      window.deactivateDeveloperMode = deactivateDevMode;
+    }
+    
+    if (typeof globalThis !== 'undefined') {
+      globalThis.activateDeveloperMode = activateDevMode;
+      globalThis.deactivateDeveloperMode = deactivateDevMode;
+    }
+
+    // Also add a simple global function without namespace
+    if (typeof global !== 'undefined') {
+      global.activateDeveloperMode = activateDevMode;
+      global.deactivateDeveloperMode = deactivateDevMode;
+    }
+
+    // Add console instructions
+    console.log('💡 Developer mode available. Type: activateDeveloperMode("cea mai buna parola")');
+
     // Cleanup function
     return () => {
-      delete window.activateDeveloperMode;
-      delete window.deactivateDeveloperMode;
+      if (typeof window !== 'undefined') {
+        delete window.activateDeveloperMode;
+        delete window.deactivateDeveloperMode;
+      }
+      if (typeof globalThis !== 'undefined') {
+        delete globalThis.activateDeveloperMode;
+        delete globalThis.deactivateDeveloperMode;
+      }
+      if (typeof global !== 'undefined') {
+        delete global.activateDeveloperMode;
+        delete global.deactivateDeveloperMode;
+      }
     };
   }, []);
 
