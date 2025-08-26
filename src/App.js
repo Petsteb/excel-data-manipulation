@@ -7999,7 +7999,7 @@ function App() {
                       }}
                     >
                       <span style={{ fontSize: '18px' }}>+</span>
-                      Add New Conta Account Relation
+                      Add New Relation
                       {!hasAvailableAccounts && (
                         <span style={{ fontSize: '12px', marginLeft: '8px' }}>
                           (No available accounts)
