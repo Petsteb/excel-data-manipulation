@@ -97,23 +97,26 @@
 /* Board with dot grid background */
 .App.layout-mode {
   background: var(--theme-background);
-  background-image: 
-    radial-gradient(circle, var(--text-tertiary) 1px, transparent 1px),
-    radial-gradient(circle, var(--text-tertiary) 0.5px, transparent 0.5px);
-  background-size: 20px 20px, 100px 100px;
-  background-position: 0 0, 0 0;
   position: relative;
   width: 100vw;
   height: 100vh;
 }
 
+.App.layout-mode:not(.grid-hidden) {
+  background-image: 
+    radial-gradient(circle, var(--text-tertiary) 1px, transparent 1px),
+    radial-gradient(circle, var(--text-tertiary) 0.5px, transparent 0.5px);
+  background-size: 20px 20px, 100px 100px;
+  background-position: 0 0, 0 0;
+}
+
 /* Hide grid background when disabled */
 .App.layout-mode.grid-hidden {
-  background-image: none;
+  background-image: none !important;
 }
 
 /* Grid snap indicator when dragging */
-.App.layout-mode.drag-active {
+.App.layout-mode.drag-active:not(.grid-hidden) {
   background-image: 
     radial-gradient(circle, var(--theme-primary) 1.5px, transparent 1.5px),
     radial-gradient(circle, var(--theme-primary) 0.8px, transparent 0.8px);
@@ -121,17 +124,17 @@
 
 /* Hide drag-active grid when grid is disabled */
 .App.layout-mode.drag-active.grid-hidden {
-  background-image: none;
+  background-image: none !important;
 }
 
 /* Dark theme grid improvements */
-.App.dark-theme.layout-mode {
+.App.dark-theme.layout-mode:not(.grid-hidden) {
   background-image: 
     radial-gradient(circle, rgba(156, 163, 175, 0.3) 1px, transparent 1px),
     radial-gradient(circle, rgba(156, 163, 175, 0.15) 0.5px, transparent 0.5px);
 }
 
-.App.dark-theme.layout-mode.drag-active {
+.App.dark-theme.layout-mode.drag-active:not(.grid-hidden) {
   background-image: 
     radial-gradient(circle, var(--theme-primary) 1.5px, transparent 1.5px),
     radial-gradient(circle, rgba(156, 163, 175, 0.4) 0.8px, transparent 0.8px);
@@ -139,11 +142,11 @@
 
 /* Hide grid in dark theme when disabled */
 .App.dark-theme.layout-mode.grid-hidden {
-  background-image: none;
+  background-image: none !important;
 }
 
 .App.dark-theme.layout-mode.drag-active.grid-hidden {
-  background-image: none;
+  background-image: none !important;
 }
 
 /* Top Menu Bar */
