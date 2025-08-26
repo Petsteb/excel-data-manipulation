@@ -655,11 +655,18 @@ function App() {
     // Global developer mode activation function
     const activateDevMode = (code) => {
       if (code === 'cea mai buna parola') {
-        setIsDeveloperMode(true);
-        console.log('🎉 Developer mode activated! All developer buttons are now visible.');
+        setIsDeveloperMode(prev => {
+          const newState = !prev;
+          if (newState) {
+            console.log('🎉 Developer mode activated! All developer buttons are now visible.');
+          } else {
+            console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
+          }
+          return newState;
+        });
         return true;
       } else {
-        console.log('❌ Invalid code. Developer mode not activated.');
+        console.log('❌ Invalid code. Developer mode not changed.');
         return false;
       }
     };
