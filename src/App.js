@@ -4185,9 +4185,10 @@ function App() {
       return { width: 1200, height: 800 }; // fallback
     }
     
-    // Use full dimensions - position handles navigation offset
-    const availableWidth = boardRect.width; // Full width
-    const availableHeight = boardRect.height; // Full height
+    // Use viewport dimensions but ensure screen fits within visible area
+    // Account for any padding or margins that might cause overflow
+    const availableWidth = Math.min(boardRect.width, window.innerWidth); // Constrain to window width
+    const availableHeight = Math.min(boardRect.height, window.innerHeight); // Constrain to window height
     
     return { 
       width: Math.max(0, availableWidth), 

@@ -83,12 +83,15 @@
 
 .App {
   min-height: 100vh;
+  max-height: 100vh;
   background: var(--theme-background);
   padding: 0;
   margin: 0;
   transition: all 0.3s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   overflow: hidden;
+  width: 100vw;
+  max-width: 100vw;
 }
 
 /* Board with dot grid background */
@@ -160,6 +163,8 @@
   align-items: center;
   justify-content: center;
   padding: 0;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .layout-icon {
@@ -168,6 +173,10 @@
   opacity: 0.8;
   transition: opacity 0.3s ease;
   filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%); /* Black in light mode */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .layout-button:hover {
@@ -178,6 +187,7 @@
 
 .layout-button:hover .layout-icon {
   opacity: 1;
+  transform: translate(-50%, -50%);
 }
 
 .layout-button.active {
@@ -189,6 +199,7 @@
 .layout-button.active .layout-icon {
   filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%); /* White when active */
   opacity: 1;
+  transform: translate(-50%, -50%);
 }
 
 /* Dark theme layout button styling */
@@ -215,6 +226,7 @@
 
 .App.dark-theme .layout-button.active .layout-icon {
   filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%); /* White when active in dark mode */
+  transform: translate(-50%, -50%);
 }
 
 .App.loading {
@@ -261,12 +273,15 @@
 .app-main.board {
   width: 100vw;
   height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   margin: 0;
   padding: 60px 20px 20px 20px;
   position: relative;
   overflow: auto;
   display: block;
   cursor: default;
+  box-sizing: border-box;
 }
 
 .app-main.board.dragging {
@@ -2113,12 +2128,17 @@
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(6px);
+  overflow: hidden;
 }
 
 .popup-content {
