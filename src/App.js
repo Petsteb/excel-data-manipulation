@@ -5229,7 +5229,7 @@ function App() {
     
     const screen = screenId === 'home' ? homeScreen : secondaryScreens.find(s => s.id === screenId);
     if (screen) {
-      const { width: viewportWidth, height: viewportHeight } = getBoardBoundaries();
+      const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
       const targetX = -(screen.x + screen.width / 2 - viewportWidth / 2);
       const targetY = -(screen.y + screen.height / 2 - viewportHeight / 2);
       setPanOffset({ x: targetX, y: targetY });
