@@ -5196,38 +5196,52 @@ function App() {
     });
   };
 
-  // Update creating view rectangle to stay covering viewable area when panning
-  // Optimized with throttling to prevent laggy animation
-  const panOffsetRef = useRef({ x: 0, y: 0 });
-  const lastUpdateRef = useRef(0);
+  // Blender-style automatic snapping system
+  const snapThresholdRef = useRef(50); // Blender-style magnetic field radius
+  const lastSnapCheck = useRef(0);
+  const isUserDragging = useRef(false);
   
+  // Update creating screen position with Blender-style snapping
   useEffect(() => {
-    if (creatingScreenRect && (screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
-      const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateRef.current;
-      
-      // Throttle updates to prevent lag - only update every 16ms (60fps)
-      if (timeSinceLastUpdate < 16) return;
-      
-      const panDeltaX = Math.abs(panOffset.x - panOffsetRef.current.x);
-      const panDeltaY = Math.abs(panOffset.y - panOffsetRef.current.y);
-      
-      // Only update if pan offset changed significantly (reduce unnecessary updates)
-      if (panDeltaX > 2 || panDeltaY > 2) {
-        const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-        setCreatingScreenRect(prev => ({
-          ...prev,
-          x: -panOffset.x,
-          y: -panOffset.y,
-          width: viewportWidth,
-          height: viewportHeight
-        }));
+    if (!creatingScreenRect || !(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastSnapCheck.current < 16) return; // 60fps throttle
+    
+    let newScreenRect = { ...creatingScreenRect };
+    const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
+    
+    // Always update viewport coverage first
+    newScreenRect.x = -panOffset.x;
+    newScreenRect.y = -panOffset.y;
+    newScreenRect.width = viewportWidth;
+    newScreenRect.height = viewportHeight;
+    
+    // Apply Blender-style automatic snapping if content is selected and not actively dragging
+    if (selectedPanelsForCentering.length > 0 && !isUserDragging.current) {
+      const selectedBounds = calculateSelectedPanelsBounds();
+      if (selectedBounds) {
+        const screenCenterX = newScreenRect.x + viewportWidth / 2;
+        const screenCenterY = newScreenRect.y + viewportHeight / 2;
         
-        panOffsetRef.current = { x: panOffset.x, y: panOffset.y };
-        lastUpdateRef.current = now;
+        const deltaX = screenCenterX - selectedBounds.center.x;
+        const deltaY = screenCenterY - selectedBounds.center.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // Blender-style magnetic snapping - automatic snap when within threshold
+        if (distance <= snapThresholdRef.current) {
+          // Snap screen center to content center
+          newScreenRect.x = selectedBounds.center.x - viewportWidth / 2;
+          newScreenRect.y = selectedBounds.center.y - viewportHeight / 2;
+        }
       }
     }
-  }, [panOffset.x, panOffset.y, screenModeStep, creatingScreenRect]);
+    
+    setCreatingScreenRect(newScreenRect);
+    lastSnapCheck.current = now;
+  }, [panOffset.x, panOffset.y, screenModeStep, selectedPanelsForCentering, creatingScreenRect]);
 
   // Calculate snap position if close to target
   const calculateSnapPosition = (currentX, currentY, targetX, targetY, threshold = 30) => {
@@ -6083,52 +6097,45 @@ function App() {
               e.preventDefault();
               e.stopPropagation();
               
+              // Set dragging state - this prevents automatic snapping
+              isUserDragging.current = true;
+              
               const startX = e.clientX;
               const startY = e.clientY;
               const initialScreenX = creatingScreenRect.x;
               const initialScreenY = creatingScreenRect.y;
+              const startTime = Date.now();
 
               const handleMouseMove = (e) => {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
+                const dragForce = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const dragTime = Date.now() - startTime;
+                
                 let newX = initialScreenX + deltaX;
                 let newY = initialScreenY + deltaY;
                 
-                // Magnetic crosshair snapping with resistance
+                // Blender-style snapping during drag transform
                 if (selectedPanelsForCentering.length > 0) {
                   const selectedBounds = calculateSelectedPanelsBounds();
                   if (selectedBounds) {
                     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
                     
-                    // Calculate screen center position
                     const screenCenterX = newX + viewportWidth / 2;
                     const screenCenterY = newY + viewportHeight / 2;
                     
-                    // Calculate distance to content center
-                    const magneticThreshold = 50; // Larger magnetic zone
-                    const resistanceThreshold = 15; // Inner resistance zone
-                    const deltaToContentX = Math.abs(screenCenterX - selectedBounds.center.x);
-                    const deltaToContentY = Math.abs(screenCenterY - selectedBounds.center.y);
-                    const totalDistance = Math.sqrt(deltaToContentX * deltaToContentX + deltaToContentY * deltaToContentY);
+                    const deltaToContentX = screenCenterX - selectedBounds.center.x;
+                    const deltaToContentY = screenCenterY - selectedBounds.center.y;
+                    const distance = Math.sqrt(deltaToContentX * deltaToContentX + deltaToContentY * deltaToContentY);
                     
-                    // Calculate drag force (how hard user is pulling)
-                    const dragForce = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    // Blender-style: Strong snap within threshold, but allow override with sufficient force
+                    const snapThreshold = snapThresholdRef.current;
+                    const forceThreshold = Math.max(50, distance * 0.5); // Adaptive resistance
                     
-                    if (totalDistance < magneticThreshold) {
-                      if (totalDistance < resistanceThreshold && dragForce < 40) {
-                        // Strong magnetic snap - crosshair moves to content center
-                        newX = selectedBounds.center.x - viewportWidth / 2;
-                        newY = selectedBounds.center.y - viewportHeight / 2;
-                      } else if (dragForce < 80) {
-                        // Magnetic attraction with resistance - move towards content center but with dampening
-                        const attractionStrength = 0.3 * (1 - totalDistance / magneticThreshold);
-                        const targetX = selectedBounds.center.x - viewportWidth / 2;
-                        const targetY = selectedBounds.center.y - viewportHeight / 2;
-                        
-                        newX = newX + (targetX - newX) * attractionStrength;
-                        newY = newY + (targetY - newY) * attractionStrength;
-                      }
-                      // If drag force > 80, break magnetic lock and move freely
+                    if (distance < snapThreshold && (dragForce < forceThreshold || dragTime < 200)) {
+                      // Snap to center unless user drags with sufficient force for sufficient time
+                      newX = selectedBounds.center.x - viewportWidth / 2;
+                      newY = selectedBounds.center.y - viewportHeight / 2;
                     }
                   }
                 }
@@ -6141,6 +6148,7 @@ function App() {
               };
 
               const handleMouseUp = () => {
+                isUserDragging.current = false;
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
               };
@@ -6162,18 +6170,17 @@ function App() {
         const screenCenterX = creatingScreenRect.x + creatingScreenRect.width / 2;
         const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
         
-        // Calculate snap threshold and check if centers are close  
-        const snapThreshold = 30;
-        // Calculate magnetic zones for visual feedback
-        const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
-        const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
-        const totalDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // Blender-style visual feedback zones
+        const deltaX = screenCenterX - selectedBounds.center.x;
+        const deltaY = screenCenterY - selectedBounds.center.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         
-        const magneticZone = 50; // Same as in drag handler
-        const snapZone = 15; // Same as resistance threshold
+        const snapThreshold = snapThresholdRef.current; // 50px magnetic field
+        const precisionZone = 10; // Exact alignment zone
         
-        const isInMagneticZone = totalDistance < magneticZone;
-        const isSnapped = totalDistance < snapZone;
+        const isInSnapRange = distance <= snapThreshold;
+        const isSnapped = distance <= precisionZone;
+        const showSnapIndicator = isInSnapRange;
         
         // Crosshairs now follow the actual screen position (magnetic snapping handled in drag)
         // Screen crosshair is always at the screen center
@@ -6223,7 +6230,7 @@ function App() {
                 top: `${contentCrossY + panOffset.y}px`,
                 width: '30px',
                 height: '3px',
-                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInMagneticZone ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)'),
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInSnapRange ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)'),
                 zIndex: 10003,
                 pointerEvents: 'none',
                 transition: isSnapped ? 'none' : 'all 0.1s ease'
@@ -6236,7 +6243,7 @@ function App() {
                 top: `${contentCrossY + panOffset.y - 15}px`,
                 width: '3px',
                 height: '30px',
-                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInMagneticZone ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)'),
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInSnapRange ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)'),
                 zIndex: 10003,
                 pointerEvents: 'none',
                 transition: isSnapped ? 'none' : 'all 0.1s ease'
@@ -6251,7 +6258,7 @@ function App() {
                 top: `${screenCenterY + panOffset.y}px`,
                 width: '40px',
                 height: '3px',
-                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInMagneticZone ? 'rgba(255, 215, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6')),
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInSnapRange ? 'rgba(255, 215, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6')),
                 zIndex: 10003,
                 pointerEvents: 'none',
                 opacity: 1
@@ -6264,12 +6271,31 @@ function App() {
                 top: `${screenCenterY + panOffset.y - 20}px`,
                 width: '3px',
                 height: '40px',
-                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInMagneticZone ? 'rgba(255, 215, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6')),
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (isInSnapRange ? 'rgba(255, 215, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6')),
                 zIndex: 10003,
                 pointerEvents: 'none',
                 opacity: 1
               }}
             />
+
+            {/* Blender-style snap indicator - orange circle around content center when in snap range */}
+            {showSnapIndicator && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${selectedBounds.center.x + panOffset.x - 25}px`,
+                  top: `${selectedBounds.center.y + panOffset.y - 25}px`,
+                  width: '50px',
+                  height: '50px',
+                  border: '3px solid rgba(255, 165, 0, 0.8)',
+                  borderRadius: '50%',
+                  backgroundColor: 'transparent',
+                  zIndex: 10004,
+                  pointerEvents: 'none',
+                  animation: isSnapped ? 'none' : 'pulse 1s infinite'
+                }}
+              />
+            )}
 
             {/* Connection lines from original content center to snapped position */}
             {isSnapped && (
