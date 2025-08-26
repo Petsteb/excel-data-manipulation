@@ -4178,21 +4178,16 @@ function App() {
     };
   };
 
-  // Get screen creation boundaries - full width/height for true edge-to-edge coverage
+  // Get screen creation boundaries - actual visible viewport dimensions
   const getScreenCreationBoundaries = () => {
-    const boardRect = boardRef.current?.getBoundingClientRect();
-    if (!boardRect) {
-      return { width: 1200, height: 800 }; // fallback
-    }
-    
-    // Use viewport dimensions but ensure screen fits within visible area
-    // Account for any padding or margins that might cause overflow
-    const availableWidth = Math.min(boardRect.width, window.innerWidth); // Constrain to window width
-    const availableHeight = Math.min(boardRect.height, window.innerHeight); // Constrain to window height
+    // Use the actual visible viewport dimensions (what the user sees)
+    // This excludes scrollbars and gives us the true viewport size
+    const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+    const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
     
     return { 
-      width: Math.max(0, availableWidth), 
-      height: Math.max(0, availableHeight) 
+      width: viewportWidth, 
+      height: viewportHeight 
     };
   };
 
@@ -5096,24 +5091,24 @@ function App() {
   const startCreatingHomeScreen = () => {
     setScreenModeStep('creating-home');
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-    // Cover from below navigation bar to bottom edge
+    // Position screen to cover the visible viewport area
     setCreatingScreenRect({
       x: -panOffset.x,
-      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+      y: -panOffset.y, // Start from top of visible area
       width: viewportWidth,
-      height: viewportHeight - 60 // Adjust height since we start lower
+      height: viewportHeight
     });
   };
 
   const startCreatingSecondaryScreen = () => {
     setScreenModeStep('creating-secondary');
     const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-    // Cover from below navigation bar to bottom edge
+    // Position screen to cover the visible viewport area
     setCreatingScreenRect({
       x: -panOffset.x,
-      y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+      y: -panOffset.y, // Start from top of visible area
       width: viewportWidth,
-      height: viewportHeight - 60 // Adjust height since we start lower
+      height: viewportHeight
     });
   };
 
@@ -5124,9 +5119,9 @@ function App() {
       setCreatingScreenRect(prev => ({
         ...prev,
         x: -panOffset.x,
-        y: -panOffset.y + 60, // Start below navigation bar (60px offset)
+        y: -panOffset.y, // Cover full visible viewport
         width: viewportWidth,
-        height: viewportHeight - 60 // Adjust height since we start lower
+        height: viewportHeight
       }));
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
