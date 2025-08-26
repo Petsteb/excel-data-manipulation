@@ -107,11 +107,21 @@
   height: 100vh;
 }
 
+/* Hide grid background when disabled */
+.App.layout-mode.grid-hidden {
+  background-image: none;
+}
+
 /* Grid snap indicator when dragging */
 .App.layout-mode.drag-active {
   background-image: 
     radial-gradient(circle, var(--theme-primary) 1.5px, transparent 1.5px),
     radial-gradient(circle, var(--theme-primary) 0.8px, transparent 0.8px);
+}
+
+/* Hide drag-active grid when grid is disabled */
+.App.layout-mode.drag-active.grid-hidden {
+  background-image: none;
 }
 
 /* Dark theme grid improvements */
@@ -125,6 +135,15 @@
   background-image: 
     radial-gradient(circle, var(--theme-primary) 1.5px, transparent 1.5px),
     radial-gradient(circle, rgba(156, 163, 175, 0.4) 0.8px, transparent 0.8px);
+}
+
+/* Hide grid in dark theme when disabled */
+.App.dark-theme.layout-mode.grid-hidden {
+  background-image: none;
+}
+
+.App.dark-theme.layout-mode.drag-active.grid-hidden {
+  background-image: none;
 }
 
 /* Top Menu Bar */

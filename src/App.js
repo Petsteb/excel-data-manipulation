@@ -389,6 +389,7 @@ function App() {
   });
   const [isIdMode, setIsIdMode] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [isGridVisible, setIsGridVisible] = useState(true); // Grid background visibility toggle
 
   // Refs for separate popups
   const contaPopupBodyRef = useRef(null);
@@ -5739,7 +5740,7 @@ function App() {
   }
 
   return (
-    <div className="App layout-mode">
+    <div className={`App layout-mode ${!isGridVisible ? 'grid-hidden' : ''}`}>
       <div className="top-menu-bar">
         <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
         <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
@@ -5806,6 +5807,24 @@ function App() {
               <img 
                 src={getIcon('displayFrame', currentTheme)} 
                 alt="Screen Mode" 
+                style={{ width: '16px', height: '16px' }} 
+              />
+            </button>
+            <button 
+              className={`layout-button ${isGridVisible ? 'active' : ''}`}
+              onClick={() => setIsGridVisible(!isGridVisible)}
+              title="Toggle Grid Background"
+              style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <img 
+                src={getIcon('grid', currentTheme)} 
+                alt="Grid Toggle" 
                 style={{ width: '16px', height: '16px' }} 
               />
             </button>
