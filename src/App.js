@@ -6072,30 +6072,11 @@ function App() {
               const handleMouseMove = (e) => {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-                let newX = initialScreenX + deltaX;
-                let newY = initialScreenY + deltaY;
+                const newX = initialScreenX + deltaX;
+                const newY = initialScreenY + deltaY;
                 
-                // Apply snapping if panels are selected
-                if (selectedPanelsForCentering.length > 0) {
-                  const selectedBounds = calculateSelectedPanelsBounds();
-                  if (selectedBounds) {
-                    const screenCenterX = newX + creatingScreenRect.width / 2;
-                    const screenCenterY = newY + creatingScreenRect.height / 2;
-                    
-                    const snapResult = calculateSnapPosition(
-                      screenCenterX, 
-                      screenCenterY, 
-                      selectedBounds.center.x, 
-                      selectedBounds.center.y,
-                      30 // snap threshold in pixels
-                    );
-                    
-                    // Convert back from center position to top-left position
-                    newX = snapResult.x - creatingScreenRect.width / 2;
-                    newY = snapResult.y - creatingScreenRect.height / 2;
-                  }
-                }
-                
+                // No snapping logic here - screen moves freely
+                // Snapping will be handled visually in the crosshairs display
                 setCreatingScreenRect(prev => ({
                   ...prev,
                   x: newX,
@@ -6126,11 +6107,16 @@ function App() {
         const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
         
         // Calculate snap threshold and check if centers are close  
-        const snapThreshold = 30; // Match the drag handler threshold
+        const snapThreshold = 30;
         const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
         const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
         const shouldSnapX = deltaX < snapThreshold;
         const shouldSnapY = deltaY < snapThreshold;
+        const isSnapped = shouldSnapX && shouldSnapY;
+        
+        // Calculate snapped crosshairs positions
+        const contentCrossX = isSnapped ? screenCenterX : selectedBounds.center.x;
+        const contentCrossY = isSnapped ? screenCenterY : selectedBounds.center.y;
         
         return (
           <>
@@ -6167,29 +6153,31 @@ function App() {
               </div>
             </div>
 
-            {/* Content center crosshairs */}
+            {/* Content center crosshairs - snap to screen position when close */}
             <div
               style={{
                 position: 'absolute',
-                left: `${selectedBounds.center.x + panOffset.x - 15}px`,
-                top: `${selectedBounds.center.y + panOffset.y}px`,
+                left: `${contentCrossX + panOffset.x - 15}px`,
+                top: `${contentCrossY + panOffset.y}px`,
                 width: '30px',
                 height: '3px',
-                backgroundColor: 'rgba(255, 165, 0, 0.9)',
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)',
                 zIndex: 10003,
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                transition: isSnapped ? 'none' : 'all 0.1s ease'
               }}
             />
             <div
               style={{
                 position: 'absolute',
-                left: `${selectedBounds.center.x + panOffset.x}px`,
-                top: `${selectedBounds.center.y + panOffset.y - 15}px`,
+                left: `${contentCrossX + panOffset.x}px`,
+                top: `${contentCrossY + panOffset.y - 15}px`,
                 width: '3px',
                 height: '30px',
-                backgroundColor: 'rgba(255, 165, 0, 0.9)',
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : 'rgba(255, 165, 0, 0.9)',
                 zIndex: 10003,
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                transition: isSnapped ? 'none' : 'all 0.1s ease'
               }}
             />
 
@@ -6201,10 +6189,10 @@ function App() {
                 top: `${screenCenterY + panOffset.y}px`,
                 width: '40px',
                 height: '3px',
-                backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'),
                 zIndex: 10003,
                 pointerEvents: 'none',
-                opacity: shouldSnapX ? 1 : 0.7
+                opacity: 1
               }}
             />
             <div
@@ -6214,44 +6202,58 @@ function App() {
                 top: `${screenCenterY + panOffset.y - 20}px`,
                 width: '3px',
                 height: '40px',
-                backgroundColor: screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6',
+                backgroundColor: isSnapped ? 'rgba(0, 255, 0, 0.9)' : (screenModeStep === 'creating-home' ? GLOBAL_SUCCESS_COLOR : '#9b59b6'),
                 zIndex: 10003,
                 pointerEvents: 'none',
-                opacity: shouldSnapY ? 1 : 0.7
+                opacity: 1
               }}
             />
 
-            {/* Connection lines when snapping */}
-            {shouldSnapX && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `${Math.min(screenCenterX, selectedBounds.center.x) + panOffset.x}px`,
-                  top: `${screenCenterY + panOffset.y - 1}px`,
-                  width: `${Math.abs(screenCenterX - selectedBounds.center.x)}px`,
-                  height: '2px',
-                  backgroundColor: '#00ff00',
-                  zIndex: 10004,
-                  pointerEvents: 'none',
-                  opacity: 0.8
-                }}
-              />
-            )}
-            
-            {shouldSnapY && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `${screenCenterX + panOffset.x - 1}px`,
-                  top: `${Math.min(screenCenterY, selectedBounds.center.y) + panOffset.y}px`,
-                  width: '2px',
-                  height: `${Math.abs(screenCenterY - selectedBounds.center.y)}px`,
-                  backgroundColor: '#00ff00',
-                  zIndex: 10004,
-                  pointerEvents: 'none',
-                  opacity: 0.8
-                }}
-              />
+            {/* Connection lines from original content center to snapped position */}
+            {isSnapped && (
+              <>
+                {/* Horizontal line from content center to snapped position */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${Math.min(selectedBounds.center.x, contentCrossX) + panOffset.x}px`,
+                    top: `${selectedBounds.center.y + panOffset.y - 1}px`,
+                    width: `${Math.abs(selectedBounds.center.x - contentCrossX)}px`,
+                    height: '2px',
+                    backgroundColor: 'rgba(0, 255, 0, 0.6)',
+                    zIndex: 10002,
+                    pointerEvents: 'none'
+                  }}
+                />
+                {/* Vertical line from content center to snapped position */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${selectedBounds.center.x + panOffset.x - 1}px`,
+                    top: `${Math.min(selectedBounds.center.y, contentCrossY) + panOffset.y}px`,
+                    width: '2px',
+                    height: `${Math.abs(selectedBounds.center.y - contentCrossY)}px`,
+                    backgroundColor: 'rgba(0, 255, 0, 0.6)',
+                    zIndex: 10002,
+                    pointerEvents: 'none'
+                  }}
+                />
+                {/* Snap indicator at original content center */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${selectedBounds.center.x + panOffset.x - 3}px`,
+                    top: `${selectedBounds.center.y + panOffset.y - 3}px`,
+                    width: '6px',
+                    height: '6px',
+                    backgroundColor: 'rgba(255, 165, 0, 0.8)',
+                    border: '2px solid rgba(0, 255, 0, 0.8)',
+                    borderRadius: '50%',
+                    zIndex: 10004,
+                    pointerEvents: 'none'
+                  }}
+                />
+              </>
             )}
           </>
         );
