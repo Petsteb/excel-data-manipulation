@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ThemeMenu.css';
+import lightModeIcon from './assets/icons/ui/light-mode-icon.png';
+import darkModeIcon from './assets/icons/ui/dark-mode-icon.png';
 
 const themes = {
   // ===== LIGHT THEMES =====
@@ -797,7 +799,7 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
         title={t ? t('changeTheme') : "Change Theme"}
       >
         <img 
-          src={themes[currentTheme]?.isDark ? '/dark-mode-icon.png' : '/light-mode-icon.png'}
+          src={themes[currentTheme]?.isDark ? darkModeIcon : lightModeIcon}
           alt={themes[currentTheme]?.isDark ? 'Dark mode' : 'Light mode'}
           className="theme-icon"
           style={{

@@ -82,7 +82,7 @@ function createWindow() {
     },
     titleBarStyle: 'default',
     show: false,
-    icon: path.join(__dirname, 'public', 'logo.png'),
+    icon: path.join(__dirname, 'src', 'assets', 'images', 'logo.png'),
     // Disable the menu bar (File, Edit, View, Window, Help)
     autoHideMenuBar: true,
     menuBarVisible: false
@@ -95,8 +95,6 @@ function createWindow() {
   
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
-    // Developer tools enabled for debugging
-    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile('build/index.html');
   }
@@ -133,6 +131,29 @@ function createWindow() {
 
   // Save window state before closing
   mainWindow.on('close', saveWindowState);
+
+  // Add keyboard shortcuts for developer tools
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    // F12 key
+    if (input.key === 'F12') {
+      event.preventDefault();
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools();
+      }
+    }
+    
+    // Ctrl+Shift+I
+    if (input.control && input.shift && input.key === 'I') {
+      event.preventDefault();
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools();
+      }
+    }
+  });
 }
 
 function saveWindowState() {
