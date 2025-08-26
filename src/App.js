@@ -657,11 +657,14 @@ function App() {
       if (code === 'cea mai buna parola') {
         setIsDeveloperMode(prev => {
           const newState = !prev;
-          if (newState) {
-            console.log('🎉 Developer mode activated! All developer buttons are now visible.');
-          } else {
-            console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
-          }
+          // Use setTimeout to log after state update to prevent duplicate logs
+          setTimeout(() => {
+            if (newState) {
+              console.log('🎉 Developer mode activated! All developer buttons are now visible.');
+            } else {
+              console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
+            }
+          }, 0);
           return newState;
         });
         return true;
