@@ -5210,43 +5210,18 @@ function App() {
     }
   }, [panOffset.x, panOffset.y, screenModeStep]);
 
-  // Handle screen snapping to selected content center
-  useEffect(() => {
-    if (!creatingScreenRect || selectedPanelsForCentering.length === 0) return;
-    if (!(screenModeStep === 'creating-home' || screenModeStep === 'creating-secondary')) return;
+  // Calculate snap position if close to target
+  const calculateSnapPosition = (currentX, currentY, targetX, targetY, threshold = 30) => {
+    const deltaX = Math.abs(currentX - targetX);
+    const deltaY = Math.abs(currentY - targetY);
     
-    const selectedBounds = calculateSelectedPanelsBounds();
-    if (!selectedBounds) return;
-    
-    const screenCenterX = creatingScreenRect.x + creatingScreenRect.width / 2;
-    const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
-    
-    const snapThreshold = 20;
-    const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
-    const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
-    
-    let shouldSnap = false;
-    let newX = creatingScreenRect.x;
-    let newY = creatingScreenRect.y;
-    
-    if (deltaX < snapThreshold) {
-      newX = selectedBounds.center.x - creatingScreenRect.width / 2;
-      shouldSnap = true;
-    }
-    
-    if (deltaY < snapThreshold) {
-      newY = selectedBounds.center.y - creatingScreenRect.height / 2;
-      shouldSnap = true;
-    }
-    
-    if (shouldSnap) {
-      setCreatingScreenRect(prev => ({
-        ...prev,
-        x: newX,
-        y: newY
-      }));
-    }
-  }, [creatingScreenRect, selectedPanelsForCentering, screenModeStep]);
+    return {
+      x: deltaX < threshold ? targetX : currentX,
+      y: deltaY < threshold ? targetY : currentY,
+      snappedX: deltaX < threshold,
+      snappedY: deltaY < threshold
+    };
+  };
 
   const cancelScreenCreation = () => {
     setScreenModeStep('idle');
@@ -6097,10 +6072,34 @@ function App() {
               const handleMouseMove = (e) => {
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
+                let newX = initialScreenX + deltaX;
+                let newY = initialScreenY + deltaY;
+                
+                // Apply snapping if panels are selected
+                if (selectedPanelsForCentering.length > 0) {
+                  const selectedBounds = calculateSelectedPanelsBounds();
+                  if (selectedBounds) {
+                    const screenCenterX = newX + creatingScreenRect.width / 2;
+                    const screenCenterY = newY + creatingScreenRect.height / 2;
+                    
+                    const snapResult = calculateSnapPosition(
+                      screenCenterX, 
+                      screenCenterY, 
+                      selectedBounds.center.x, 
+                      selectedBounds.center.y,
+                      30 // snap threshold in pixels
+                    );
+                    
+                    // Convert back from center position to top-left position
+                    newX = snapResult.x - creatingScreenRect.width / 2;
+                    newY = snapResult.y - creatingScreenRect.height / 2;
+                  }
+                }
+                
                 setCreatingScreenRect(prev => ({
                   ...prev,
-                  x: initialScreenX + deltaX,
-                  y: initialScreenY + deltaY
+                  x: newX,
+                  y: newY
                 }));
               };
 
@@ -6126,8 +6125,8 @@ function App() {
         const screenCenterX = creatingScreenRect.x + creatingScreenRect.width / 2;
         const screenCenterY = creatingScreenRect.y + creatingScreenRect.height / 2;
         
-        // Calculate snap threshold and check if centers are close
-        const snapThreshold = 20;
+        // Calculate snap threshold and check if centers are close  
+        const snapThreshold = 30; // Match the drag handler threshold
         const deltaX = Math.abs(screenCenterX - selectedBounds.center.x);
         const deltaY = Math.abs(screenCenterY - selectedBounds.center.y);
         const shouldSnapX = deltaX < snapThreshold;
