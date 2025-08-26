@@ -680,21 +680,51 @@ function App() {
       console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
     };
 
-    // Attach to both window and globalThis for better compatibility
+    // Attach to both window and globalThis for better compatibility using non-enumerable properties
     if (typeof window !== 'undefined') {
-      window.activateDeveloperMode = activateDevMode;
-      window.deactivateDeveloperMode = deactivateDevMode;
+      Object.defineProperty(window, 'activateDeveloperMode', {
+        value: activateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
+      Object.defineProperty(window, 'deactivateDeveloperMode', {
+        value: deactivateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
     }
     
     if (typeof globalThis !== 'undefined') {
-      globalThis.activateDeveloperMode = activateDevMode;
-      globalThis.deactivateDeveloperMode = deactivateDevMode;
+      Object.defineProperty(globalThis, 'activateDeveloperMode', {
+        value: activateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
+      Object.defineProperty(globalThis, 'deactivateDeveloperMode', {
+        value: deactivateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
     }
 
     // Also add a simple global function without namespace
     if (typeof global !== 'undefined') {
-      global.activateDeveloperMode = activateDevMode;
-      global.deactivateDeveloperMode = deactivateDevMode;
+      Object.defineProperty(global, 'activateDeveloperMode', {
+        value: activateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
+      Object.defineProperty(global, 'deactivateDeveloperMode', {
+        value: deactivateDevMode,
+        writable: false,
+        enumerable: false,
+        configurable: true
+      });
     }
 
     // Cleanup function
