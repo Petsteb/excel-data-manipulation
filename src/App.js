@@ -7799,13 +7799,15 @@ function App() {
                 account-mapping-panel
               </div>
             )}
-            <div>
-              <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Account Mapping</h3>
-              <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8 }}>
-                Map each Conta account to multiple ANAF accounts
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div>
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Account Mapping</h3>
+                <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8 }}>
+                  Map each Conta account to multiple ANAF accounts
+                </p>
+              </div>
               
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px' }}>
                 {Object.keys(accountMappings).map(contaAccount => {
                   const mappedAnafAccounts = accountMappings[contaAccount] || [];
                   const isContaSelected = selectedAccounts.includes(contaAccount);
@@ -7952,10 +7954,22 @@ function App() {
                     </div>
                   );
                 })}
+                
+                {Object.keys(accountMappings).length === 0 && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '40px 20px', 
+                    color: 'var(--theme-text-secondary)', 
+                    fontSize: '12px' 
+                  }}>
+                    No account mappings defined.<br />
+                    Click the button below to add your first mapping.
+                  </div>
+                )}
               </div>
               
-              {/* Add New Conta Relation Section */}
-              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--theme-border-color)' }}>
+              {/* Add New Conta Relation Section - Always visible at bottom */}
+              <div style={{ paddingTop: '15px', borderTop: '1px solid var(--theme-border-color)', flexShrink: 0 }}>
                 {(() => {
                   const unmappedContaAccounts = availableAccounts.filter(account => 
                     !accountMappings.hasOwnProperty(account)
@@ -8009,18 +8023,6 @@ function App() {
                   );
                 })()}
               </div>
-              
-              {Object.keys(accountMappings).length === 0 && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '40px 20px', 
-                  color: 'var(--theme-text-secondary)', 
-                  fontSize: '12px' 
-                }}>
-                  No account mappings defined.<br />
-                  Click the button below to add your first mapping.
-                </div>
-              )}
             </div>
           </div>
         </div>
