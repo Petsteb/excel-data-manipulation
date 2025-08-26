@@ -22,6 +22,7 @@ import dotGridIconDark from './assets/icons/dark/dot-grid.png';
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
 const DEFAULT_PANEL_HEIGHT = 180;
+const UPLOAD_PANEL_MIN_HEIGHT = 140; // 40px less than default
 
 // Helper function to get the appropriate icon based on theme
 const getIcon = (iconName, currentTheme) => {
@@ -4039,7 +4040,7 @@ function App() {
     // Adjust based on content requirements
     if (elementId === 'contabilitate-upload-panel' || elementId === 'anaf-upload-panel') {
       minWidth = Math.max(minWidth, 280);
-      minHeight = Math.max(minHeight, 200);
+      minHeight = UPLOAD_PANEL_MIN_HEIGHT;
     } else if (elementId === 'final-summary-panel') {
       // 3 stat items + View Summary button + Download/Open buttons + all padding
       minWidth = Math.max(minWidth, 400);
