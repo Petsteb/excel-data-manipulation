@@ -1,0 +1,20 @@
+To create an executable of your current source code, run these commands in order:
+
+  npx kill-port 3000
+  npm run build-react
+  npx electron-packager . "Your App Name" --platform=win32 --arch=x64 --out=dist --overwrite
+
+  Explanation:
+  1. npx kill-port 3000 - Clears the development port (as per your CLAUDE.local.md requirement)
+  2. npm run build-react - Builds your current React source code into the build/ folder
+  3. npx electron-packager . "Your App Name" --platform=win32 --arch=x64 --out=dist --overwrite - Creates the       
+  executable
+
+  Key points:
+  - Always run npm run build-react first to ensure the build folder has your latest changes
+  - Replace "Your App Name" with whatever you want the executable to be called
+  - The executable will be created in dist/Your App Name-win32-x64/Your App Name.exe
+  - --overwrite ensures it replaces any existing build
+
+  Optional: If you want to clean previous builds first:
+  rm -rf build dist

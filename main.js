@@ -954,6 +954,37 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           column.width = Math.min(Math.max(maxLength + 2, 10), 50);
         }
       });
+      
+      // Add conditional formatting for Relations Summary worksheet
+      if (worksheetData.name === 'Relations Summary') {
+        // Apply conditional formatting to the Difference column (column E, index 4)
+        // Skip header row, apply to all data rows
+        const lastRow = worksheetData.data.length;
+        if (lastRow > 1) { // Only if there's data beyond the header
+          for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
+            const differenceCell = worksheet.getCell(rowIndex, 5); // Column E (Difference)
+            const cellValue = differenceCell.value;
+            
+            if (typeof cellValue === 'number') {
+              if (cellValue >= -1 && cellValue <= 1) {
+                // Light green for values between -1 and 1
+                differenceCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFE8F5E8' } // Light green
+                };
+              } else {
+                // Light red for values outside -1 to 1 range
+                differenceCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFFFEAEA' } // Light red
+                };
+              }
+            }
+          }
+        }
+      }
     });
     
     // Save the workbook

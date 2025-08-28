@@ -1,0 +1,1 @@
+create developer mode where the buttons: layout mode, configure layout mode only panels, id mode, togglee panning, screen can be seen and when not in dev mode the buttons are hiden. allow the user to enter dev mode only by typing in the console the code "cea mai buna parola"

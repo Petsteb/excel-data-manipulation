@@ -3109,9 +3109,10 @@ function App() {
     };
   };
 
-  // Helper function to adjust date interval for ANAF accounts (1 month delayed, day set to 25th)
-  const getAnafDateInterval = (contaStartDate, contaEndDate) => {
-    if (!contaStartDate || !contaEndDate) return { startDate: null, endDate: null };
+  // Helper function to adjust date interval for ANAF accounts (1 month delayed, start day 18th, end day 25th)
+  // Special case: if conta transactions contain Dec 31st, also include June 25th of next year
+  const getAnafDateInterval = (contaStartDate, contaEndDate, contaAccount = null) => {
+    if (!contaStartDate || !contaEndDate) return { startDate: null, endDate: null, additionalDates: [] };
     
     // Parse conta dates
     const parseDate = (dateStr) => {
@@ -3124,10 +3125,10 @@ function App() {
     const startDate = parseDate(contaStartDate);
     const endDate = parseDate(contaEndDate);
     
-    if (!startDate || !endDate) return { startDate: null, endDate: null };
+    if (!startDate || !endDate) return { startDate: null, endDate: null, additionalDates: [] };
     
-    // Add 1 month to both dates and set day to 25th
-    const anafStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 25);
+    // Add 1 month to both dates, set start day to 18th and end day to 25th
+    const anafStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 18);
     const anafEndDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 25);
     
     // Format back to DD/MM/YYYY
@@ -3139,9 +3140,81 @@ function App() {
       return `${day}/${month}/${year}`;
     };
     
+    // Find the last December 31st in conta transactions within the date range
+    const additionalDates = [];
+    if (contaAccount && contabilitateFiles.length > 0) {
+      let lastDec31Year = null;
+      
+      // Check all conta files for December 31st dates in the specified account and date range
+      contabilitateFiles.forEach((file) => {
+        if (file.data && file.data.length > 0) {
+          // Skip header rows (assume first row is header)
+          for (let i = 1; i < file.data.length; i++) {
+            const row = file.data[i];
+            if (!row || row.length === 0) continue;
+            
+            // Try to find the correct columns by checking multiple possibilities
+            // Since the data structure seems different, let's check all columns
+            let foundMatch = false;
+            
+            for (let accountCol = 0; accountCol < row.length && !foundMatch; accountCol++) {
+              for (let dateCol = 0; dateCol < row.length && !foundMatch; dateCol++) {
+                if (accountCol === dateCol) continue; // Skip same column
+                
+                const accountValue = row[accountCol];
+                const dateValue = row[dateCol];
+                
+                // Check if this could be our account and a date
+                const isAccountMatch = (accountValue === contaAccount || 
+                                       accountValue === contaAccount.toString() ||
+                                       accountValue === parseInt(contaAccount));
+                const isDateValue = (typeof dateValue === 'string' && dateValue.includes('/')) ||
+                                   (dateValue instanceof Date);
+                
+                if (isAccountMatch && isDateValue) {
+                  foundMatch = true;
+                  
+                  if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                    const dateParsed = parseDate(dateValue);
+                    if (dateParsed && 
+                        dateParsed >= startDate && dateParsed <= endDate &&
+                        dateParsed.getDate() === 31 && dateParsed.getMonth() === 11) {
+                      // Found a December 31st - keep track of the latest year
+                      if (!lastDec31Year || dateParsed.getFullYear() > lastDec31Year) {
+                        lastDec31Year = dateParsed.getFullYear();
+                      }
+                    }
+                  } else if (dateValue instanceof Date) {
+                    // Handle case where date is already a Date object
+                    if (dateValue >= startDate && dateValue <= endDate &&
+                        dateValue.getDate() === 31 && dateValue.getMonth() === 11) {
+                      if (!lastDec31Year || dateValue.getFullYear() > lastDec31Year) {
+                        lastDec31Year = dateValue.getFullYear();
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      // If we found a December 31st, add June 25th of the next year
+      if (lastDec31Year) {
+        const june25NextYear = new Date(lastDec31Year + 1, 5, 25); // June is month 5
+        const june25Formatted = formatDate(june25NextYear);
+        additionalDates.push({
+          startDate: june25Formatted,
+          endDate: june25Formatted
+        });
+      }
+    }
+    
     return {
       startDate: formatDate(anafStartDate),
-      endDate: formatDate(anafEndDate)
+      endDate: formatDate(anafEndDate),
+      additionalDates: additionalDates
     };
   };
 
@@ -3261,13 +3334,51 @@ function App() {
             // Then adjust for ANAF: 1 month delayed with day set to 25th
             effectiveDateRange = getAnafDateInterval(
               contaEffectiveRange.startDate, 
-              contaEffectiveRange.endDate
+              contaEffectiveRange.endDate,
+              relatedContaAccount
             );
           }
         }
         
         const config = getAnafAccountConfig(anafAccount);
-        const sum = calculateAnafAccountSums(anafAccount, effectiveDateRange.startDate, effectiveDateRange.endDate, config);
+        let sum = calculateAnafAccountSums(anafAccount, effectiveDateRange.startDate, effectiveDateRange.endDate, config);
+        
+        // Add transactions from additional dates (e.g., June 25th if conta ended on Dec 31st)
+        if (effectiveDateRange.additionalDates && effectiveDateRange.additionalDates.length > 0) {
+          effectiveDateRange.additionalDates.forEach((additionalRange) => {
+            const additionalSum = calculateAnafAccountSums(anafAccount, additionalRange.startDate, additionalRange.endDate, config);
+            sum += additionalSum;
+          });
+        } else {
+          // FALLBACK: Check for June 25th transactions that are OUTSIDE the normal date range
+          // This prevents double-counting transactions already included in the main calculation
+          const parseDate = (dateStr) => {
+            if (!dateStr) return null;
+            const parts = dateStr.split('/');
+            if (parts.length !== 3) return null;
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+          };
+          
+          const startDateParsed = parseDate(effectiveDateRange.startDate);
+          const endDateParsed = parseDate(effectiveDateRange.endDate);
+          
+          if (startDateParsed && endDateParsed) {
+            const currentYear = new Date().getFullYear();
+            for (let year = currentYear; year <= currentYear + 1; year++) {
+              const june25Date = `25/06/${year}`;
+              const june25Parsed = parseDate(june25Date);
+              
+              // Only add if this June 25th is OUTSIDE the normal date range
+              if (june25Parsed && (june25Parsed < startDateParsed || june25Parsed > endDateParsed)) {
+                const fallbackSum = calculateAnafAccountSums(anafAccount, june25Date, june25Date, config);
+                if (fallbackSum > 0) {
+                  sum += fallbackSum;
+                }
+              }
+            }
+          }
+        }
+        
         newAnafSums[anafAccount] = sum;
         totalCalculated++;
       });
@@ -3284,7 +3395,7 @@ function App() {
     let statusMessage = `Calculated sums for `;
     
     if (contaCount > 0 && anafCount > 0) {
-      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''} (ANAF dates: +1 month, day 25)`;
+      statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''} and ${anafCount} ANAF account${anafCount !== 1 ? 's' : ''} (ANAF dates: +1 month, start 18th, end 25th; +June 25th next year if conta ends Dec 31st)`;
     } else if (contaCount > 0) {
       statusMessage += `${contaCount} Conta account${contaCount !== 1 ? 's' : ''}`;
     } else {
@@ -3743,9 +3854,9 @@ function App() {
           relationsSummary.push([
             contaAccount,
             anafAccounts.join(', '),
-            contaSum,
-            anafSum,
-            difference
+            parseFloat(contaSum.toFixed(2)),
+            parseFloat(anafSum.toFixed(2)),
+            parseFloat(difference.toFixed(2))
           ]);
         });
         
@@ -3772,7 +3883,7 @@ function App() {
           accountsSummary.push([
             account,
             'Conta',
-            sum,
+            parseFloat(sum.toFixed(2)),
             fileNames.join(', ') || 'All detected files'
           ]);
         });
@@ -3819,7 +3930,7 @@ function App() {
           accountsSummary.push([
             account,
             'ANAF',
-            sum,
+            parseFloat(sum.toFixed(2)),
             fileNames.join(', ') || 'No files available'
           ]);
         });
@@ -5041,13 +5152,15 @@ function App() {
   };
 
   // Wheel event handler to disable scrolling when panning is disabled
-  const handleWheel = (e) => {
+  const handleWheel = useCallback((e) => {
     // Block scrolling when panning is disabled in normal mode
     if (!isLayoutMode && isPanningDisabled) {
-      e.preventDefault();
+      // Don't call preventDefault on passive events to avoid console errors
+      // Instead, rely on CSS overflow: hidden to prevent scrolling
+      e.stopPropagation();
       return false;
     }
-  };
+  }, [isLayoutMode, isPanningDisabled]);
 
   // Mouse event handlers for the board
   const handleMouseDown = (e) => {
