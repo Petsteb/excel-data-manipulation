@@ -1,6 +1,6 @@
 {
   "name": "data-manipulation-branch-anaconta",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Data Manipulation branch AnaConta - A desktop app for merging Excel files with source tracking and date column detection",
   "main": "./main.js",
   "author": "AnaConta Team",
