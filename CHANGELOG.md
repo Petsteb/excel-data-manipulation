@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Excel File Merger will be documented in this file.
+All notable changes to Data Manipulation branch AnaConta will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-01-04
 
 ### Added
-- Initial release of Excel File Merger
+- Initial release of Data Manipulation branch AnaConta
 - Multi-file Excel merging capability (.xlsx and .xls support)
 - Intelligent source file tracking
 - Automatic date column detection and formatting

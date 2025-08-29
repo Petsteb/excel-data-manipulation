@@ -1,4 +1,4 @@
-# Excel File Merger
+# Data Manipulation branch AnaConta
 
 A powerful desktop application for merging multiple Excel files with intelligent source tracking and date column detection.
 

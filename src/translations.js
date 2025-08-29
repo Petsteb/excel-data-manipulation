@@ -1,7 +1,7 @@
 const translations = {
   en: {
     // Header
-    appTitle: "Excel File Merger",
+    appTitle: "Data Manipulation branch AnaConta",
     appSubtitle: "",
     remake: "Remake",
     
