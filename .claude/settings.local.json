@@ -56,7 +56,8 @@
       "WebSearch",
       "Bash(git revert:*)",
       "Bash(del:*)",
-      "Bash(npm run version:major:*)"
+      "Bash(npm run version:major:*)",
+      "Bash(npm run commit-version:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
