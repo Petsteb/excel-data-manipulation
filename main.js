@@ -1057,3 +1057,49 @@ ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateCo
     };
   }
 });
+
+// Storage management IPC handlers
+const stateFile = path.join(app.getPath('userData'), 'app-state.json');
+
+ipcMain.handle('get-storage-path', async () => {
+  return stateFile;
+});
+
+ipcMain.handle('save-state', async (event, state) => {
+  try {
+    const dir = path.dirname(stateFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving app state:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-state', async () => {
+  try {
+    if (fs.existsSync(stateFile)) {
+      const stateData = fs.readFileSync(stateFile, 'utf8');
+      return JSON.parse(stateData);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error loading app state:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('clear-state', async () => {
+  try {
+    if (fs.existsSync(stateFile)) {
+      fs.unlinkSync(stateFile);
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing app state:', error);
+    return { success: false, error: error.message };
+  }
+});

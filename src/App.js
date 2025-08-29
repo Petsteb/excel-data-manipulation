@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { usePersistentState } from './hooks/usePersistentState';
 import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
@@ -201,46 +202,72 @@ class CollisionMatrix {
 }
 
 function App() {
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+  // Use persistent state hook for configuration and persistent data
+  const persistentState = usePersistentState();
+  
+  // Extract persistent state variables
+  const {
+    contabilitateFiles, setContabilitateFiles,
+    anafFiles, setAnafFiles,
+    selectedFileIndices, setSelectedFileIndices,
+    selectedAnafFileIndices, setSelectedAnafFileIndices,
+    currentLanguage, setCurrentLanguage,
+    currentTheme, setCurrentTheme,
+    commonLines, setCommonLines,
+    columnNamesRow, setColumnNamesRow,
+    contabilitateCommonLines, setContabilitateCommonLines,
+    contabilitateColumnNamesRow, setContabilitateColumnNamesRow,
+    anafCommonLines, setAnafCommonLines,
+    anafColumnNamesRow, setAnafColumnNamesRow,
+    selectedAccounts, setSelectedAccounts,
+    availableAccounts, setAvailableAccounts,
+    customAccounts, setCustomAccounts,
+    removedDefaultAccounts, setRemovedDefaultAccounts,
+    selectedAnafAccounts, setSelectedAnafAccounts,
+    availableAnafAccounts, setAvailableAnafAccounts,
+    customAnafAccounts, setCustomAnafAccounts,
+    startDate, setStartDate,
+    endDate, setEndDate,
+    contabilitateSelectedDateColumns, setContabilitateSelectedDateColumns,
+    contabilitateAutoDetectedDateColumns, setContabilitateAutoDetectedDateColumns,
+    contabilitateDateColumnsWithTime, setContabilitateDateColumnsWithTime,
+    anafSelectedDateColumns, setAnafSelectedDateColumns,
+    anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns,
+    anafDateColumnsWithTime, setAnafDateColumnsWithTime,
+    accountConfigs, setAccountConfigs,
+    anafAccountConfigs, setAnafAccountConfigs,
+    accountMappings, setAccountMappings,
+    selectedWorksheets, setSelectedWorksheets,
+    panelPositions, setPanelPositions,
+    isLayoutMode, setIsLayoutMode,
+    isScreenMode, setIsScreenMode,
+    tabPosition, setTabPosition,
+    homeScreen, setHomeScreen,
+    secondaryScreens, setSecondaryScreens,
+    currentScreen, setCurrentScreen,
+    panOffset, setPanOffset,
+    isGridVisible, setIsGridVisible,
+    isLoading: persistentStateLoading
+  } = persistentState;
+
   const { t } = useTranslation(currentLanguage);
-  const [contabilitateFiles, setContabilitateFiles] = useState([]);
-  const [anafFiles, setAnafFiles] = useState([]);
-  const [selectedFileIndices, setSelectedFileIndices] = useState(new Set());
-  const [selectedAnafFileIndices, setSelectedAnafFileIndices] = useState(new Set());
-  // Shared header configuration (for backwards compatibility)
-  const [commonLines, setCommonLines] = useState(1);
-  const [columnNamesRow, setColumnNamesRow] = useState(1);
   
-  // Batch-specific header configuration
-  const [contabilitateCommonLines, setContabilitateCommonLines] = useState(1);
-  const [contabilitateColumnNamesRow, setContabilitateColumnNamesRow] = useState(1);
-  const [anafCommonLines, setAnafCommonLines] = useState(1);
-  const [anafColumnNamesRow, setAnafColumnNamesRow] = useState(1);
-  
+  // Non-persistent state (session-only)
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdFilePath, setCreatedFilePath] = useState('');
   const [status, setStatus] = useState('');
   const [processingSummary, setProcessingSummary] = useState(null);
   const [showMergedFilesPopup, setShowMergedFilesPopup] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('professional');
   const [isLoading, setIsLoading] = useState(true);
-  // Contabilitate column state
+  // Session-only column state (not persisted)
   const [contabilitateColumnNames, setContabilitateColumnNames] = useState([]);
-  const [contabilitateSelectedDateColumns, setContabilitateSelectedDateColumns] = useState([]);
-  const [contabilitateAutoDetectedDateColumns, setContabilitateAutoDetectedDateColumns] = useState([]);
-  const [contabilitateDateColumnsWithTime, setContabilitateDateColumnsWithTime] = useState([]);
-  
-  // ANAF column state  
   const [anafColumnNames, setAnafColumnNames] = useState([]);
   
-  // Conta processing state
+  // Session-only processing state (not persisted)
   const [processedContaFiles, setProcessedContaFiles] = useState([]);
-  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [defaultAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
-  const [availableAccounts, setAvailableAccounts] = useState(['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV']);
-  const [customAccounts, setCustomAccounts] = useState([]);
-  const [removedDefaultAccounts, setRemovedDefaultAccounts] = useState([]);
+  const [defaultAnafAccounts] = useState(['1/4423', '1/4424', '2', '3', '7', '9', '14', '33', '412', '432', '451', '458', '459', '461', '480', '483', '628']);
   const [showAccountInput, setShowAccountInput] = useState(false);
   const [newAccountInput, setNewAccountInput] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
@@ -252,39 +279,17 @@ function App() {
   const [anafSubtractSumDropdownOpen, setAnafSubtractSumDropdownOpen] = useState(false);
   const [anafFilterValueDropdownOpen, setAnafFilterValueDropdownOpen] = useState(false);
   const [anafSubtractFilterValueDropdownOpen, setAnafSubtractFilterValueDropdownOpen] = useState(false);
+  // Session-only UI state (not persisted)
   const [anafSubtractionEnabled, setAnafSubtractionEnabled] = useState({});
-  const [accountConfigs, setAccountConfigs] = useState({});
-  const [startDate, setStartDate] = useState('01/01/2001');
-  const [endDate, setEndDate] = useState('05/06/2025');
   const [accountSums, setAccountSums] = useState({});
-  const [anafSelectedDateColumns, setAnafSelectedDateColumns] = useState([]);
-  const [anafAutoDetectedDateColumns, setAnafAutoDetectedDateColumns] = useState([]);
-  const [anafDateColumnsWithTime, setAnafDateColumnsWithTime] = useState([]);
-
-  // ANAF accounts management
-  const [selectedAnafAccounts, setSelectedAnafAccounts] = useState([]);
-  const [defaultAnafAccounts] = useState(['1/4423', '1/4424', '2', '3', '7', '9', '14', '33', '412', '432', '451', '458', '459', '461', '480', '483', '628']);
-  const [availableAnafAccounts, setAvailableAnafAccounts] = useState(['1/4423', '1/4424', '2', '3', '7', '9', '14', '33', '412', '432', '451', '458', '459', '461', '480', '483', '628']);
-  const [customAnafAccounts, setCustomAnafAccounts] = useState([]);
-  const [showAnafAccountInput, setShowAnafAccountInput] = useState(false);
-  const [newAnafAccountInput, setNewAnafAccountInput] = useState('');
   const [anafAccountSums, setAnafAccountSums] = useState({});
-  const [anafContextMenu, setAnafContextMenu] = useState(null);
-  const [anafAccountConfigs, setAnafAccountConfigs] = useState({});
-  
-  // Account-file assignment state
   const [contaAccountFiles, setContaAccountFiles] = useState({});
   const [anafAccountFiles, setAnafAccountFiles] = useState({});
+  const [showAnafAccountInput, setShowAnafAccountInput] = useState(false);
+  const [newAnafAccountInput, setNewAnafAccountInput] = useState('');
+  const [anafContextMenu, setAnafContextMenu] = useState(null);
   
-  // Worksheet selection state for Generate Summary
-  const [selectedWorksheets, setSelectedWorksheets] = useState({
-    relationsSummary: true,
-    accountsSummary: true,
-    anafMergedData: true
-  });
-  
-  // Account mapping state (1 conta account to multiple anaf accounts)
-  // Default mappings from conta anaf.txt
+  // Default mappings (now used to initialize persistent state)
   const defaultAccountMappings = {
     '4423': ['1/4423'],
     '4424': ['1/4424'],
@@ -298,7 +303,6 @@ function App() {
     '446.CHIRII': ['628'],
     '446.CV': ['33']
   };
-  const [accountMappings, setAccountMappings] = useState(defaultAccountMappings);
   
   // Account mapping context menu and input states
   const [mappingContextMenu, setMappingContextMenu] = useState(null);
@@ -315,16 +319,9 @@ function App() {
   const [modalAvailableContaAccounts, setModalAvailableContaAccounts] = useState([]);
   const [modalSelectedContaAccount, setModalSelectedContaAccount] = useState('');
   
-  const [isLayoutMode, setIsLayoutMode] = useState(false);
+  // Session-only UI state for dragging and interactions
   const [draggedElement, setDraggedElement] = useState(null);
-  
-  // Screen Mode states
-  const [isScreenMode, setIsScreenMode] = useState(false);
   const [screenModeStep, setScreenModeStep] = useState('idle'); // 'idle', 'creating-home', 'creating-secondary', 'viewing-home', 'viewing-secondary'
-  const [homeScreen, setHomeScreen] = useState(null); // { x, y, width, height }
-  const [secondaryScreens, setSecondaryScreens] = useState([]); // [{ id, name, x, y, width, height, color }]
-  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' or screen id
-  const [tabPosition, setTabPosition] = useState('left'); // 'left', 'right', 'top', 'bottom'
   const [creatingScreenRect, setCreatingScreenRect] = useState(null); // Temporary rectangle while creating screen
   const [selectedPanelsForCentering, setSelectedPanelsForCentering] = useState([]); // Panels selected for centering
   const [showScreenNamePopup, setShowScreenNamePopup] = useState(false);
@@ -333,20 +330,6 @@ function App() {
   const [screenRenameDialog, setScreenRenameDialog] = useState(null);
   const [renameInputValue, setRenameInputValue] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(null);
-  const [panelPositions, setPanelPositions] = useState({
-    'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-    'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
-    'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
-  });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [initialDragPosition, setInitialDragPosition] = useState({ x: 0, y: 0 });
   const [initialPanelPosition, setInitialPanelPosition] = useState({ x: 0, y: 0 });
@@ -354,7 +337,6 @@ function App() {
   const boardRef = useRef(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [normalModeScreenPosition, setNormalModeScreenPosition] = useState({ x: 0, y: 0 }); // Store last normal mode screen position
   const [isPanningDisabled, setIsPanningDisabled] = useState(true); // Disable panning in normal mode by default
   const panAnimationFrame = useRef(null);
@@ -399,10 +381,15 @@ function App() {
   const contaPopupBodyRef = useRef(null);
   const anafPopupBodyRef = useRef(null);
 
-  // Load settings on app start
+  // Load settings on app start and wait for persistent state
   useEffect(() => {
     const loadAppSettings = async () => {
       try {
+        // Wait for persistent state to load first
+        if (persistentStateLoading) {
+          return;
+        }
+        
         const settings = await window.electronAPI.loadSettings();
         
         const commonLinesValue = Number.isInteger(settings.commonLines) ? settings.commonLines : (parseInt(settings.commonLines) || 1);
@@ -573,7 +560,7 @@ function App() {
     };
 
     loadAppSettings();
-  }, []);
+  }, [persistentStateLoading]);
 
   // Auto-save view settings when they change
   useEffect(() => {

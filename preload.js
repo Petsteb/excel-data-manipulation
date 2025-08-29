@@ -10,5 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
-  getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data)
+  getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data),
+  
+  // Storage methods
+  getStoragePath: () => ipcRenderer.invoke('get-storage-path'),
+  saveState: (state) => ipcRenderer.invoke('save-state', state),
+  loadState: () => ipcRenderer.invoke('load-state'),
+  clearState: () => ipcRenderer.invoke('clear-state')
 });
