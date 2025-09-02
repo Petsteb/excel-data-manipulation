@@ -3,7 +3,6 @@ import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
-import useAppSettings from './hooks/useAppSettings';
 import packageJson from '../package.json';
 // Icon imports - light mode
 import dashboardIconLight from './assets/icons/light/dashboard.png';
@@ -203,32 +202,8 @@ class CollisionMatrix {
 }
 
 function App() {
-  // Initialize settings hook
-  const {
-    settings,
-    loading: settingsLoading,
-    updateSetting,
-    updateMultipleSettings,
-    getSetting,
-    updatePanelPosition,
-    getPanelPosition,
-    updateTheme,
-    getTheme,
-    updateLanguage,
-    getLanguage,
-    updateAccountMappings,
-    getAccountMappings,
-    updateAnafHeaderPanel,
-    getAnafHeaderPanel,
-    updateDateInterval,
-    getDateInterval,
-    updateScreens,
-    getScreens,
-    updateViewSettings,
-    getViewSettings,
-    updatePanelVisibility,
-    getPanelVisibility
-  } = useAppSettings();
+  // Simple settings loading state
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -433,181 +408,80 @@ function App() {
     document.title = `Data Manipulation branch AnaConta v${packageJson.version}`;
   }, []);
 
-  // Load settings on app start using the new settings hook
+  // Load settings on app start - simplified approach
   useEffect(() => {
-    if (settingsLoading) return;
-
-    const initializeFromSettings = () => {
+    const loadAppSettings = async () => {
       try {
-        // If settings are not available yet, wait
-        if (!settings) {
-          setIsLoading(true);
-          return;
-        }
+        const settings = await window.electronAPI.loadSettings();
         
-        // Load theme and language from new settings system
-        const theme = getTheme();
-        const language = getLanguage();
+        // Load basic settings
+        setCurrentTheme(settings.theme || 'professional');
+        setCurrentLanguage(settings.language || 'en');
+        setCommonLines(settings.commonLines || 1);
+        setColumnNamesRow(settings.columnNamesRow || settings.commonLines || 1);
         
-        setCurrentTheme(theme);
-        setCurrentLanguage(language);
+        // Load batch-specific settings
+        if (settings.anafCommonLines) setAnafCommonLines(settings.anafCommonLines);
+        if (settings.anafColumnNamesRow) setAnafColumnNamesRow(settings.anafColumnNamesRow);
+        if (settings.anafSelectedDateColumns) setAnafSelectedDateColumns(settings.anafSelectedDateColumns);
+        if (settings.contabilitateCommonLines) setContabilitateCommonLines(settings.contabilitateCommonLines);
+        if (settings.contabilitateColumnNamesRow) setContabilitateColumnNamesRow(settings.contabilitateColumnNamesRow);
+        if (settings.contabilitateSelectedDateColumns) setContabilitateSelectedDateColumns(settings.contabilitateSelectedDateColumns);
         
-        // Load excel settings from new structure
-        const excelSettings = getSetting('excel', {});
-        const commonLinesValue = excelSettings.commonLines || 1;
-        let columnNamesRowValue = excelSettings.columnNamesRow || commonLinesValue;
-        setCommonLines(commonLinesValue);
-        setColumnNamesRow(columnNamesRowValue);
+        // Load file assignments
+        if (settings.anafAccountFiles) setAnafAccountFiles(settings.anafAccountFiles);
+        if (settings.contaAccountFiles) setContaAccountFiles(settings.contaAccountFiles);
         
-        // Load batch-specific header settings with new structure
-        const anafHeaderSettings = getAnafHeaderPanel();
-        setAnafCommonLines(anafHeaderSettings.commonLines);
-        setAnafColumnNamesRow(anafHeaderSettings.columnNamesRow);
-        setAnafSelectedDateColumns(anafHeaderSettings.selectedDateColumns);
-        
-        // Load contabilitate settings (fallback to excel settings)
-        setContabilitateCommonLines(getSetting('contabilitateCommonLines', commonLinesValue));
-        setContabilitateColumnNamesRow(getSetting('contabilitateColumnNamesRow', columnNamesRowValue));
-        setContabilitateSelectedDateColumns(getSetting('contabilitateSelectedDateColumns', []));
-        
-        // Load account file assignments from settings with defaults for 1/4423 and 1/4424
-        const defaultAnafAccountFiles = {};
-        // Set default assignment for 1/4423 and 1/4424 to use the same file (imp_1)
-        if (!settings.anafAccountFiles || (!settings.anafAccountFiles['1/4423'] && !settings.anafAccountFiles['1/4424'])) {
-          // Auto-assign imp_1 file to both accounts if not already assigned
-          defaultAnafAccountFiles['1/4423'] = ['imp_1'];
-          defaultAnafAccountFiles['1/4424'] = ['imp_1'];
-        }
-        
-        setAnafAccountFiles({ ...defaultAnafAccountFiles, ...(settings.anafAccountFiles || {}) });
-        setContaAccountFiles(settings.contaAccountFiles || {});
-        
-        // Load saved layout positions only for current panels
+        // Load panel positions
         if (settings.panelPositions) {
-          const defaultPanelPositions = {
-            'contabilitate-upload-panel': { x: 20, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'anaf-upload-panel': { x: 800, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'contabilitate-summary-panel': { x: 20, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'anaf-summary-panel': { x: 800, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'anaf-header-panel': { x: 800, y: 460, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'anaf-date-panel': { x: 800, y: 680, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'account-selection-panel': { x: 280, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'account-mapping-panel': { x: 280, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
-            'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
-            'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
-          };
-          
-          const currentPanelIds = Object.keys(defaultPanelPositions);
-          const filteredPositions = {};
-          
-          // Only load positions for panels that exist in current layout
-          currentPanelIds.forEach(panelId => {
-            if (settings.panelPositions[panelId]) {
-              filteredPositions[panelId] = settings.panelPositions[panelId];
-            }
-          });
-          
-          setPanelPositions(prev => ({ ...prev, ...filteredPositions }));
+          setPanelPositions(prev => ({ ...prev, ...settings.panelPositions }));
         }
         
-        // Don't load old workspace bounds - let them be recalculated from current panels
-        // This prevents issues with phantom panels from old layouts
+        // Load other settings
+        if (settings.isLayoutMode !== undefined) setIsLayoutMode(settings.isLayoutMode);
+        if (settings.normalModeScreenPosition) setNormalModeScreenPosition(settings.normalModeScreenPosition);
+        if (settings.contaStartDate) setStartDate(formatToDisplay(settings.contaStartDate));
+        if (settings.contaEndDate) setEndDate(formatToDisplay(settings.contaEndDate));
+        if (settings.customAccounts) setCustomAccounts(settings.customAccounts);
+        if (settings.removedDefaultAccounts) setRemovedDefaultAccounts(settings.removedDefaultAccounts);
+        if (settings.accountConfigs) setAccountConfigs(settings.accountConfigs);
+        if (settings.anafAccountConfigs) setAnafAccountConfigs(settings.anafAccountConfigs);
+        if (settings.anafSubtractionEnabled) setAnafSubtractionEnabled(settings.anafSubtractionEnabled);
+        if (settings.accountMappings) setAccountMappings({ ...defaultAccountMappings, ...settings.accountMappings });
+        if (settings.homeScreen) setHomeScreen(settings.homeScreen);
+        if (settings.secondaryScreens) setSecondaryScreens(settings.secondaryScreens);
+        if (settings.tabPosition) setTabPosition(settings.tabPosition);
         
-        // Load saved normal mode view position or use defaults
-        if (settings.normalModeScreenPosition) {
-          setNormalModeScreenPosition(settings.normalModeScreenPosition);
-        }
-        
-        // Load saved conta date range and convert to DD/MM/YYYY display format
-        if (settings.contaStartDate) {
-          setStartDate(formatToDisplay(settings.contaStartDate));
-        }
-        if (settings.contaEndDate) {
-          setEndDate(formatToDisplay(settings.contaEndDate));
-        }
-        
-        // Load saved custom accounts and removed default accounts
-        if (settings.customAccounts && Array.isArray(settings.customAccounts)) {
-          setCustomAccounts(settings.customAccounts);
-        }
-        
-        if (settings.removedDefaultAccounts && Array.isArray(settings.removedDefaultAccounts)) {
-          setRemovedDefaultAccounts(settings.removedDefaultAccounts);
-        }
-        
-        // Build available accounts: defaults minus removed ones, plus custom ones
+        // Build available accounts
         const baseDefaults = ['4423', '4424', '4315', '4316', '444', '436', '4411', '4418', '446.DIV', '446.CHIRII', '446.CV'];
         const removedDefaults = settings.removedDefaultAccounts || [];
         const customAccs = settings.customAccounts || [];
         const activeDefaults = baseDefaults.filter(acc => !removedDefaults.includes(acc));
         setAvailableAccounts([...activeDefaults, ...customAccs]);
         
-        // Load account configurations
-        if (settings.accountConfigs) {
-          setAccountConfigs(settings.accountConfigs);
-        }
+        // Apply theme and initialize
+        applyTheme(settings.theme || 'professional');
         
-        // Load ANAF account configurations
-        if (settings.anafAccountConfigs) {
-          setAnafAccountConfigs(settings.anafAccountConfigs);
-        }
-        
-        // Load ANAF subtraction enabled states
-        if (settings.anafSubtractionEnabled) {
-          setAnafSubtractionEnabled(settings.anafSubtractionEnabled);
-        }
-        
-        // Load account mappings (conta to anaf) - merge with defaults
-        if (settings.accountMappings) {
-          // Merge saved mappings with defaults, prioritizing saved ones
-          const mergedMappings = { ...defaultAccountMappings, ...settings.accountMappings };
-          setAccountMappings(mergedMappings);
-        }
-        
-        // Load view system settings
-        if (settings.homeScreen) {
-          setHomeScreen(settings.homeScreen);
-        }
-        if (settings.secondaryScreens) {
-          setSecondaryScreens(settings.secondaryScreens);
-        }
-        if (settings.tabPosition) {
-          setTabPosition(settings.tabPosition);
-        }
-        
-        // Force recalculation of workspace bounds and collision matrix based on current panels
         setTimeout(() => {
           updateWorkspaceBounds();
           initializeCollisionMatrix();
-          applyTheme(settings.theme || 'professional');
-          
-          // If homeScreen exists and we're in normal mode, navigate to it
-          if (settings.homeScreen && !isLayoutMode) {
-            const { width: viewportWidth, height: viewportHeight } = getScreenCreationBoundaries();
-            const targetX = -(settings.homeScreen.x + settings.homeScreen.width / 2 - viewportWidth / 2);
-            const targetY = -(settings.homeScreen.y + settings.homeScreen.height / 2 - viewportHeight / 2);
-            setPanOffset({ x: targetX, y: targetY });
-          }
-        }, 100);
-        
-        // Set loading to false after initialization is complete
-        setIsLoading(false);
+          setSettingsLoaded(true);
+        }, 50);
         
       } catch (error) {
-        console.error('Failed to initialize from settings:', error);
-        // Set sensible defaults
+        console.error('Failed to load settings:', error);
         setCurrentTheme('professional');
         setCurrentLanguage('en');
         setCommonLines(1);
         setColumnNamesRow(1);
+        setSettingsLoaded(true);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    initializeFromSettings();
-  }, [settingsLoading, settings]);
+    loadAppSettings();
+  }, []);
 
   // Auto-save view settings when they change
   useEffect(() => {
@@ -882,8 +756,10 @@ function App() {
     setCurrentTheme(themeKey);
     applyTheme(themeKey);
     
+    // Save theme directly (simplified)
     try {
-      await updateTheme(themeKey);
+      const currentSettings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({ ...currentSettings, theme: themeKey });
     } catch (error) {
       console.error('Failed to save theme:', error);
     }
@@ -893,8 +769,10 @@ function App() {
   const handleLanguageChange = async (languageKey) => {
     setCurrentLanguage(languageKey);
     
+    // Save language directly (simplified)
     try {
-      await updateLanguage(languageKey);
+      const currentSettings = await window.electronAPI.loadSettings();
+      await window.electronAPI.saveSettings({ ...currentSettings, language: languageKey });
     } catch (error) {
       console.error('Failed to save language:', error);
     }
@@ -4956,8 +4834,15 @@ function App() {
       [draggedElement.id]: newPosition
     }));
     
-    // Save panel position to settings
-    updatePanelPosition(draggedElement.id, newPosition, false);
+    // Save panel position to settings (simplified)
+    setTimeout(() => {
+      window.electronAPI.loadSettings().then(currentSettings => {
+        window.electronAPI.saveSettings({
+          ...currentSettings,
+          panelPositions: { ...currentSettings.panelPositions, [draggedElement.id]: newPosition }
+        });
+      }).catch(console.error);
+    }, 300);
     
     // Rebuild collision matrix after position change to ensure consistency
     setTimeout(() => {
@@ -5785,8 +5670,15 @@ function App() {
           [elementId]: newPosition
         }));
         
-        // Save panel position to settings
-        updatePanelPosition(elementId, newPosition, false);
+        // Save panel position to settings (simplified)
+        setTimeout(() => {
+          window.electronAPI.loadSettings().then(currentSettings => {
+            window.electronAPI.saveSettings({
+              ...currentSettings,
+              panelPositions: { ...currentSettings.panelPositions, [elementId]: newPosition }
+            });
+          }).catch(console.error);
+        }, 300);
       }
     };
 
@@ -5829,7 +5721,7 @@ function App() {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  if (settingsLoading) {
+  if (isLoading) {
     return (
       <div className="App loading">
         <div className="loading-spinner">
