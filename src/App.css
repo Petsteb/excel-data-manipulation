@@ -163,6 +163,34 @@
   opacity: 1 !important;
 }
 
+/* Override theme and language button backgrounds when NOT in layout mode */
+.App:not(.layout-mode) .theme-toggle-btn,
+.App:not(.layout-mode) .language-toggle-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.App:not(.layout-mode) .theme-toggle-btn:hover,
+.App:not(.layout-mode) .language-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Dark theme overrides for non-layout mode */
+.App.dark-theme:not(.layout-mode) .theme-toggle-btn,
+.App.dark-theme:not(.layout-mode) .language-toggle-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.App.dark-theme:not(.layout-mode) .theme-toggle-btn:hover,
+.App.dark-theme:not(.layout-mode) .language-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
 .top-menu-bar > * {
   pointer-events: auto !important;
   visibility: visible !important;

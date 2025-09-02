@@ -9004,8 +9004,7 @@ function App() {
                   }
                 }}
               >
-                <div style={{ fontSize: '14px', marginBottom: '2px' }}>HOME</div>
-                <div style={{ fontSize: '10px' }}>HOME</div>
+                <div style={{ ...TYPOGRAPHY.TAB_BUTTON, color: 'white' }}>HOME</div>
               </div>
             )}
 
@@ -9067,6 +9066,8 @@ function App() {
                 }}
               >
                 <div style={{ 
+                  ...TYPOGRAPHY.TAB_BUTTON,
+                  color: 'white',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: (tabPosition === 'left' || tabPosition === 'right') ? 'normal' : 'nowrap',
