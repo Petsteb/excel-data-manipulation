@@ -172,10 +172,41 @@ const translations = {
     allAccountSumsDesc: "(All account sums and file usage)",
     anafMergedData: "ANAF Merged Data",
     anafFilesCombinedDesc: "(All ANAF files combined into one table)",
-    anafFilesLoaded: "ANAF files loaded"
+    anafFilesLoaded: "ANAF files loaded",
+    
+    // Missing Keys - Additional UI Elements
+    contaAccountSelectionTitle: "Conta Account Selection",
+    anafAccountSelectionTitle: "ANAF Account Selection",
+    dateSelection: "Date Selection",
+    calculateAllSums: "Calculate All Sums",
+    contaAccounts: "Conta",
+    anafAccounts: "ANAF accounts",
+    summaryOfContabilitateFiles: "Summary of Contabilitate files",
+    summaryOfAnafFiles: "Summary of ANAF files",
+    noFilesUploaded: "No files uploaded",
+    addNewRelation: "Add New Relation",
+    removeSelected: "Remove Selected",
+    anafFilesCombined: "(All ANAF files combined into one table)",
+    anafFilesLoadedDesc: "(ANAF files loaded)",
+    allAccountSumsAndUsage: "(All account sums and file usage)"
   },
   
   ro: {
+    // Missing Keys - Additional UI Elements  
+    contaAccountSelectionTitle: "Selecția Conturilor Conta",
+    anafAccountSelectionTitle: "Selecția Conturilor ANAF", 
+    dateSelection: "Selecția Datei",
+    calculateAllSums: "Calculează Toate Sumele",
+    contaAccounts: "Conta",
+    anafAccounts: "Conturi ANAF",
+    summaryOfContabilitateFiles: "Sumarul fișierelor Contabilitate",
+    summaryOfAnafFiles: "Sumarul fișierelor ANAF", 
+    noFilesUploaded: "Nu au fost încărcate fișiere",
+    addNewRelation: "Adaugă Relația Nouă",
+    removeSelected: "Elimină Selectatea",
+    anafFilesCombined: "(Toate fișierele ANAF combinate într-un tabel)",
+    
+    // Existing translations
     // Header
     appTitle: "Fuzionare de Fisiere Excel",
     appSubtitle: "",
@@ -352,6 +383,20 @@ const translations = {
   },
   
   fr: {
+    // Missing Keys - Additional UI Elements
+    contaAccountSelectionTitle: "Sélection des Comptes Conta",
+    anafAccountSelectionTitle: "Sélection des Comptes ANAF",
+    dateSelection: "Sélection de Date",
+    calculateAllSums: "Calculer Toutes les Sommes",
+    contaAccounts: "Conta",
+    anafAccounts: "Comptes ANAF",
+    summaryOfContabilitateFiles: "Résumé des fichiers Contabilitate",
+    summaryOfAnafFiles: "Résumé des fichiers ANAF",
+    noFilesUploaded: "Aucun fichier téléchargé",
+    addNewRelation: "Ajouter une Nouvelle Relation",
+    removeSelected: "Supprimer la Sélection",
+    anafFilesCombined: "(Tous les fichiers ANAF combinés en un tableau)",
+    
     // Header
     appTitle: "Fusionneur de Fichiers Excel",
     appSubtitle: "",
@@ -528,6 +573,20 @@ const translations = {
   },
   
   de: {
+    // Missing Keys - Additional UI Elements
+    contaAccountSelectionTitle: "Conta Kontenauswahl",
+    anafAccountSelectionTitle: "ANAF Kontenauswahl",
+    dateSelection: "Datumsauswahl",
+    calculateAllSums: "Alle Summen Berechnen",
+    contaAccounts: "Conta",
+    anafAccounts: "ANAF Konten",
+    summaryOfContabilitateFiles: "Zusammenfassung der Contabilitate-Dateien",
+    summaryOfAnafFiles: "Zusammenfassung der ANAF-Dateien",
+    noFilesUploaded: "Keine Dateien hochgeladen",
+    addNewRelation: "Neue Relation Hinzufügen",
+    removeSelected: "Auswahl Entfernen",
+    anafFilesCombined: "(Alle ANAF-Dateien in einer Tabelle kombiniert)",
+    
     // Header
     appTitle: "Excel-Dateien Zusammenführer",
     appSubtitle: "",
@@ -704,6 +763,20 @@ const translations = {
   },
   
   es: {
+    // Missing Keys - Additional UI Elements
+    contaAccountSelectionTitle: "Selección de Cuentas Conta",
+    anafAccountSelectionTitle: "Selección de Cuentas ANAF", 
+    dateSelection: "Selección de Fecha",
+    calculateAllSums: "Calcular Todas las Sumas",
+    contaAccounts: "Conta",
+    anafAccounts: "Cuentas ANAF",
+    summaryOfContabilitateFiles: "Resumen de archivos Contabilitate",
+    summaryOfAnafFiles: "Resumen de archivos ANAF",
+    noFilesUploaded: "No se han subido archivos",
+    addNewRelation: "Agregar Nueva Relación",
+    removeSelected: "Eliminar Seleccionado",
+    anafFilesCombined: "(Todos los archivos ANAF combinados en una tabla)",
+    
     // Header
     appTitle: "Fusionador de Archivos Excel",
     appSubtitle: "",
