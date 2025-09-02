@@ -3,6 +3,7 @@ import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
+import useAppSettings from './hooks/useAppSettings';
 import packageJson from '../package.json';
 // Icon imports - light mode
 import dashboardIconLight from './assets/icons/light/dashboard.png';
@@ -202,6 +203,33 @@ class CollisionMatrix {
 }
 
 function App() {
+  // Initialize settings hook
+  const {
+    settings,
+    loading: settingsLoading,
+    updateSetting,
+    updateMultipleSettings,
+    getSetting,
+    updatePanelPosition,
+    getPanelPosition,
+    updateTheme,
+    getTheme,
+    updateLanguage,
+    getLanguage,
+    updateAccountMappings,
+    getAccountMappings,
+    updateAnafHeaderPanel,
+    getAnafHeaderPanel,
+    updateDateInterval,
+    getDateInterval,
+    updateScreens,
+    getScreens,
+    updateViewSettings,
+    getViewSettings,
+    updatePanelVisibility,
+    getPanelVisibility
+  } = useAppSettings();
+
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const { t } = useTranslation(currentLanguage);
@@ -405,48 +433,37 @@ function App() {
     document.title = `Data Manipulation branch AnaConta v${packageJson.version}`;
   }, []);
 
-  // Load settings on app start
+  // Load settings on app start using the new settings hook
   useEffect(() => {
-    const loadAppSettings = async () => {
+    if (settingsLoading || !settings) return;
+
+    const initializeFromSettings = () => {
       try {
-        const settings = await window.electronAPI.loadSettings();
         
-        const commonLinesValue = Number.isInteger(settings.commonLines) ? settings.commonLines : (parseInt(settings.commonLines) || 1);
-        let columnNamesRowValue = Number.isInteger(settings.columnNamesRow) ? settings.columnNamesRow : (parseInt(settings.columnNamesRow) || 1);
+        // Load theme and language from new settings system
+        const theme = getTheme();
+        const language = getLanguage();
         
-        if (!settings.columnNamesRowExplicitlySet) {
-          columnNamesRowValue = commonLinesValue;
-        }
+        setCurrentTheme(theme);
+        setCurrentLanguage(language);
         
-        setCurrentTheme(settings.theme || 'professional');
-        setCurrentLanguage(settings.language || 'en');
+        // Load excel settings from new structure
+        const excelSettings = getSetting('excel', {});
+        const commonLinesValue = excelSettings.commonLines || 1;
+        let columnNamesRowValue = excelSettings.columnNamesRow || commonLinesValue;
         setCommonLines(commonLinesValue);
         setColumnNamesRow(columnNamesRowValue);
         
-        // Load batch-specific header settings
-        const anafCommonLinesValue = Number.isInteger(settings.anafCommonLines) ? settings.anafCommonLines : (parseInt(settings.anafCommonLines) || 1);
-        let anafColumnNamesRowValue = Number.isInteger(settings.anafColumnNamesRow) ? settings.anafColumnNamesRow : (parseInt(settings.anafColumnNamesRow) || 1);
+        // Load batch-specific header settings with new structure
+        const anafHeaderSettings = getAnafHeaderPanel();
+        setAnafCommonLines(anafHeaderSettings.commonLines);
+        setAnafColumnNamesRow(anafHeaderSettings.columnNamesRow);
+        setAnafSelectedDateColumns(anafHeaderSettings.selectedDateColumns);
         
-        if (!settings.anafColumnNamesRowExplicitlySet) {
-          anafColumnNamesRowValue = anafCommonLinesValue;
-        }
-        
-        setAnafCommonLines(anafCommonLinesValue);
-        setAnafColumnNamesRow(anafColumnNamesRowValue);
-        
-        const contabilitateCommonLinesValue = Number.isInteger(settings.contabilitateCommonLines) ? settings.contabilitateCommonLines : (parseInt(settings.contabilitateCommonLines) || 1);
-        let contabilitateColumnNamesRowValue = Number.isInteger(settings.contabilitateColumnNamesRow) ? settings.contabilitateColumnNamesRow : (parseInt(settings.contabilitateColumnNamesRow) || 1);
-        
-        if (!settings.contabilitateColumnNamesRowExplicitlySet) {
-          contabilitateColumnNamesRowValue = contabilitateCommonLinesValue;
-        }
-        
-        setContabilitateCommonLines(contabilitateCommonLinesValue);
-        setContabilitateColumnNamesRow(contabilitateColumnNamesRowValue);
-        
-        // Load batch-specific date columns from settings
-        setAnafSelectedDateColumns(settings.anafSelectedDateColumns || []);
-        setContabilitateSelectedDateColumns(settings.contabilitateSelectedDateColumns || []);
+        // Load contabilitate settings (fallback to excel settings)
+        setContabilitateCommonLines(getSetting('contabilitateCommonLines', commonLinesValue));
+        setContabilitateColumnNamesRow(getSetting('contabilitateColumnNamesRow', columnNamesRowValue));
+        setContabilitateSelectedDateColumns(getSetting('contabilitateSelectedDateColumns', []));
         
         // Load account file assignments from settings with defaults for 1/4423 and 1/4424
         const defaultAnafAccountFiles = {};
@@ -855,11 +872,7 @@ function App() {
     applyTheme(themeKey);
     
     try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        theme: themeKey
-      });
+      await updateTheme(themeKey);
     } catch (error) {
       console.error('Failed to save theme:', error);
     }
@@ -870,11 +883,7 @@ function App() {
     setCurrentLanguage(languageKey);
     
     try {
-      const settings = await window.electronAPI.loadSettings();
-      await window.electronAPI.saveSettings({
-        ...settings,
-        language: languageKey
-      });
+      await updateLanguage(languageKey);
     } catch (error) {
       console.error('Failed to save language:', error);
     }
@@ -4924,15 +4933,20 @@ function App() {
     const finalWidth = Math.max(width, minWidth);
     const finalHeight = Math.max(height, minHeight);
     
+    const newPosition = {
+      x: finalX,
+      y: finalY,
+      width: finalWidth,
+      height: finalHeight
+    };
+    
     setPanelPositions(prev => ({
       ...prev,
-      [draggedElement.id]: {
-        x: finalX,
-        y: finalY,
-        width: finalWidth,
-        height: finalHeight
-      }
+      [draggedElement.id]: newPosition
     }));
+    
+    // Save panel position to settings
+    updatePanelPosition(draggedElement.id, newPosition, false);
     
     // Rebuild collision matrix after position change to ensure consistency
     setTimeout(() => {
@@ -5749,14 +5763,19 @@ function App() {
       
       // Update state if resize is allowed
       if (canResize) {
+        const newPosition = {
+          ...panelPositions[elementId],
+          width: newWidth,
+          height: newHeight
+        };
+        
         setPanelPositions(prev => ({
           ...prev,
-          [elementId]: {
-            ...prev[elementId],
-            width: newWidth,
-            height: newHeight
-          }
+          [elementId]: newPosition
         }));
+        
+        // Save panel position to settings
+        updatePanelPosition(elementId, newPosition, false);
       }
     };
 

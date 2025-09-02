@@ -11,36 +11,154 @@ app.commandLine.appendSwitch('disable-software-rasterizer');
 // Settings storage
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
+// Default settings structure
+const DEFAULT_SETTINGS = {
+  version: '2.0.7',
+  theme: 'professional',
+  language: 'en',
+  excel: {
+    commonLines: 1,
+    columnNamesRow: 1,
+    selectedDateColumns: [],
+    dateColumnsWithTime: []
+  },
+  windowSettings: {
+    isFirstLaunch: true,
+    width: 1200,
+    height: 800,
+    x: undefined,
+    y: undefined,
+    isMaximized: false,
+    isFullScreen: false
+  },
+  menuStates: {
+    headerSettings: true,
+    columnSettings: true,
+    fileList: true,
+    processingDetails: false
+  },
+  uiSettings: {
+    panelPositions: {
+      'contabilitate-upload-panel': { x: 20, y: 20, width: 240, height: 180 },
+      'anaf-upload-panel': { x: 800, y: 20, width: 240, height: 180 },
+      'contabilitate-summary-panel': { x: 20, y: 240, width: 240, height: 180 },
+      'anaf-summary-panel': { x: 800, y: 240, width: 240, height: 180 },
+      'anaf-header-panel': { x: 800, y: 460, width: 240, height: 180 },
+      'anaf-date-panel': { x: 800, y: 680, width: 240, height: 180 },
+      'account-selection-panel': { x: 280, y: 20, width: 240, height: 180 },
+      'account-mapping-panel': { x: 280, y: 240, width: 240, height: 180 },
+      'sums-panel': { x: 540, y: 20, width: 240, height: 180 },
+      'worksheet-selection-panel': { x: 540, y: 240, width: 240, height: 180 },
+      'generate-summary-button': { x: 450, y: 240, width: 80, height: 80 },
+      'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
+    },
+    screens: {
+      homeScreen: null,
+      secondaryScreens: [],
+      currentScreen: 'home',
+      tabPosition: 'left'
+    },
+    panels: {
+      visibility: {
+        'contabilitate-upload-panel': true,
+        'anaf-upload-panel': true,
+        'contabilitate-summary-panel': true,
+        'anaf-summary-panel': true,
+        'anaf-header-panel': true,
+        'anaf-date-panel': true,
+        'account-selection-panel': true,
+        'account-mapping-panel': true,
+        'sums-panel': true,
+        'worksheet-selection-panel': true,
+        'final-summary-panel': true
+      },
+      layoutMode: {
+        enabled: false,
+        onlyPanels: ['anaf-header-panel', 'anaf-date-panel', 'sums-panel'],
+        showControlPanel: false
+      }
+    },
+    view: {
+      panOffset: { x: 0, y: 0 },
+      zoom: 1,
+      gridVisible: true,
+      snapToGrid: true
+    },
+    mode: {
+      current: 'normal',
+      screenMode: {
+        step: 'idle',
+        creatingScreenRect: null
+      }
+    }
+  },
+  accountMappings: {},
+  sumFormulas: {
+    conta: {},
+    anaf: {}
+  },
+  anafHeaderPanel: {
+    commonLines: 1,
+    columnNamesRow: 1,
+    selectedDateColumns: [],
+    dateColumnsWithTime: []
+  },
+  accountSelection: {
+    dateInterval: {
+      startDate: null,
+      endDate: null
+    },
+    selectedAccounts: [],
+    selectedAnafAccounts: []
+  },
+  worksheetSelection: {
+    selectedWorksheets: {
+      contaMergedData: true,
+      anafMergedData: true,
+      relationsSummary: true,
+      contaAccountSums: true,
+      anafAccountSums: true
+    }
+  },
+  files: {
+    lastUsedPaths: {
+      conta: null,
+      anaf: null,
+      output: null
+    },
+    recentFiles: {
+      conta: [],
+      anaf: []
+    }
+  }
+};
+
+// Deep merge function
+function deepMerge(target, source) {
+  const result = { ...target };
+  
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  
+  return result;
+}
+
 function loadSettings() {
   try {
     if (fs.existsSync(settingsFile)) {
-      return JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+      const savedSettings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+      // Deep merge saved settings with defaults to handle new fields
+      return deepMerge(DEFAULT_SETTINGS, savedSettings);
     }
   } catch (error) {
     console.error('Error loading settings:', error);
   }
-  return {
-    theme: 'professional',
-    language: 'en',
-    commonLines: 1,
-    columnNamesRow: 1,
-    selectedDateColumns: [],
-    windowSettings: {
-      isFirstLaunch: true,
-      width: 1200,
-      height: 800,
-      x: undefined,
-      y: undefined,
-      isMaximized: false,
-      isFullScreen: false
-    },
-    menuStates: {
-      headerSettings: true,
-      columnSettings: true,
-      fileList: true,
-      processingDetails: false
-    }
-  };
+  return { ...DEFAULT_SETTINGS };
 }
 
 function saveSettings(settings) {
