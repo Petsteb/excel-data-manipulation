@@ -13,7 +13,7 @@ const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
-  version: '2.0.8',
+  version: '2.0.9',
   theme: 'businessGreen',
   language: 'en',
   excel: {
