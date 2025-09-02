@@ -1344,7 +1344,6 @@ function App() {
   // Automatically assign maximum files to each account
   const autoAssignFilesToAccounts = (fileList, accountList, isAnaf = false) => {
     const assignments = {};
-    const usedFiles = new Set();
     
     // Initialize empty assignments for all accounts
     accountList.forEach(account => {
@@ -1369,28 +1368,24 @@ function App() {
           availableSpecialAccounts.forEach(account => {
             assignments[account] = [fileId];
           });
-          // Don't mark this file as used since both accounts should share it
-          // usedFiles.add(fileId); // Commenting this out allows sharing
         }
       }
     }
     
-    // For all other accounts, find matching files that haven't been used
+    // For all other accounts, find ALL matching files (removed usedFiles restriction)
     accountList.forEach(account => {
       // Skip special accounts that were already handled
       if (isAnaf && ['1/4423', '1/4424'].includes(account)) {
         return;
       }
       
-      const availableFiles = getFilesForAccount(account, fileList, isAnaf).filter(
-        file => !usedFiles.has(file.filePath || file.name)
-      );
+      // Get ALL available files for this account (no filtering by usedFiles)
+      const availableFiles = getFilesForAccount(account, fileList, isAnaf);
       
       // Assign all available files to this account
       availableFiles.forEach(file => {
         const fileId = file.filePath || file.name;
         assignments[account].push(fileId);
-        usedFiles.add(fileId);
       });
     });
     
