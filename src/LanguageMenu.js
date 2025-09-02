@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './LanguageMenu.css';
 import { themes } from './ThemeMenu';
-import languageIconLight from './assets/icons/light/language.png';
-import languageIconDark from './assets/icons/dark/language.png';
+// Icons are now handled via getIcon prop from App.js
 
 const languages = {
   en: {
@@ -32,7 +31,7 @@ const languages = {
   }
 };
 
-function LanguageMenu({ currentLanguage, onLanguageChange, t, currentTheme }) {
+function LanguageMenu({ currentLanguage, onLanguageChange, t, currentTheme, getIcon }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -62,10 +61,7 @@ function LanguageMenu({ currentLanguage, onLanguageChange, t, currentTheme }) {
         title={t ? t('changeLanguage') : "Change Language"}
       >
         <img 
-          src={(() => {
-            const isDarkMode = currentTheme && currentTheme.name && (currentTheme.name.includes('dark') || currentTheme.name.includes('night'));
-            return isDarkMode ? languageIconDark : languageIconLight;
-          })()} 
+          src={getIcon('language', currentTheme)} 
           alt="Language" 
           className="language-icon"
           style={{ width: '14px', height: '14px' }}
