@@ -266,14 +266,6 @@ ipcMain.handle('read-excel-files', async (event, filePaths) => {
         throw new Error(`Unsupported file format: ${fileExtension}`);
       }
       
-      console.log(`=== FILE READ DEBUG: ${fileName} ===`);
-      console.log('File extension:', fileExtension);
-      console.log('Data length:', data.length);
-      console.log('First 3 rows of data:');
-      data.slice(0, 3).forEach((row, index) => {
-        console.log(`  Row ${index} (0-based) / Excel Row ${index + 1}:`, row);
-      });
-      console.log('=== END FILE READ DEBUG ===');
       
       filesData.push({
         fileName,
@@ -298,11 +290,9 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
   }
   
   try {
-    console.log(`Transforming date value: ${value} (type: ${typeof value}) in column ${columnIndex}`);
     
     // If it's already a Date object, return it
     if (value instanceof Date) {
-      console.log('Already a Date object:', value);
       return value;
     }
     
@@ -335,10 +325,8 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
         const timeFraction = value % 1;
         const timeMs = timeFraction * 86400 * 1000;
         const dateWithTime = new Date(targetDate.getTime() + timeMs);
-        console.log(`Converted Excel serial ${value} to datetime:`, dateWithTime);
         return dateWithTime;
       } else {
-        console.log(`Converted Excel serial ${value} to date:`, targetDate);
         return targetDate;
       }
     }
@@ -369,7 +357,6 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
             
             // Verify the date components are correct
             if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
-              console.log(`Manually parsed "${trimmedValue}" to date:`, date);
               return date;
             }
           }
@@ -382,22 +369,18 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
         if (!isNaN(parsed.getTime())) {
           // Check if we should preserve time components
           if (preserveTime && hasTimeComponents(trimmedValue)) {
-            console.log(`Parsed string "${trimmedValue}" to datetime:`, parsed);
             return parsed;
           } else {
             // Ensure we only have date component (no time)
             const dateOnly = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-            console.log(`Parsed string "${trimmedValue}" to date:`, dateOnly);
             return dateOnly;
           }
         }
       }
     }
     
-    console.log(`Could not parse "${value}" as date, returning original`);
     return value; // Return original if can't parse
   } catch (error) {
-    console.log(`Error transforming date value "${value}":`, error);
     return value; // Return original on error
   }
 }
@@ -688,10 +671,6 @@ function looksLikeDate(value) {
 // Handle column names extraction
 ipcMain.handle('get-column-names', async (event, { filesData, rowIndex, commonLines = 1 }) => {
   try {
-    console.log('=== COLUMN EXTRACTION DEBUG ===');
-    console.log('Getting column names - filesData length:', filesData.length, 'rowIndex:', rowIndex, 'commonLines:', commonLines);
-    console.log('Params received - filesData.length:', filesData.length, 'rowIndex (0-based):', rowIndex, 'commonLines:', commonLines);
-    console.log('Parameter types - rowIndex:', typeof rowIndex, 'commonLines:', typeof commonLines);
     
     if (!Array.isArray(filesData) || filesData.length === 0) {
       return { success: false, error: 'No files data available' };
@@ -709,16 +688,12 @@ ipcMain.handle('get-column-names', async (event, { filesData, rowIndex, commonLi
     }
     
     const firstFile = filesData[0];
-    console.log('First file data length:', firstFile.data.length);
-    console.log('Requested row index (0-based):', parsedRowIndex, 'which corresponds to 1-based Excel row:', parsedRowIndex + 1);
-    console.log('Content at requested index:', firstFile.data[parsedRowIndex]);
     
     if (parsedRowIndex >= firstFile.data.length) {
       return { success: false, error: `Row index ${parsedRowIndex + 1} exceeds file data (${firstFile.data.length} rows)` };
     }
     
     const columnNames = firstFile.data[parsedRowIndex] || [];
-    console.log('Column names extracted from 0-based row index', parsedRowIndex, '(1-based row', parsedRowIndex + 1, '):', columnNames);
     
     // Get data from the first row after the common header lines to auto-detect date columns
     // parsedCommonLines represents how many header rows there are (1-based), so first data row is at index parsedCommonLines (0-based)
@@ -726,27 +701,22 @@ ipcMain.handle('get-column-names', async (event, { filesData, rowIndex, commonLi
     let autoDetectedDateColumns = [];
     let dateColumnsWithTime = [];
     
-    console.log('Looking for dates in data row index:', dataRowIndex, '(0-based index), which is 1-based row:', dataRowIndex + 1);
     
     if (dataRowIndex < firstFile.data.length) {
       const dataRow = firstFile.data[dataRowIndex] || [];
-      console.log('Data row for date detection (0-based index', dataRowIndex, ', 1-based row', dataRowIndex + 1, '):', dataRow);
       
       dataRow.forEach((value, index) => {
         if (looksLikeDate(value)) {
-          console.log(`Column ${index} contains date-like value:`, value);
           autoDetectedDateColumns.push(index);
           
           // Check if this date column has time components
           if (hasTimeComponents(value)) {
-            console.log(`Column ${index} has time components:`, value);
             dateColumnsWithTime.push(index);
           }
         }
       });
     }
     
-    console.log('Auto-detected date columns:', autoDetectedDateColumns);
     
     return { 
       success: true, 
@@ -780,11 +750,9 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
   }
   
   try {
-    console.log(`Transforming date value: ${value} (type: ${typeof value}) in column ${columnIndex}`);
     
     // If it's already a Date object, return it
     if (value instanceof Date) {
-      console.log('Already a Date object:', value);
       return value;
     }
     
@@ -817,10 +785,8 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
         const timeFraction = value % 1;
         const timeMs = timeFraction * 86400 * 1000;
         const dateWithTime = new Date(targetDate.getTime() + timeMs);
-        console.log(`Converted Excel serial ${value} to datetime:`, dateWithTime);
         return dateWithTime;
       } else {
-        console.log(`Converted Excel serial ${value} to date:`, targetDate);
         return targetDate;
       }
     }
@@ -851,7 +817,6 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
             
             // Verify the date components are correct
             if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
-              console.log(`Manually parsed "${trimmedValue}" to date:`, date);
               return date;
             }
           }
@@ -861,12 +826,10 @@ function transformDateValue(value, columnIndex, dateColumnIndices, preserveTime 
       // Fallback to standard Date constructor
       const parsedDate = new Date(trimmedValue);
       if (!isNaN(parsedDate.getTime())) {
-        console.log(`Parsed string "${trimmedValue}" to date:`, parsedDate);
         return parsedDate;
       }
     }
     
-    console.log(`Could not transform value: ${value}`);
     return value;
   } catch (error) {
     console.error('Date transformation error:', error);

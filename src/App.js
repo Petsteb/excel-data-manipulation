@@ -603,7 +603,6 @@ function App() {
   useEffect(() => {
     const numValue = parseInt(anafColumnNamesRow);
     if (!isNaN(numValue) && numValue > 0 && anafFiles.length > 0) {
-      console.log('useEffect: anafColumnNamesRow changed to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractAnafColumnNames();
       }, 300);
@@ -616,7 +615,6 @@ function App() {
   useEffect(() => {
     const numValue = parseInt(contabilitateColumnNamesRow);
     if (!isNaN(numValue) && numValue > 0 && contabilitateFiles.length > 0) {
-      console.log('useEffect: contabilitateColumnNamesRow changed for Contabilitate to:', numValue, 'triggering extraction');
       const delayedExtraction = setTimeout(() => {
         extractContabilitateColumnNames();
       }, 300);
@@ -666,9 +664,7 @@ function App() {
           // Use setTimeout to log after state update and clear console history
           setTimeout(() => {
             if (newState) {
-              console.log('🎉 Developer mode activated! All developer buttons are now visible.');
             } else {
-              console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
             }
             // Clear console and try to clear history
             setTimeout(() => {
@@ -694,7 +690,6 @@ function App() {
         });
         return true;
       } else {
-        console.log('❌ Invalid code. Developer mode not changed.');
         // Also clear console for invalid attempts to hide the command
         setTimeout(() => {
           console.clear();
@@ -716,7 +711,6 @@ function App() {
     // Global developer mode deactivation function
     const deactivateDevMode = () => {
       setIsDeveloperMode(false);
-      console.log('👋 Developer mode deactivated. Developer buttons are now hidden.');
       // Clear console and history to hide the deactivation command
       setTimeout(() => {
         console.clear();
@@ -758,7 +752,6 @@ function App() {
               if (window.__console_history__) window.__console_history__ = [];
               
               // Try to trigger a new line in console to push the command out of immediate history
-              console.log(''); // Empty log to push history
               console.clear();
             } catch (e) {
               console.clear(); // Fallback to just clearing
@@ -771,7 +764,6 @@ function App() {
             try {
               if (window.console._history) window.console._history = [];
               if (window.console.history) window.console.history = [];
-              console.log(''); 
               console.clear();
             } catch (e) {
               console.clear();
@@ -914,7 +906,6 @@ function App() {
 
   // Save columnNamesRow when it changes
   const handleColumnNamesRowChange = async (value) => {
-    console.log('=== handleColumnNamesRowChange called with value:', value, 'type:', typeof value);
     
     setColumnNamesRow(value);
     
@@ -929,7 +920,6 @@ function App() {
           columnNamesRow: numValue,
           columnNamesRowExplicitlySet: numValue !== currentCommonLines
         });
-        console.log('Settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
       } catch (error) {
         console.error('Failed to save settings:', error);
       }
@@ -967,7 +957,6 @@ function App() {
   };
 
   const handleContabilitateColumnNamesRowChange = async (value) => {
-    console.log('=== handleContabilitateColumnNamesRowChange called with value:', value, 'type:', typeof value);
     
     setContabilitateColumnNamesRow(value);
     
@@ -982,7 +971,6 @@ function App() {
           contabilitateColumnNamesRow: numValue,
           contabilitateColumnNamesRowExplicitlySet: numValue !== currentCommonLines
         });
-        console.log('Contabilitate settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
       } catch (error) {
         console.error('Failed to save Contabilitate settings:', error);
       }
@@ -1020,7 +1008,6 @@ function App() {
   };
 
   const handleAnafColumnNamesRowChange = async (value) => {
-    console.log('=== handleAnafColumnNamesRowChange called with value:', value, 'type:', typeof value);
     
     setAnafColumnNamesRow(value);
     
@@ -1035,7 +1022,6 @@ function App() {
           anafColumnNamesRow: numValue,
           anafColumnNamesRowExplicitlySet: numValue !== currentCommonLines
         });
-        console.log('ANAF settings saved for value:', numValue, 'explicitly set:', numValue !== currentCommonLines);
       } catch (error) {
         console.error('Failed to save ANAF settings:', error);
       }
@@ -1047,11 +1033,9 @@ function App() {
     if (anafFiles.length === 0) return;
     
     try {
-      console.log('Extracting ANAF column names for row:', anafColumnNamesRow, '(type:', typeof anafColumnNamesRow, ') with commonLines:', anafCommonLines, '(type:', typeof anafCommonLines, ')');
       const rowIndex = (parseInt(anafColumnNamesRow) || 1) - 1;
       const commonLinesInt = parseInt(anafCommonLines) || 1;
       
-      console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
       
       if (rowIndex < 0) {
         setStatus('Error: Row number must be 1 or greater');
@@ -1064,7 +1048,6 @@ function App() {
         commonLines: commonLinesInt
       });
       
-      console.log('Column extraction result:', result);
       
       if (result.success) {
         setAnafColumnNames(result.columnNames);
@@ -1073,7 +1056,6 @@ function App() {
         
         if (result.autoDetectedDateColumns && result.autoDetectedDateColumns.length > 0) {
           const newSelectedColumns = [...result.autoDetectedDateColumns];
-          console.log('Auto-selecting ANAF date columns:', newSelectedColumns);
           setAnafSelectedDateColumns(newSelectedColumns);
           
           try {
@@ -1113,11 +1095,9 @@ function App() {
     if (contabilitateFiles.length === 0) return;
     
     try {
-      console.log('Extracting Contabilitate column names for row:', contabilitateColumnNamesRow, '(type:', typeof contabilitateColumnNamesRow, ') with commonLines:', contabilitateCommonLines, '(type:', typeof contabilitateCommonLines, ')');
       const rowIndex = (parseInt(contabilitateColumnNamesRow) || 1) - 1;
       const commonLinesInt = parseInt(contabilitateCommonLines) || 1;
       
-      console.log('Calculated rowIndex (0-based):', rowIndex, 'commonLinesInt:', commonLinesInt);
       
       if (rowIndex < 0) {
         setStatus('Error: Row number must be 1 or greater');
@@ -1130,7 +1110,6 @@ function App() {
         commonLines: commonLinesInt
       });
       
-      console.log('Contabilitate column extraction result:', result);
       
       if (result.success) {
         setContabilitateColumnNames(result.columnNames);
@@ -1139,7 +1118,6 @@ function App() {
         
         if (result.autoDetectedDateColumns && result.autoDetectedDateColumns.length > 0) {
           const newSelectedColumns = [...result.autoDetectedDateColumns];
-          console.log('Auto-selecting Contabilitate date columns:', newSelectedColumns);
           setContabilitateSelectedDateColumns(newSelectedColumns);
           
           try {
@@ -1298,7 +1276,6 @@ function App() {
     );
     
     if (isFirstRowEmpty) {
-      console.log('Detected empty first row format - single-account file');
       return 'single-account';
     }
     
@@ -1318,13 +1295,11 @@ function App() {
       );
       
       if (hasExpectedHeaders) {
-        console.log('Detected 12-column header format - multiple-accounts file');
         return 'multiple-accounts';
       }
     }
     
     // Default to single-account if unclear
-    console.log('Unclear format - defaulting to single-account file');
     return 'single-account';
   };
 
@@ -1522,7 +1497,6 @@ function App() {
   };
 
   const processContaFiles = async (files) => {
-    console.log('Number of files to process:', files?.length);
     try {
       setStatus('Processing conta files...');
       const processedFiles = [];
@@ -1545,7 +1519,6 @@ function App() {
       
       setProcessedContaFiles(processedFiles);
       setStatus(`Processed ${processedFiles.length} conta files`);
-      console.log('Total processed files:', processedFiles.length);
       
       // Auto-assign files to accounts
       const contaAssignments = autoAssignFilesToAccounts(processedFiles, availableAccounts, false);
@@ -2766,11 +2739,6 @@ function App() {
     
     // Debug specifically for account 3 transactions and their sum calculation
     if (account === '3') {
-      console.log(`[ACCOUNT 3 DEBUG] =================================`);
-      console.log(`[ACCOUNT 3 DEBUG] Starting calculation for account 3`);
-      console.log(`[ACCOUNT 3 DEBUG] Date range: ${startDate} to ${endDate}`);
-      console.log(`[ACCOUNT 3 DEBUG] Filter: ${filterColumn} = "${filterValue}", Sum: ${sumColumn}`);
-      console.log(`[ACCOUNT 3 DEBUG] =================================`);
     }
     
     // Get assigned files for this account, fallback to all files if none assigned
@@ -2788,10 +2756,8 @@ function App() {
 
     
     if (account === '3') {
-      console.log(`[ACCOUNT 3 DEBUG] Processing ${filesToProcess.length} files for account 3:`);
       filesToProcess.forEach((file, idx) => {
         const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
-        console.log(`[ACCOUNT 3 DEBUG] File ${idx + 1}: ${fileName}`);
       });
     }
     
@@ -2941,7 +2907,6 @@ function App() {
           // Special debug for account 3 - show ALL transactions that contribute to the sum
           if (account === '3') {
             const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'No date';
-            console.log(`[ACCOUNT 3 DEBUG] Transaction ${index}: ${dateStr} | ${filterColumn}=${ctgSumeValue} | ${sumColumn}=${valueToAdd.toFixed(2)} | Running sum: ${sum.toFixed(2)}`);
           }
         });
         
@@ -3050,13 +3015,6 @@ function App() {
     
     // Final debug summary for account 3
     if (account === '3') {
-      console.log(`[ACCOUNT 3 DEBUG] =================================`);
-      console.log(`[ACCOUNT 3 DEBUG] CALCULATION COMPLETE FOR ACCOUNT 3`);
-      console.log(`[ACCOUNT 3 DEBUG] Main sum: ${sum.toFixed(2)}`);
-      console.log(`[ACCOUNT 3 DEBUG] Subtraction: ${subtractSum.toFixed(2)}`);
-      console.log(`[ACCOUNT 3 DEBUG] Final result: ${finalResult.toFixed(2)} (${sum.toFixed(2)} - ${subtractSum.toFixed(2)})`);
-      console.log(`[ACCOUNT 3 DEBUG] Total transactions processed: ${totalProcessedRows}`);
-      console.log(`[ACCOUNT 3 DEBUG] =================================`);
     }
     
     // Show top contributing rows if result is significant
@@ -5278,7 +5236,6 @@ function App() {
           ? prev.filter(id => id !== panelId)  // Deselect panel
           : [...prev, panelId];  // Select panel
         
-        console.log('Panel selection updated:', newSelection);
         return newSelection;
       });
       
