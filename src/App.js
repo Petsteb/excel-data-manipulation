@@ -1350,36 +1350,9 @@ function App() {
       assignments[account] = [];
     });
     
-    // Special handling for ANAF accounts 1/4423 and 1/4424 - they should both use the same imp_1 file
-    if (isAnaf) {
-      const specialAccounts = ['1/4423', '1/4424'];
-      const availableSpecialAccounts = specialAccounts.filter(acc => accountList.includes(acc));
-      
-      if (availableSpecialAccounts.length > 0) {
-        // Find imp_1 file
-        const imp1File = fileList.find(file => {
-          const fileName = (file.name || file.fileName || '').toLowerCase();
-          return fileName.includes('imp_1');
-        });
-        
-        if (imp1File) {
-          const fileId = imp1File.filePath || imp1File.name;
-          // Assign the same file to both accounts
-          availableSpecialAccounts.forEach(account => {
-            assignments[account] = [fileId];
-          });
-        }
-      }
-    }
-    
-    // For all other accounts, find ALL matching files (removed usedFiles restriction)
+    // For all accounts, find ALL matching files (no special handling needed)
     accountList.forEach(account => {
-      // Skip special accounts that were already handled
-      if (isAnaf && ['1/4423', '1/4424'].includes(account)) {
-        return;
-      }
-      
-      // Get ALL available files for this account (no filtering by usedFiles)
+      // Get ALL available files for this account
       const availableFiles = getFilesForAccount(account, fileList, isAnaf);
       
       // Assign all available files to this account
