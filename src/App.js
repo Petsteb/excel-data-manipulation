@@ -3,6 +3,7 @@ import './App.css';
 import ThemeMenu, { themes } from './ThemeMenu';
 import LanguageMenu, { languages } from './LanguageMenu';
 import { useTranslation } from './translations';
+import packageJson from '../package.json';
 // Icon imports - light mode
 import dashboardIconLight from './assets/icons/light/dashboard.png';
 import idIconLight from './assets/icons/light/id.png';
@@ -398,6 +399,11 @@ function App() {
   // Refs for separate popups
   const contaPopupBodyRef = useRef(null);
   const anafPopupBodyRef = useRef(null);
+
+  // Set document title with version
+  useEffect(() => {
+    document.title = `Data Manipulation branch AnaConta v${packageJson.version}`;
+  }, []);
 
   // Load settings on app start
   useEffect(() => {
