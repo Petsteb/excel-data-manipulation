@@ -13,8 +13,8 @@ const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
-  version: '2.0.7',
-  theme: 'professional',
+  version: '2.0.8',
+  theme: 'businessGreen',
   language: 'en',
   excel: {
     commonLines: 1,
@@ -39,22 +39,35 @@ const DEFAULT_SETTINGS = {
   },
   uiSettings: {
     panelPositions: {
-      'contabilitate-upload-panel': { x: 20, y: 20, width: 240, height: 180 },
-      'anaf-upload-panel': { x: 800, y: 20, width: 240, height: 180 },
-      'contabilitate-summary-panel': { x: 20, y: 240, width: 240, height: 180 },
-      'anaf-summary-panel': { x: 800, y: 240, width: 240, height: 180 },
-      'anaf-header-panel': { x: 800, y: 460, width: 240, height: 180 },
-      'anaf-date-panel': { x: 800, y: 680, width: 240, height: 180 },
-      'account-selection-panel': { x: 280, y: 20, width: 240, height: 180 },
-      'account-mapping-panel': { x: 280, y: 240, width: 240, height: 180 },
-      'sums-panel': { x: 540, y: 20, width: 240, height: 180 },
-      'worksheet-selection-panel': { x: 540, y: 240, width: 240, height: 180 },
-      'generate-summary-button': { x: 450, y: 240, width: 80, height: 80 },
-      'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
+      'contabilitate-upload-panel': { x: -1587.44873046875, y: -1372.5, width: 280, height: 260 },
+      'anaf-upload-panel': { x: -767.44873046875, y: -1372.5, width: 280, height: 260 },
+      'contabilitate-summary-panel': { x: -1587.44873046875, y: -1112.5, width: 280, height: 220 },
+      'anaf-summary-panel': { x: -767.44873046875, y: -1112.5, width: 280, height: 220 },
+      'anaf-header-panel': { x: -303.05908203125, y: -1313.5858154298053, width: 420, height: 180 },
+      'anaf-date-panel': { x: -303.05908203125, y: -1133.5858154298053, width: 300, height: 200 },
+      'account-selection-panel': { x: -1307.44873046875, y: -1372.5, width: 540, height: 480 },
+      'account-mapping-panel': { x: -1363.05908203125, y: 484.7979736328293, width: 360, height: 480 },
+      'sums-panel': { x: -1912.55126953125, y: 52.5, width: 460, height: 1320 },
+      'worksheet-selection-panel': { x: -1003.05908203125, y: 564.7979736328293, width: 360, height: 400 },
+      'generate-summary-button': { x: -1003.05908203125, y: 484.7979736328293, width: 760, height: 80 },
+      'final-summary-panel': { x: -643.05908203125, y: 564.7979736328293, width: 400, height: 400 }
     },
     screens: {
-      homeScreen: null,
-      secondaryScreens: [],
+      homeScreen: {
+        x: -1997.44873046875,
+        y: -1661,
+        width: 1920,
+        height: 1057
+      },
+      secondaryScreens: [{
+        id: "view-1756236196841",
+        name: "Summary", 
+        x: -1443.05908203125,
+        y: 325.7979736328293,
+        width: 1280,
+        height: 778,
+        color: "#06b6d4"
+      }],
       currentScreen: 'home',
       tabPosition: 'left'
     },
@@ -92,7 +105,19 @@ const DEFAULT_SETTINGS = {
       }
     }
   },
-  accountMappings: {},
+  accountMappings: {
+    "436": ["480"],
+    "444": ["2", "9"],
+    "4315": ["412", "451", "458", "483"],
+    "4316": ["432", "459", "461"],
+    "4411": ["3"],
+    "4418": ["14"],
+    "4423": ["1/4423"],
+    "4424": ["1/4424"],
+    "446.DIV": ["7"],
+    "446.CHIRII": ["628"],
+    "446.CV": ["33"]
+  },
   sumFormulas: {
     conta: {},
     anaf: {}

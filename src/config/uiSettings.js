@@ -1,7 +1,5 @@
-// UI Settings Management System
+// UI Settings Management System  
 // This file manages all UI-related settings for the application
-
-const { ipcRenderer } = window.require('electron');
 
 // Default UI settings structure
 export const DEFAULT_UI_SETTINGS = {
@@ -162,7 +160,7 @@ export class UISettingsManager {
   // Load settings from storage
   async load() {
     try {
-      const savedSettings = await ipcRenderer.invoke('load-settings');
+      const savedSettings = await window.electronAPI.loadSettings();
       if (savedSettings && savedSettings.uiSettings) {
         // Deep merge saved settings with defaults
         this.settings = this.deepMerge(DEFAULT_UI_SETTINGS, savedSettings.uiSettings);
@@ -188,7 +186,7 @@ export class UISettingsManager {
     const doSave = async () => {
       try {
         // Get current app settings
-        const currentSettings = await ipcRenderer.invoke('load-settings');
+        const currentSettings = await window.electronAPI.loadSettings();
         
         // Update only the UI settings part
         const updatedSettings = {
@@ -196,7 +194,7 @@ export class UISettingsManager {
           uiSettings: this.settings
         };
 
-        await ipcRenderer.invoke('save-settings', updatedSettings);
+        await window.electronAPI.saveSettings(updatedSettings);
         this.notifyListeners('settingsSaved', this.settings);
         return true;
       } catch (error) {

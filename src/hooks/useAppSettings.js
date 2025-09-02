@@ -1,8 +1,6 @@
 // React hook for managing application settings
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const { ipcRenderer } = window.require('electron');
-
 // Custom hook for managing application settings
 export function useAppSettings() {
   const [settings, setSettings] = useState(null);
@@ -16,7 +14,7 @@ export function useAppSettings() {
     try {
       setLoading(true);
       setError(null);
-      const loadedSettings = await ipcRenderer.invoke('load-settings');
+      const loadedSettings = await window.electronAPI.loadSettings();
       setSettings(loadedSettings);
       settingsRef.current = loadedSettings;
     } catch (err) {
@@ -37,7 +35,7 @@ export function useAppSettings() {
 
       const doSave = async () => {
         const settingsToSave = newSettings || settingsRef.current;
-        await ipcRenderer.invoke('save-settings', settingsToSave);
+        await window.electronAPI.saveSettings(settingsToSave);
         settingsRef.current = settingsToSave;
       };
 
