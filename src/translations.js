@@ -152,7 +152,27 @@ const translations = {
     accountMappingPanel: "Account Mapping Panel",
     accountSumsPanel: "Account Sums Panel",
     anafDatePanel: "ANAF Date Panel",
-    anafHeaderPanel: "ANAF Header Panel"
+    anafHeaderPanel: "ANAF Header Panel",
+    
+    // Missing Keys - Account Mapping Section
+    accountMapping: "Account Mapping",
+    mapEachContaAccount: "Map each Conta account to multiple ANAF accounts",
+    noSumRecorded: "No sum recorded",
+    
+    // Missing Keys - Summary Generation Section  
+    summaryWorksheets: "Summary Worksheets",
+    selectWorksheetsToInclude: "Select which worksheets to include in the generated summary file",
+    finalSummary: "Final Summary",
+    mergeResultsWillAppearHere: "mergeResultsWillAppearHere",
+    
+    // Missing Keys - Summary Options
+    relationsSummary: "Relations Summary",
+    anafContaRelationshipsDesc: "(ANAF → Conta account relationships and differences)",
+    accountsSummary: "Accounts Summary", 
+    allAccountSumsDesc: "(All account sums and file usage)",
+    anafMergedData: "ANAF Merged Data",
+    anafFilesCombinedDesc: "(All ANAF files combined into one table)",
+    anafFilesLoaded: "ANAF files loaded"
   },
   
   ro: {
@@ -308,7 +328,27 @@ const translations = {
     accountMappingPanel: "Panoul de Mapare Conturi",
     accountSumsPanel: "Panoul de Sume Conturi",
     anafDatePanel: "Panoul de Date ANAF",
-    anafHeaderPanel: "Panoul de Antet ANAF"
+    anafHeaderPanel: "Panoul de Antet ANAF",
+    
+    // Missing Keys - Account Mapping Section
+    accountMapping: "Maparea Conturilor",
+    mapEachContaAccount: "Mapează fiecare cont Conta la multiple conturi ANAF",
+    noSumRecorded: "Nicio sumă înregistrată",
+    
+    // Missing Keys - Summary Generation Section  
+    summaryWorksheets: "Foi de Lucru pentru Rezumat",
+    selectWorksheetsToInclude: "Selectează ce foi de lucru să includă în fișierul de rezumat generat",
+    finalSummary: "Rezumatul Final",
+    mergeResultsWillAppearHere: "rezultateleÎmbinăriiVorApăreaAici",
+    
+    // Missing Keys - Summary Options
+    relationsSummary: "Rezumatul Relațiilor",
+    anafContaRelationshipsDesc: "(Relațiile de conturi ANAF → Conta și diferențele)",
+    accountsSummary: "Rezumatul Conturilor", 
+    allAccountSumsDesc: "(Toate sumele de conturi și utilizarea fișierelor)",
+    anafMergedData: "Datele ANAF Îmbinate",
+    anafFilesCombinedDesc: "(Toate fișierele ANAF combinate într-un tabel)",
+    anafFilesLoaded: "Fișiere ANAF încărcate"
   },
   
   fr: {
@@ -464,7 +504,27 @@ const translations = {
     accountMappingPanel: "Panneau de Mappage des Comptes",
     accountSumsPanel: "Panneau des Sommes de Comptes",
     anafDatePanel: "Panneau de Date ANAF",
-    anafHeaderPanel: "Panneau d'En-tête ANAF"
+    anafHeaderPanel: "Panneau d'En-tête ANAF",
+    
+    // Missing Keys - Account Mapping Section
+    accountMapping: "Mappage des Comptes",
+    mapEachContaAccount: "Associer chaque compte Conta à plusieurs comptes ANAF",
+    noSumRecorded: "Aucune somme enregistrée",
+    
+    // Missing Keys - Summary Generation Section  
+    summaryWorksheets: "Feuilles de Calcul de Résumé",
+    selectWorksheetsToInclude: "Sélectionnez quelles feuilles de calcul inclure dans le fichier de résumé généré",
+    finalSummary: "Résumé Final",
+    mergeResultsWillAppearHere: "lesRésultatsFusionApparaîtrontIci",
+    
+    // Missing Keys - Summary Options
+    relationsSummary: "Résumé des Relations",
+    anafContaRelationshipsDesc: "(Relations de comptes ANAF → Conta et différences)",
+    accountsSummary: "Résumé des Comptes", 
+    allAccountSumsDesc: "(Toutes les sommes de comptes et utilisation des fichiers)",
+    anafMergedData: "Données ANAF Fusionnées",
+    anafFilesCombinedDesc: "(Tous les fichiers ANAF combinés en un tableau)",
+    anafFilesLoaded: "Fichiers ANAF chargés"
   },
   
   de: {
@@ -620,7 +680,27 @@ const translations = {
     accountMappingPanel: "Kontenzuordnung-Panel",
     accountSumsPanel: "Kontosummen-Panel",
     anafDatePanel: "ANAF-Datum-Panel",
-    anafHeaderPanel: "ANAF-Kopfzeile-Panel"
+    anafHeaderPanel: "ANAF-Kopfzeile-Panel",
+    
+    // Missing Keys - Account Mapping Section
+    accountMapping: "Kontenzuordnung",
+    mapEachContaAccount: "Jedes Conta-Konto mehreren ANAF-Konten zuordnen",
+    noSumRecorded: "Keine Summe aufgezeichnet",
+    
+    // Missing Keys - Summary Generation Section  
+    summaryWorksheets: "Zusammenfassungs-Arbeitsblätter",
+    selectWorksheetsToInclude: "Wählen Sie aus, welche Arbeitsblätter in die generierte Zusammenfassungsdatei aufgenommen werden sollen",
+    finalSummary: "Abschließende Zusammenfassung",
+    mergeResultsWillAppearHere: "zusammenführungsErgebnisseErscheinenHier",
+    
+    // Missing Keys - Summary Options
+    relationsSummary: "Beziehungen-Zusammenfassung",
+    anafContaRelationshipsDesc: "(ANAF → Conta-Kontobeziehungen und Unterschiede)",
+    accountsSummary: "Konten-Zusammenfassung", 
+    allAccountSumsDesc: "(Alle Kontosummen und Dateiverwendung)",
+    anafMergedData: "ANAF Zusammengeführte Daten",
+    anafFilesCombinedDesc: "(Alle ANAF-Dateien in einer Tabelle kombiniert)",
+    anafFilesLoaded: "ANAF-Dateien geladen"
   },
   
   es: {
@@ -776,7 +856,27 @@ const translations = {
     accountMappingPanel: "Panel de Mapeo de Cuentas",
     accountSumsPanel: "Panel de Sumas de Cuentas",
     anafDatePanel: "Panel de Fecha ANAF",
-    anafHeaderPanel: "Panel de Encabezado ANAF"
+    anafHeaderPanel: "Panel de Encabezado ANAF",
+    
+    // Missing Keys - Account Mapping Section
+    accountMapping: "Mapeo de Cuentas",
+    mapEachContaAccount: "Mapear cada cuenta Conta a múltiples cuentas ANAF",
+    noSumRecorded: "No se registró suma",
+    
+    // Missing Keys - Summary Generation Section  
+    summaryWorksheets: "Hojas de Trabajo de Resumen",
+    selectWorksheetsToInclude: "Seleccione qué hojas de trabajo incluir en el archivo de resumen generado",
+    finalSummary: "Resumen Final",
+    mergeResultsWillAppearHere: "losResultadosFusiónAparecerránAquí",
+    
+    // Missing Keys - Summary Options
+    relationsSummary: "Resumen de Relaciones",
+    anafContaRelationshipsDesc: "(Relaciones de cuentas ANAF → Conta y diferencias)",
+    accountsSummary: "Resumen de Cuentas", 
+    allAccountSumsDesc: "(Todas las sumas de cuentas y uso de archivos)",
+    anafMergedData: "Datos ANAF Fusionados",
+    anafFilesCombinedDesc: "(Todos los archivos ANAF combinados en una tabla)",
+    anafFilesLoaded: "Archivos ANAF cargados"
   }
 };
 
