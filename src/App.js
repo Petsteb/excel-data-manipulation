@@ -59,6 +59,33 @@ const GLOBAL_HOVER_BG = 'var(--theme-hover-bg, rgba(0,0,0,0.05))';
 const GLOBAL_SHADOW = 'var(--theme-shadow, 0 1px 3px rgba(0,0,0,0.1))';
 const GLOBAL_BACKDROP_FILTER = 'var(--theme-backdrop-filter, blur(25px))';
 
+// Typography Standards
+const TYPOGRAPHY = {
+  // Panel Headers (h3) - Main panel titles
+  PANEL_HEADER: { fontSize: '16px', fontWeight: '600', color: GLOBAL_TEXT_COLOR, margin: '0 0 12px 0' },
+  
+  // Section Headers (h4) - Sub-sections within panels
+  SECTION_HEADER: { fontSize: '14px', fontWeight: '500', color: GLOBAL_TEXT_COLOR, margin: '0 0 8px 0' },
+  
+  // Body Text - Description/instructional text
+  BODY_TEXT: { fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.4' },
+  
+  // Labels - Form labels and identifiers
+  LABEL_TEXT: { fontSize: '12px', fontWeight: '500', color: GLOBAL_TEXT_COLOR },
+  
+  // Small Text - Secondary information, file paths, etc.
+  SMALL_TEXT: { fontSize: '11px', color: 'var(--theme-text-disabled)', lineHeight: '1.3' },
+  
+  // Button Text - Account buttons and interactive elements
+  BUTTON_TEXT: { fontSize: '12px', fontWeight: '500' },
+  
+  // Tab Button Text - Screen navigation tabs
+  TAB_BUTTON: { fontSize: '12px', fontWeight: '500', textAlign: 'center' },
+  
+  // Panel ID Text - Small identification text in corners
+  PANEL_ID: { fontSize: '10px', color: GLOBAL_TEXT_COLOR, opacity: 0.6 }
+};
+
 // Universal Tooltip Component
 const Tooltip = ({ content, position = "top" }) => {
   return (
@@ -6622,7 +6649,7 @@ function App() {
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontSize: '14px',
-                color: '#333',
+                color: 'var(--theme-text-color)',
                 borderBottom: '1px solid #f0f0f0'
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
@@ -6732,7 +6759,7 @@ function App() {
               margin: '0 0 16px 0', 
               fontSize: '18px', 
               fontWeight: '600', 
-              color: '#333' 
+              color: 'var(--theme-text-color)' 
             }}>
               Rename Screen
             </h3>
@@ -6775,7 +6802,7 @@ function App() {
                     border: '1px solid #ddd',
                     borderRadius: '6px',
                     backgroundColor: '#f8f9fa',
-                    color: '#666',
+                    color: 'var(--theme-text-disabled)',
                     cursor: 'pointer',
                     fontSize: '14px'
                   }}
@@ -6847,7 +6874,7 @@ function App() {
               margin: '0 0 16px 0', 
               fontSize: '18px', 
               fontWeight: '600', 
-              color: '#333' 
+              color: 'var(--theme-text-color)' 
             }}>
               Choose Screen Color
             </h3>
@@ -6891,7 +6918,7 @@ function App() {
                   border: '1px solid #ddd',
                   borderRadius: '6px',
                   backgroundColor: '#f8f9fa',
-                  color: '#666',
+                  color: 'var(--theme-text-disabled)',
                   cursor: 'pointer',
                   fontSize: '14px'
                 }}
@@ -7473,7 +7500,7 @@ function App() {
             <div>
               {/* Account Selection Section */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Conta Account Selection</h3>
+                <h3 style={TYPOGRAPHY.PANEL_HEADER}>Conta Account Selection</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAccounts.map(account => {
                     const isSelected = selectedAccounts.includes(account);
@@ -7617,7 +7644,7 @@ function App() {
 
               {/* ANAF Account Selection Section */}
               <div style={{ marginTop: '30px', marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>ANAF Account Selection</h3>
+                <h3 style={TYPOGRAPHY.PANEL_HEADER}>ANAF Account Selection</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                   {availableAnafAccounts.map(account => {
                     const isSelected = selectedAnafAccounts.includes(account);
@@ -7694,7 +7721,7 @@ function App() {
 
               {/* Date Selection Section */}
               <div style={{ marginTop: '30px', marginBottom: '15px' }}>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Date Selection</h3>
+                <h3 style={TYPOGRAPHY.PANEL_HEADER}>Date Selection</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <input
                     type="text"
@@ -7792,8 +7819,8 @@ function App() {
             )}
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>Account Mapping</h3>
-                <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8 }}>
+                <h3 style={TYPOGRAPHY.PANEL_HEADER}>Account Mapping</h3>
+                <p style={{ ...TYPOGRAPHY.BODY_TEXT, margin: '0 0 15px 0' }}>
                   Map each Conta account to multiple ANAF accounts
                 </p>
               </div>
@@ -7898,7 +7925,7 @@ function App() {
                       
                       <div>
                         {mappedAnafAccounts.length > 0 && (
-                          <div style={{ fontSize: '11px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, marginBottom: '5px' }}>
+                          <div style={{ ...TYPOGRAPHY.SMALL_TEXT, marginBottom: '5px' }}>
                             Mapped ANAF accounts:
                           </div>
                         )}
@@ -7942,7 +7969,7 @@ function App() {
                           </button>
                         </div>
                         {mappedAnafAccounts.length === 0 && (
-                          <div style={{ fontSize: '11px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, fontStyle: 'italic', marginTop: '5px' }}>
+                          <div style={{ ...TYPOGRAPHY.SMALL_TEXT, fontStyle: 'italic', marginTop: '5px' }}>
                             No ANAF accounts mapped yet
                           </div>
                         )}
@@ -8067,7 +8094,7 @@ function App() {
             {/* Conta Sums Section */}
             {Object.keys(accountSums).length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: GLOBAL_PRIMARY_COLOR }}>Conta Accounts</h4>
+                <h4 style={{ ...TYPOGRAPHY.SECTION_HEADER, color: GLOBAL_PRIMARY_COLOR }}>Conta Accounts</h4>
                 {Object.entries(accountSums).map(([account, sum]) => (
                   <div key={account} style={{
                     padding: '10px',
@@ -8088,7 +8115,7 @@ function App() {
             {/* ANAF Sums Section */}
             {Object.keys(anafAccountSums).length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', marginBottom: '10px', color: GLOBAL_SECONDARY_COLOR }}>ANAF Accounts</h4>
+                <h4 style={{ ...TYPOGRAPHY.SECTION_HEADER, color: GLOBAL_SECONDARY_COLOR }}>ANAF Accounts</h4>
                 {Object.entries(anafAccountSums).map(([account, sum]) => (
                   <div key={`anaf-${account}`} style={{
                     padding: '10px',
@@ -8174,8 +8201,8 @@ function App() {
               </div>
             )}
             
-            <h3 style={{ color: GLOBAL_TEXT_COLOR, marginBottom: '8px' }}>Summary Worksheets</h3>
-            <p style={{ fontSize: '14px', marginBottom: '15px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.4' }}>
+            <h3 style={TYPOGRAPHY.PANEL_HEADER}>Summary Worksheets</h3>
+            <p style={{ ...TYPOGRAPHY.BODY_TEXT, marginBottom: '15px' }}>
               Select which worksheets to include in the generated summary file:
             </p>
             
@@ -8207,7 +8234,7 @@ function App() {
                 />
                 <div style={{ flex: 1 }}>
                   <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Relations Summary</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                  <div style={TYPOGRAPHY.SMALL_TEXT}>
                     (ANAF ↔ Conta account relationships and differences)
                   </div>
                 </div>
@@ -8240,7 +8267,7 @@ function App() {
                 />
                 <div style={{ flex: 1 }}>
                   <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Accounts Summary</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                  <div style={TYPOGRAPHY.SMALL_TEXT}>
                     (All account sums and file usage)
                   </div>
                 </div>
@@ -8273,7 +8300,7 @@ function App() {
                 />
                 <div style={{ flex: 1 }}>
                   <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>ANAF Merged Data</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                  <div style={TYPOGRAPHY.SMALL_TEXT}>
                     (All ANAF files combined into one table)
                     {anafFiles.length === 0 && (
                       <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - No ANAF files loaded</em>
@@ -8389,7 +8416,7 @@ function App() {
                 final-summary-panel
               </div>
             )}
-            <h3>Final Summary</h3>
+            <h3 style={TYPOGRAPHY.PANEL_HEADER}>Final Summary</h3>
             {processingSummary ? (
               <div className="merged-summary">
                 <div className="summary-stats-compact">
@@ -8953,59 +8980,29 @@ function App() {
             {/* Home Tab - always first */}
             {homeScreen && (
               <div
-                className={`screen-tab ${currentScreen === 'home' ? 'active' : ''}`}
+                className={`screen-tab position-${tabPosition} ${currentScreen === 'home' ? 'active' : ''}`}
                 onClick={() => navigateToScreen('home')}
                 onContextMenu={(e) => handleScreenRightClick(e, { id: 'home', name: 'Home' })}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
-                    width: '40px',
-                    height: '60px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px 4px',
-                    writingMode: 'vertical-rl',
-                    textOrientation: 'mixed'
-                  } : {
-                    width: '80px',
+                    width: 'auto',
+                    minWidth: '80px',
                     height: '40px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '8px 12px'
-                  }),
-                  backgroundColor: currentScreen === 'home' ? GLOBAL_SUCCESS_COLOR : 'rgba(16, 185, 129, 0.8)',
-                  color: 'white',
-                  borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
-                             tabPosition === 'right' ? '8px 0 0 8px' :
-                             tabPosition === 'top' ? '0 0 8px 8px' : '8px 8px 0 0',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  border: currentScreen === 'home' ? `2px solid ${GLOBAL_SUCCESS_COLOR}` : '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  if (currentScreen !== 'home') {
-                    e.target.style.backgroundColor = GLOBAL_SUCCESS_COLOR;
-                    e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
-                                              tabPosition === 'right' ? 'translateX(-2px)' :
-                                              tabPosition === 'top' ? 'translateY(2px)' : 'translateY(-2px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentScreen !== 'home') {
-                    e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
-                    e.target.style.transform = 'none';
-                  }
+                    writingMode: 'horizontal-tb'
+                  } : {
+                    width: 'auto',
+                    minWidth: '100px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  })
                 }}
               >
-                <div style={{ fontSize: '14px', marginBottom: '2px' }}>HOME</div>
-                <div style={{ fontSize: '10px' }}>HOME</div>
+                Home
               </div>
             )}
 
@@ -9013,63 +9010,35 @@ function App() {
             {secondaryScreens.map((screen, index) => (
               <div
                 key={screen.id}
-                className={`screen-tab ${currentScreen === screen.id ? 'active' : ''}`}
+                className={`screen-tab position-${tabPosition} ${currentScreen === screen.id ? 'active' : ''}`}
                 onClick={() => navigateToScreen(screen.id)}
                 onContextMenu={(e) => handleScreenRightClick(e, screen)}
                 style={{
                   ...(tabPosition === 'left' || tabPosition === 'right' ? {
-                    width: '40px',
-                    minHeight: '60px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px 4px',
-                    writingMode: 'vertical-rl',
-                    textOrientation: 'mixed'
-                  } : {
+                    width: 'auto',
                     minWidth: '80px',
+                    maxWidth: '120px',
                     height: '40px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '8px 12px'
+                    writingMode: 'horizontal-tb'
+                  } : {
+                    width: 'auto',
+                    minWidth: '100px',
+                    maxWidth: '150px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }),
-                  backgroundColor: currentScreen === screen.id ? screen.color : `${screen.color}cc`,
-                  color: 'white',
-                  borderRadius: tabPosition === 'left' ? '0 8px 8px 0' : 
-                             tabPosition === 'right' ? '8px 0 0 8px' :
-                             tabPosition === 'top' ? '0 0 8px 8px' : '8px 8px 0 0',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  border: currentScreen === screen.id ? `2px solid ${screen.color}` : '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)',
-                  overflow: 'hidden',
-                  wordBreak: 'break-word',
-                  textAlign: 'center'
-                }}
-                onMouseEnter={(e) => {
-                  if (currentScreen !== screen.id) {
-                    e.target.style.backgroundColor = screen.color;
-                    e.target.style.transform = tabPosition === 'left' ? 'translateX(2px)' :
-                                              tabPosition === 'right' ? 'translateX(-2px)' :
-                                              tabPosition === 'top' ? 'translateY(2px)' : 'translateY(-2px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentScreen !== screen.id) {
-                    e.target.style.backgroundColor = `${screen.color}cc`;
-                    e.target.style.transform = 'none';
-                  }
+                  '--screen-color': screen.color
                 }}
               >
                 <div style={{ 
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: (tabPosition === 'left' || tabPosition === 'right') ? 'normal' : 'nowrap',
+                  whiteSpace: 'nowrap',
                   maxWidth: '100%'
                 }}>
                   {screen.name}

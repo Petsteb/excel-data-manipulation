@@ -848,7 +848,7 @@
 }
 
 .selection-hint p {
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-size: 0.875rem;
   margin: 0;
   font-style: italic;
@@ -922,7 +922,7 @@
 }
 
 .file-info span {
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-size: 0.9rem;
   background: rgba(139, 92, 246, 0.1);
   padding: 4px 8px;
@@ -1218,7 +1218,7 @@
 }
 
 .file-detail strong {
-  color: #374151;
+  color: var(--theme-text-color);
 }
 
 /* Collapsible Sections */
@@ -1397,7 +1397,7 @@
 .no-columns {
   text-align: center;
   padding: 30px 20px;
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-style: italic;
 }
 
@@ -1451,7 +1451,7 @@
 .other-columns-section summary h4 {
   display: inline;
   margin: 0;
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -1883,7 +1883,7 @@
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-weight: 500;
   margin-bottom: 4px;
 }
@@ -2018,7 +2018,7 @@
 }
 
 .file-rows {
-  color: #6b7280;
+  color: var(--theme-text-disabled);
   font-size: 12px;
   margin-bottom: 6px;
 }
@@ -2060,7 +2060,7 @@
 
 .total-label {
   font-size: 14px;
-  color: #64748b;
+  color: var(--theme-text-disabled);
   margin-bottom: 8px;
   font-weight: 500;
 }
@@ -2657,4 +2657,122 @@
   0% { opacity: 0.6; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.1); }
   100% { opacity: 0.6; transform: scale(1); }
+}
+
+/* Angular Screen Navigation Tabs */
+.screen-navigation-tabs {
+  background: transparent;
+}
+
+.screen-tab {
+  position: relative;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  user-select: none;
+  backdrop-filter: blur(10px);
+  overflow: visible;
+}
+
+/* Tab positioning and shapes based on tab position */
+.screen-tab.position-left {
+  clip-path: polygon(0% 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 0% 100%);
+  padding: 12px 20px 12px 16px;
+  margin-right: -10px;
+}
+
+.screen-tab.position-right {
+  clip-path: polygon(10px 0%, 100% 0%, 100% 100%, 10px 100%, 0% 50%);
+  padding: 12px 16px 12px 20px;
+  margin-left: -10px;
+}
+
+.screen-tab.position-top {
+  clip-path: polygon(0% 0%, 100% 0%, calc(100% - 10px) 100%, 10px 100%);
+  padding: 12px 16px 16px 16px;
+  margin-bottom: -10px;
+}
+
+.screen-tab.position-bottom {
+  clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 100%, 0% 100%);
+  padding: 16px 16px 12px 16px;
+  margin-top: -10px;
+}
+
+/* Light theme colors */
+.screen-tab {
+  background: var(--text-primary);
+  color: var(--theme-background);
+}
+
+.screen-tab:hover {
+  background: var(--theme-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.screen-tab.active {
+  background: var(--theme-accent);
+  color: white;
+  z-index: 10;
+}
+
+/* Secondary screen tabs with custom colors */
+.screen-tab[style*="--screen-color"] {
+  background: var(--screen-color, var(--text-primary));
+  opacity: 0.8;
+}
+
+.screen-tab[style*="--screen-color"]:hover {
+  background: var(--screen-color, var(--theme-primary));
+  opacity: 1;
+}
+
+.screen-tab[style*="--screen-color"].active {
+  background: var(--screen-color, var(--theme-accent));
+  opacity: 1;
+}
+
+/* Dark theme colors */
+.App.dark-theme .screen-tab {
+  background: var(--theme-background);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.App.dark-theme .screen-tab:hover {
+  background: var(--theme-primary);
+  color: white;
+  border-color: var(--theme-primary);
+}
+
+.App.dark-theme .screen-tab.active {
+  background: var(--theme-accent);
+  color: white;
+  border-color: var(--theme-accent);
+}
+
+/* Dark theme for secondary screens with custom colors */
+.App.dark-theme .screen-tab[style*="--screen-color"] {
+  background: var(--screen-color, var(--theme-background));
+  color: white;
+  border: 1px solid var(--screen-color, var(--border-color));
+  opacity: 0.7;
+}
+
+.App.dark-theme .screen-tab[style*="--screen-color"]:hover {
+  background: var(--screen-color, var(--theme-primary));
+  color: white;
+  border-color: var(--screen-color, var(--theme-primary));
+  opacity: 1;
+}
+
+.App.dark-theme .screen-tab[style*="--screen-color"].active {
+  background: var(--screen-color, var(--theme-accent));
+  color: white;
+  border-color: var(--screen-color, var(--theme-accent));
+  opacity: 1;
 }
