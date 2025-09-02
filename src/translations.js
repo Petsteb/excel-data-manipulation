@@ -121,7 +121,38 @@ const translations = {
     chooseTheme: "Choose Theme",
     chooseLanguage: "Choose Language",
     lightThemes: "☀️ Light Themes",
-    darkThemes: "🌙 Dark Themes"
+    darkThemes: "🌙 Dark Themes",
+    
+    // Missing Keys - Panel Names and Headers
+    summaryOf: "Summary of",
+    headerSelectionFor: "Header Selection for",
+    dateColumnsFor: "Date Columns for", 
+    contaAccountSelection: "Conta Account Selection",
+    anafAccountSelection: "ANAF Account Selection",
+    allColumnsSelectDeselect: "All Columns - Select/Deselect Date Columns",
+    
+    // Missing Keys - Button and Action Text
+    toggleLayoutMode: "Toggle Layout Mode",
+    configureLayoutPanels: "Configure Layout Mode Only Panels", 
+    toggleIdMode: "Toggle ID Mode",
+    togglePanning: "Toggle Panning (Normal Mode Only)",
+    screenModeConfig: "Screen Mode - Configure Custom Screens",
+    toggleGridBackground: "Toggle Grid Background",
+    creatingSummary: "Creating Summary...",
+    
+    // Missing Keys - Status and Input
+    accountNamePlaceholder: "Account name",
+    contaFilesSelected: "Contabilitate files selected. Reading data...",
+    anafFilesSelected: "ANAF files selected. Reading data...",
+    addNewContaRelation: "Add new conta account relation",
+    allAccountsMapped: "All available conta accounts are already mapped. Add new accounts in the Account Selection panel first.",
+    
+    // Missing Keys - Panel Names  
+    accountSelectionPanel: "Account Selection Panel",
+    accountMappingPanel: "Account Mapping Panel",
+    accountSumsPanel: "Account Sums Panel",
+    anafDatePanel: "ANAF Date Panel",
+    anafHeaderPanel: "ANAF Header Panel"
   },
   
   ro: {
@@ -246,7 +277,38 @@ const translations = {
     chooseTheme: "Alege Tema",
     chooseLanguage: "Alege Limba",
     lightThemes: "☀️ Teme Luminoase",
-    darkThemes: "🌙 Teme Întunecate"
+    darkThemes: "🌙 Teme Întunecate",
+    
+    // Missing Keys - Panel Names and Headers
+    summaryOf: "Rezumatul",
+    headerSelectionFor: "Selecția Antetului pentru",
+    dateColumnsFor: "Coloanele de Dată pentru", 
+    contaAccountSelection: "Selecția Conturilor Conta",
+    anafAccountSelection: "Selecția Conturilor ANAF",
+    allColumnsSelectDeselect: "Toate Coloanele - Selectează/Deselectează Coloanele de Dată",
+    
+    // Missing Keys - Button and Action Text
+    toggleLayoutMode: "Comută Modul de Aranjare",
+    configureLayoutPanels: "Configurează Panourile Modului de Aranjare", 
+    toggleIdMode: "Comută Modul ID",
+    togglePanning: "Comută Panoramarea (Doar Modul Normal)",
+    screenModeConfig: "Modul Ecran - Configurează Ecrane Personalizate",
+    toggleGridBackground: "Comută Fundalul cu Grilă",
+    creatingSummary: "Se creează rezumatul...",
+    
+    // Missing Keys - Status and Input
+    accountNamePlaceholder: "Numele contului",
+    contaFilesSelected: "Fișiere Contabilitate selectate. Se citesc datele...",
+    anafFilesSelected: "Fișiere ANAF selectate. Se citesc datele...",
+    addNewContaRelation: "Adaugă relație nouă cont conta",
+    allAccountsMapped: "Toate conturile conta disponibile sunt deja mapate. Adaugă mai întâi conturi noi în panoul de Selecție Conturi.",
+    
+    // Missing Keys - Panel Names  
+    accountSelectionPanel: "Panoul de Selecție Conturi",
+    accountMappingPanel: "Panoul de Mapare Conturi",
+    accountSumsPanel: "Panoul de Sume Conturi",
+    anafDatePanel: "Panoul de Date ANAF",
+    anafHeaderPanel: "Panoul de Antet ANAF"
   },
   
   fr: {
@@ -371,7 +433,38 @@ const translations = {
     chooseTheme: "Choisir le Thème",
     chooseLanguage: "Choisir la Langue",
     lightThemes: "☀️ Thèmes Clairs",
-    darkThemes: "🌙 Thèmes Sombres"
+    darkThemes: "🌙 Thèmes Sombres",
+    
+    // Missing Keys - Panel Names and Headers
+    summaryOf: "Résumé de",
+    headerSelectionFor: "Sélection d'En-tête pour",
+    dateColumnsFor: "Colonnes de Date pour", 
+    contaAccountSelection: "Sélection des Comptes Conta",
+    anafAccountSelection: "Sélection des Comptes ANAF",
+    allColumnsSelectDeselect: "Toutes les Colonnes - Sélectionner/Désélectionner les Colonnes de Date",
+    
+    // Missing Keys - Button and Action Text
+    toggleLayoutMode: "Basculer le Mode de Mise en Page",
+    configureLayoutPanels: "Configurer les Panneaux du Mode de Mise en Page", 
+    toggleIdMode: "Basculer le Mode ID",
+    togglePanning: "Basculer le Panoramique (Mode Normal Seulement)",
+    screenModeConfig: "Mode Écran - Configurer les Écrans Personnalisés",
+    toggleGridBackground: "Basculer l'Arrière-plan en Grille",
+    creatingSummary: "Création du résumé...",
+    
+    // Missing Keys - Status and Input
+    accountNamePlaceholder: "Nom du compte",
+    contaFilesSelected: "Fichiers Contabilitate sélectionnés. Lecture des données...",
+    anafFilesSelected: "Fichiers ANAF sélectionnés. Lecture des données...",
+    addNewContaRelation: "Ajouter une nouvelle relation de compte conta",
+    allAccountsMapped: "Tous les comptes conta disponibles sont déjà mappés. Ajoutez d'abord de nouveaux comptes dans le panneau de Sélection des Comptes.",
+    
+    // Missing Keys - Panel Names  
+    accountSelectionPanel: "Panneau de Sélection des Comptes",
+    accountMappingPanel: "Panneau de Mappage des Comptes",
+    accountSumsPanel: "Panneau des Sommes de Comptes",
+    anafDatePanel: "Panneau de Date ANAF",
+    anafHeaderPanel: "Panneau d'En-tête ANAF"
   },
   
   de: {
@@ -496,7 +589,38 @@ const translations = {
     chooseTheme: "Thema Wählen",
     chooseLanguage: "Sprache Wählen",
     lightThemes: "☀️ Helle Themen",
-    darkThemes: "🌙 Dunkle Themen"
+    darkThemes: "🌙 Dunkle Themen",
+    
+    // Missing Keys - Panel Names and Headers
+    summaryOf: "Zusammenfassung von",
+    headerSelectionFor: "Kopfzeilenauswahl für",
+    dateColumnsFor: "Datumsspalten für", 
+    contaAccountSelection: "Conta-Konten Auswahl",
+    anafAccountSelection: "ANAF-Konten Auswahl",
+    allColumnsSelectDeselect: "Alle Spalten - Datumsspalten Auswählen/Abwählen",
+    
+    // Missing Keys - Button and Action Text
+    toggleLayoutMode: "Layout-Modus Umschalten",
+    configureLayoutPanels: "Layout-Modus Panels Konfigurieren", 
+    toggleIdMode: "ID-Modus Umschalten",
+    togglePanning: "Schwenken Umschalten (Nur Normaler Modus)",
+    screenModeConfig: "Bildschirm-Modus - Benutzerdefinierte Bildschirme Konfigurieren",
+    toggleGridBackground: "Raster-Hintergrund Umschalten",
+    creatingSummary: "Zusammenfassung wird erstellt...",
+    
+    // Missing Keys - Status and Input
+    accountNamePlaceholder: "Kontoname",
+    contaFilesSelected: "Contabilitate-Dateien ausgewählt. Daten werden gelesen...",
+    anafFilesSelected: "ANAF-Dateien ausgewählt. Daten werden gelesen...",
+    addNewContaRelation: "Neue Conta-Kontobeziehung hinzufügen",
+    allAccountsMapped: "Alle verfügbaren Conta-Konten sind bereits zugeordnet. Fügen Sie zuerst neue Konten im Kontoauswahl-Panel hinzu.",
+    
+    // Missing Keys - Panel Names  
+    accountSelectionPanel: "Kontoauswahl-Panel",
+    accountMappingPanel: "Kontenzuordnung-Panel",
+    accountSumsPanel: "Kontosummen-Panel",
+    anafDatePanel: "ANAF-Datum-Panel",
+    anafHeaderPanel: "ANAF-Kopfzeile-Panel"
   },
   
   es: {
@@ -621,7 +745,38 @@ const translations = {
     chooseTheme: "Elegir Tema",
     chooseLanguage: "Elegir Idioma",
     lightThemes: "☀️ Temas Claros",
-    darkThemes: "🌙 Temas Oscuros"
+    darkThemes: "🌙 Temas Oscuros",
+    
+    // Missing Keys - Panel Names and Headers
+    summaryOf: "Resumen de",
+    headerSelectionFor: "Selección de Encabezado para",
+    dateColumnsFor: "Columnas de Fecha para", 
+    contaAccountSelection: "Selección de Cuentas Conta",
+    anafAccountSelection: "Selección de Cuentas ANAF",
+    allColumnsSelectDeselect: "Todas las Columnas - Seleccionar/Deseleccionar Columnas de Fecha",
+    
+    // Missing Keys - Button and Action Text
+    toggleLayoutMode: "Alternar Modo de Diseño",
+    configureLayoutPanels: "Configurar Paneles del Modo de Diseño", 
+    toggleIdMode: "Alternar Modo ID",
+    togglePanning: "Alternar Paneo (Solo Modo Normal)",
+    screenModeConfig: "Modo Pantalla - Configurar Pantallas Personalizadas",
+    toggleGridBackground: "Alternar Fondo de Cuadrícula",
+    creatingSummary: "Creando resumen...",
+    
+    // Missing Keys - Status and Input
+    accountNamePlaceholder: "Nombre de cuenta",
+    contaFilesSelected: "Archivos Contabilitate seleccionados. Leyendo datos...",
+    anafFilesSelected: "Archivos ANAF seleccionados. Leyendo datos...",
+    addNewContaRelation: "Agregar nueva relación de cuenta conta",
+    allAccountsMapped: "Todas las cuentas conta disponibles ya están mapeadas. Agregue primero nuevas cuentas en el panel de Selección de Cuentas.",
+    
+    // Missing Keys - Panel Names  
+    accountSelectionPanel: "Panel de Selección de Cuentas",
+    accountMappingPanel: "Panel de Mapeo de Cuentas",
+    accountSumsPanel: "Panel de Sumas de Cuentas",
+    anafDatePanel: "Panel de Fecha ANAF",
+    anafHeaderPanel: "Panel de Encabezado ANAF"
   }
 };
 
