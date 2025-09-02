@@ -834,7 +834,7 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
           <div className="theme-sections-container">
             {/* Light Themes */}
             <div className="theme-section">
-            <h4 className="theme-section-title">{t ? t('lightThemes') : '☀️ Light Themes'}</h4>
+            <h4 className="theme-section-title">{t ? t('lightThemes') : 'Light Themes'}</h4>
             <div className="theme-options">
               {sortThemesByColor(Object.fromEntries(
                 Object.entries(themes).filter(([key, theme]) => !theme.isDark)
@@ -855,7 +855,7 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
                         background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.primary} 50%, ${theme.primary} 100%)`
                       }}
                     >
-                      {currentTheme === key && <span className="theme-checkmark">✓</span>}
+                      {currentTheme === key && <span className="theme-checkmark">&#10003;</span>}
                     </div>
                   </button>
                   <div className="theme-name-label">{theme.name}</div>
@@ -866,7 +866,7 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
           
           {/* Dark Themes */}
           <div className="theme-section">
-            <h4 className="theme-section-title">{t ? t('darkThemes') : '🌙 Dark Themes'}</h4>
+            <h4 className="theme-section-title">{t ? t('darkThemes') : 'Dark Themes'}</h4>
             <div className="theme-options">
               {sortThemesByColor(Object.fromEntries(
                 Object.entries(themes).filter(([key, theme]) => theme.isDark)
@@ -887,7 +887,7 @@ function ThemeMenu({ currentTheme, onThemeChange, t }) {
                         background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary} 50%, ${theme.primary} 50%, ${theme.primary} 100%)`
                       }}
                     >
-                      {currentTheme === key && <span className="theme-checkmark">✓</span>}
+                      {currentTheme === key && <span className="theme-checkmark">&#10003;</span>}
                     </div>
                   </button>
                   <div className="theme-name-label">{theme.name}</div>

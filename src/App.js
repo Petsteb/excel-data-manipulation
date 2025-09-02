@@ -11,6 +11,7 @@ import settingIconLight from './assets/icons/light/setting.png';
 import allDirectionsIconLight from './assets/icons/light/all-directions.png';
 import displayFrameIconLight from './assets/icons/light/display-frame.png';
 import dotGridIconLight from './assets/icons/light/dot-grid.png';
+import languageIconLight from './assets/icons/light/language.svg';
 
 // Icon imports - dark mode
 import dashboardIconDark from './assets/icons/dark/dashboard.png';
@@ -19,6 +20,7 @@ import settingIconDark from './assets/icons/dark/setting.png';
 import allDirectionsIconDark from './assets/icons/dark/all-directions.png';
 import displayFrameIconDark from './assets/icons/dark/display-frame.png';
 import dotGridIconDark from './assets/icons/dark/dot-grid.png';
+import languageIconDark from './assets/icons/dark/language.svg';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
@@ -35,7 +37,8 @@ const getIcon = (iconName, currentTheme) => {
     setting: { light: settingIconLight, dark: settingIconDark },
     allDirections: { light: allDirectionsIconLight, dark: allDirectionsIconDark },
     displayFrame: { light: displayFrameIconLight, dark: displayFrameIconDark },
-    dotGrid: { light: dotGridIconLight, dark: dotGridIconDark }
+    dotGrid: { light: dotGridIconLight, dark: dotGridIconDark },
+    language: { light: languageIconLight, dark: languageIconDark }
   };
   
   return icons[iconName] ? icons[iconName][isDarkMode ? 'dark' : 'light'] : null;
@@ -5736,7 +5739,7 @@ function App() {
     <div className={`App ${isLayoutMode ? 'layout-mode' : ''} ${!isGridVisible ? 'grid-hidden' : ''}`}>
       <div className="top-menu-bar">
         <ThemeMenu currentTheme={currentTheme} onThemeChange={handleThemeChange} t={t} />
-        <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} />
+        <LanguageMenu currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} t={t} currentTheme={currentTheme} />
         {/* Developer Mode Only Buttons */}
         {isDeveloperMode && (
           <>
@@ -6625,7 +6628,7 @@ function App() {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
-              📝 Rename
+              Rename
             </button>
             <button
               onClick={(e) => {
@@ -6659,7 +6662,7 @@ function App() {
               }}
               disabled={screenContextMenu.screen.id === 'home'}
             >
-              🎨 Change Color
+              Change Color
             </button>
             <button
               onClick={(e) => {
@@ -6691,7 +6694,7 @@ function App() {
               }}
               disabled={screenContextMenu.screen.id === 'home'}
             >
-              🗑️ Delete
+              Delete
             </button>
           </div>
         </div>
@@ -6874,7 +6877,7 @@ function App() {
                   onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                 >
                   {showColorPicker.color === color && (
-                    <div style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>✓</div>
+                    <div style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>&#10003;</div>
                   )}
                 </div>
               ))}
@@ -6987,7 +6990,7 @@ function App() {
                 pointerEvents: 'none',
                 zIndex: 100
               }}>
-                📁 Drop Excel files here
+                Drop Excel files here
               </div>
             )}
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -7068,7 +7071,7 @@ function App() {
                 pointerEvents: 'none',
                 zIndex: 100
               }}>
-                📁 Drop Excel files here
+                Drop Excel files here
               </div>
             )}
             <div className="panel-controls" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -7137,8 +7140,8 @@ function App() {
                 alignItems: 'center',
                 width: '100%'
               }}>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {contabilitateFiles.length} files</div>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {contabilitateFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>{contabilitateFiles.length} files</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>{contabilitateFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
                 <button 
                   className="btn btn-primary view-files-button" 
                   onClick={() => setShowContaFilesPopup(true)}
@@ -7210,8 +7213,8 @@ function App() {
                 alignItems: 'center',
                 width: '100%'
               }}>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📁 {anafFiles.length} files</div>
-                <div className="summary-item" style={{ flex: '0 0 auto' }}>📊 {anafFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>{anafFiles.length} files</div>
+                <div className="summary-item" style={{ flex: '0 0 auto' }}>{anafFiles.reduce((total, file) => total + file.rowCount, 0)} rows</div>
                 <button 
                   className="btn btn-primary view-files-button" 
                   onClick={() => setShowAnafFilesPopup(true)}
@@ -7741,7 +7744,7 @@ function App() {
                 ({selectedAccounts.length} Conta + {selectedAnafAccounts.length} ANAF account{(selectedAccounts.length + selectedAnafAccounts.length) !== 1 ? 's' : ''})
                 {(startDate || endDate) && (
                   <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                    📅
+                    [DATE]
                   </span>
                 )}
               </button>
@@ -7887,7 +7890,7 @@ function App() {
                               fontWeight: 'bold',
                               fontSize: '10px'
                             }}>
-                              {isBalanced ? '✓ BALANCED' : '⚠ UNBALANCED'}
+                              {isBalanced ? 'BALANCED' : 'UNBALANCED'}
                             </span>
                           </div>
                         </div>
@@ -8289,7 +8292,7 @@ function App() {
                 borderRadius: '4px',
                 fontSize: '14px'
               }}>
-                ⚠️ Please select at least one worksheet to generate
+                Please select at least one worksheet to generate
               </div>
             )}
           </div>
@@ -8670,8 +8673,8 @@ function App() {
                         </div>
                         <div className="column-info">
                           {isAutoDetected && <span className="badge auto">Auto</span>}
-                          {hasTime && <span className="badge time">⏰</span>}
-                          {isSelected && <span className="badge selected">✅</span>}
+                          {hasTime && <span className="badge time">TIME</span>}
+                          {isSelected && <span className="badge selected">&#10003;</span>}
                         </div>
                       </button>
                       );
@@ -8804,7 +8807,7 @@ function App() {
                             fontSize: '16px',
                             color: isLayoutModeOnly ? GLOBAL_PRIMARY_COLOR : GLOBAL_TEXT_COLOR
                           }}>
-                            {isLayoutModeOnly ? '✓' : '○'}
+                            {isLayoutModeOnly ? '&#10003;' : '&#9675;'}
                           </span>
                         </div>
                       </button>
@@ -8879,7 +8882,7 @@ function App() {
                             <div className="file-name">{file.fileName}</div>
                             <div className="file-rows">{file.dataRows} rows</div>
                             <div className={`file-status ${file.headerMatch ? 'match' : 'no-match'}`}>
-                              {file.headerMatch ? '✓ Headers match' : '⚠ Headers differ'}
+                              {file.headerMatch ? 'Headers match' : 'Headers differ'}
                             </div>
                           </div>
                         </div>
@@ -9001,7 +9004,7 @@ function App() {
                   }
                 }}
               >
-                <div style={{ fontSize: '14px', marginBottom: '2px' }}>🏠</div>
+                <div style={{ fontSize: '14px', marginBottom: '2px' }}>HOME</div>
                 <div style={{ fontSize: '10px' }}>HOME</div>
               </div>
             )}

@@ -1,35 +1,38 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './LanguageMenu.css';
+import { themes } from './ThemeMenu';
+import languageIconLight from './assets/icons/light/language.svg';
+import languageIconDark from './assets/icons/dark/language.svg';
 
 const languages = {
   en: {
     name: 'English',
-    flag: '🇺🇸',
+    flag: 'EN',
     code: 'en'
   },
   ro: {
     name: 'Română',
-    flag: '🇷🇴',
+    flag: 'RO',
     code: 'ro'
   },
   fr: {
     name: 'Français',
-    flag: '🇫🇷',
+    flag: 'FR',
     code: 'fr'
   },
   de: {
     name: 'Deutsch',
-    flag: '🇩🇪',
+    flag: 'DE',
     code: 'de'
   },
   es: {
     name: 'Español',
-    flag: '🇪🇸',
+    flag: 'ES',
     code: 'es'
   }
 };
 
-function LanguageMenu({ currentLanguage, onLanguageChange, t }) {
+function LanguageMenu({ currentLanguage, onLanguageChange, t, currentTheme }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -58,7 +61,12 @@ function LanguageMenu({ currentLanguage, onLanguageChange, t }) {
         onClick={() => setIsOpen(!isOpen)}
         title={t ? t('changeLanguage') : "Change Language"}
       >
-        <span className="language-icon">🌐</span>
+        <img 
+          src={themes[currentTheme]?.isDark ? languageIconDark : languageIconLight} 
+          alt="Language" 
+          className="language-icon"
+          style={{ width: '14px', height: '14px' }}
+        />
       </button>
       
       {isOpen && (
@@ -79,7 +87,7 @@ function LanguageMenu({ currentLanguage, onLanguageChange, t }) {
               >
                 <span className="language-flag">{language.flag}</span>
                 <span className="language-name">{language.name}</span>
-                {currentLanguage === key && <span className="language-checkmark">✓</span>}
+                {currentLanguage === key && <span className="language-checkmark">&#10003;</span>}
               </button>
             ))}
           </div>
