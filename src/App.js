@@ -7695,6 +7695,10 @@ function App() {
                       if (account.startsWith(fileAccount + '.')) {
                         return true;
                       }
+                      // Special case for 1/4423 and 1/4424 accounts that should match files with account '1'
+                      if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') {
+                        return true;
+                      }
                       return false;
                     });
                     
