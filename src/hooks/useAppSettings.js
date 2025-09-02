@@ -20,6 +20,10 @@ export function useAppSettings() {
     } catch (err) {
       console.error('Failed to load settings:', err);
       setError(err.message);
+      // Set empty settings object as fallback to prevent infinite loading
+      const fallbackSettings = { theme: 'professional', language: 'en' };
+      setSettings(fallbackSettings);
+      settingsRef.current = fallbackSettings;
     } finally {
       setLoading(false);
     }

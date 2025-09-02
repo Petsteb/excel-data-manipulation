@@ -435,10 +435,15 @@ function App() {
 
   // Load settings on app start using the new settings hook
   useEffect(() => {
-    if (settingsLoading || !settings) return;
+    if (settingsLoading) return;
 
     const initializeFromSettings = () => {
       try {
+        // If settings are not available yet, wait
+        if (!settings) {
+          setIsLoading(true);
+          return;
+        }
         
         // Load theme and language from new settings system
         const theme = getTheme();
@@ -586,17 +591,23 @@ function App() {
             setPanOffset({ x: targetX, y: targetY });
           }
         }, 100);
+        
+        // Set loading to false after initialization is complete
+        setIsLoading(false);
+        
       } catch (error) {
-        console.error('Failed to load settings:', error);
+        console.error('Failed to initialize from settings:', error);
+        // Set sensible defaults
+        setCurrentTheme('professional');
+        setCurrentLanguage('en');
         setCommonLines(1);
         setColumnNamesRow(1);
-      } finally {
         setIsLoading(false);
       }
     };
 
-    loadAppSettings();
-  }, []);
+    initializeFromSettings();
+  }, [settingsLoading, settings]);
 
   // Auto-save view settings when they change
   useEffect(() => {
@@ -5818,7 +5829,7 @@ function App() {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  if (isLoading) {
+  if (settingsLoading) {
     return (
       <div className="App loading">
         <div className="loading-spinner">
