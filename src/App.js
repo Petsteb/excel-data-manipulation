@@ -9004,7 +9004,7 @@ function App() {
                   }
                 }}
               >
-                <div style={{ ...TYPOGRAPHY.TAB_BUTTON, color: 'white' }}>HOME</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'white' }}>HOME</div>
               </div>
             )}
 
@@ -9066,7 +9066,8 @@ function App() {
                 }}
               >
                 <div style={{ 
-                  ...TYPOGRAPHY.TAB_BUTTON,
+                  fontSize: '12px',
+                  fontWeight: 'bold',
                   color: 'white',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
