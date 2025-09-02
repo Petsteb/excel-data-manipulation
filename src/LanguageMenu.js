@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './LanguageMenu.css';
 import { themes } from './ThemeMenu';
-import languageIconLight from './assets/icons/light/language.svg';
-import languageIconDark from './assets/icons/dark/language.svg';
+import languageIconLight from './assets/icons/light/language.png';
+import languageIconDark from './assets/icons/dark/language.png';
 
 const languages = {
   en: {
@@ -62,7 +62,10 @@ function LanguageMenu({ currentLanguage, onLanguageChange, t, currentTheme }) {
         title={t ? t('changeLanguage') : "Change Language"}
       >
         <img 
-          src={themes[currentTheme]?.isDark ? languageIconDark : languageIconLight} 
+          src={(() => {
+            const isDarkMode = currentTheme && currentTheme.name && (currentTheme.name.includes('dark') || currentTheme.name.includes('night'));
+            return isDarkMode ? languageIconDark : languageIconLight;
+          })()} 
           alt="Language" 
           className="language-icon"
           style={{ width: '14px', height: '14px' }}

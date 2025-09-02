@@ -11,7 +11,7 @@ import settingIconLight from './assets/icons/light/setting.png';
 import allDirectionsIconLight from './assets/icons/light/all-directions.png';
 import displayFrameIconLight from './assets/icons/light/display-frame.png';
 import dotGridIconLight from './assets/icons/light/dot-grid.png';
-import languageIconLight from './assets/icons/light/language.svg';
+import languageIconLight from './assets/icons/light/language.png';
 
 // Icon imports - dark mode
 import dashboardIconDark from './assets/icons/dark/dashboard.png';
@@ -20,7 +20,7 @@ import settingIconDark from './assets/icons/dark/setting.png';
 import allDirectionsIconDark from './assets/icons/dark/all-directions.png';
 import displayFrameIconDark from './assets/icons/dark/display-frame.png';
 import dotGridIconDark from './assets/icons/dark/dot-grid.png';
-import languageIconDark from './assets/icons/dark/language.svg';
+import languageIconDark from './assets/icons/dark/language.png';
 
 const GRID_SIZE = 20;
 const DEFAULT_PANEL_WIDTH = 240;
