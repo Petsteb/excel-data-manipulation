@@ -3701,31 +3701,36 @@ function App() {
     setSelectedAnafFileIndices(newSelected);
   };
 
-  const handleDeleteSelectedContabilitate = () => {
+  const handleDeleteSelectedContabilitate = async () => {
     if (selectedFileIndices.size === 0) return;
     
+    const deletedCount = selectedFileIndices.size;
     const newContabilitateFiles = contabilitateFiles.filter((_, index) => !selectedFileIndices.has(index));
     
     setContabilitateFiles(newContabilitateFiles);
     setSelectedFileIndices(new Set());
-    setStatus(`Deleted ${selectedFileIndices.size} Contabilitate files remaining.`);
+    setStatus(`Deleted ${deletedCount} Contabilitate files. ${newContabilitateFiles.length} remaining.`);
     
-    // Re-process remaining files and update assignments
-    processContaFiles(newContabilitateFiles);
+    // Re-process remaining files to update assignments and account selections
+    await processContaFiles(newContabilitateFiles);
   };
 
   const handleDeleteSelectedAnaf = () => {
     if (selectedAnafFileIndices.size === 0) return;
     
+    const deletedCount = selectedAnafFileIndices.size;
     const newAnafFiles = anafFiles.filter((_, index) => !selectedAnafFileIndices.has(index));
     
     setAnafFiles(newAnafFiles);
     setSelectedAnafFileIndices(new Set());
-    setStatus(`Deleted ${selectedAnafFileIndices.size} ANAF files remaining.`);
+    setStatus(`Deleted ${deletedCount} ANAF files. ${newAnafFiles.length} remaining.`);
     
-    // Re-assign files to accounts after deletion
+    // Re-assign files to accounts and update account selections after deletion
     const anafAssignments = autoAssignFilesToAccounts(newAnafFiles, availableAnafAccounts, true);
     setAnafAccountFiles(anafAssignments);
+    
+    // Update account selections based on remaining files
+    autoSelectFoundAnafAccounts(newAnafFiles);
   };
 
   const selectAllContabilitateFiles = () => {
