@@ -2763,10 +2763,15 @@ function App() {
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
     
-    console.log(`[ANAF DEBUG] Starting calculation for account: ${account}`);
-    console.log(`[ANAF DEBUG] Date range: ${startDate} to ${endDate}`);
-    console.log(`[ANAF DEBUG] Filter: ${filterColumn} = "${filterValue}", Sum: ${sumColumn}`);
-    console.log(`[ANAF DEBUG] Subtraction config:`, subtractConfig);
+    
+    // Debug specifically for account 3 transactions and their sum calculation
+    if (account === '3') {
+      console.log(`[ACCOUNT 3 DEBUG] =================================`);
+      console.log(`[ACCOUNT 3 DEBUG] Starting calculation for account 3`);
+      console.log(`[ACCOUNT 3 DEBUG] Date range: ${startDate} to ${endDate}`);
+      console.log(`[ACCOUNT 3 DEBUG] Filter: ${filterColumn} = "${filterValue}", Sum: ${sumColumn}`);
+      console.log(`[ACCOUNT 3 DEBUG] =================================`);
+    }
     
     // Get assigned files for this account, fallback to all files if none assigned
     const assignedFileIds = anafAccountFiles[account] || [];
@@ -2781,11 +2786,17 @@ function App() {
           return false;
         });
 
-    console.log(`[ANAF DEBUG] Processing ${filesToProcess.length} files for account ${account}`);
+    
+    if (account === '3') {
+      console.log(`[ACCOUNT 3 DEBUG] Processing ${filesToProcess.length} files for account 3:`);
+      filesToProcess.forEach((file, idx) => {
+        const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
+        console.log(`[ACCOUNT 3 DEBUG] File ${idx + 1}: ${fileName}`);
+      });
+    }
     
     filesToProcess.forEach((file, fileIndex) => {
       const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
-      console.log(`[ANAF DEBUG] File ${fileIndex + 1}: ${fileName}`);
       
       if (file.data && Array.isArray(file.data)) {
         
@@ -2854,7 +2865,6 @@ function App() {
             dateFilteredRows++;
             dateFilteredOutRows++;
             if (index <= 5 || sumaPlataValue > 1000) {
-              console.log(`[ANAF DEBUG] Row ${index}: Date ${rowDate.toISOString().split('T')[0]} outside interval [${startDate}, ${endDate}] - SKIPPED`);
             }
             return; // Skip rows outside the date interval
           }
@@ -2886,7 +2896,6 @@ function App() {
               filteredOutRows++;
               totalFilteredOutRows++;
               if (index <= 5 || sumaPlataValue > 1000) {
-                console.log(`[ANAF DEBUG] Row ${index}: ${filterColumn}="${ctgSumeValue}" != "${filterValue}" - FILTERED OUT`);
               }
               return;
             }
@@ -2920,7 +2929,6 @@ function App() {
           // Debug significant values or first few rows
           if (index <= 10 || valueToAdd > 1000 || Math.abs(valueToAdd) > 1000) {
             const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'No date';
-            console.log(`[ANAF DEBUG] Row ${index}: ${dateStr} | ${filterColumn}=${ctgSumeValue} | ${sumColumn}=${valueToAdd} | Running sum: ${sum.toFixed(2)}`);
             sumDetails.push({
               row: index,
               date: dateStr,
@@ -2929,17 +2937,20 @@ function App() {
               runningSum: sum
             });
           }
+          
+          // Special debug for account 3 - show ALL transactions that contribute to the sum
+          if (account === '3') {
+            const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'No date';
+            console.log(`[ACCOUNT 3 DEBUG] Transaction ${index}: ${dateStr} | ${filterColumn}=${ctgSumeValue} | ${sumColumn}=${valueToAdd.toFixed(2)} | Running sum: ${sum.toFixed(2)}`);
+          }
         });
         
-        console.log(`[ANAF DEBUG] File ${fileIndex + 1} (${fileName}) summary: ${processedRows} processed, ${filteredOutRows} filtered out, ${dateFilteredRows} date filtered`);
       }
     });
 
-    console.log(`[ANAF DEBUG] Main calculation complete: ${sum.toFixed(2)} (${totalProcessedRows} rows processed, ${totalFilteredOutRows} filtered out, ${dateFilteredOutRows} date filtered)`);
     
     // Calculate subtraction if configured
     if (subtractConfig && subtractConfig.filterValue) {
-      console.log(`[ANAF DEBUG] Starting subtraction calculation with config:`, subtractConfig);
       filesToProcess.forEach(file => {
         if (file.data && Array.isArray(file.data)) {
           
@@ -3032,22 +3043,24 @@ function App() {
           });
         }
       });
-      console.log(`[ANAF DEBUG] Subtraction complete: ${subtractSum.toFixed(2)}`);
     } else {
-      console.log(`[ANAF DEBUG] No subtraction configured`);
     }
 
     const finalResult = sum - subtractSum;
-    console.log(`[ANAF DEBUG] Final result for account ${account}: ${finalResult.toFixed(2)} (${sum.toFixed(2)} - ${subtractSum.toFixed(2)})`);
+    
+    // Final debug summary for account 3
+    if (account === '3') {
+      console.log(`[ACCOUNT 3 DEBUG] =================================`);
+      console.log(`[ACCOUNT 3 DEBUG] CALCULATION COMPLETE FOR ACCOUNT 3`);
+      console.log(`[ACCOUNT 3 DEBUG] Main sum: ${sum.toFixed(2)}`);
+      console.log(`[ACCOUNT 3 DEBUG] Subtraction: ${subtractSum.toFixed(2)}`);
+      console.log(`[ACCOUNT 3 DEBUG] Final result: ${finalResult.toFixed(2)} (${sum.toFixed(2)} - ${subtractSum.toFixed(2)})`);
+      console.log(`[ACCOUNT 3 DEBUG] Total transactions processed: ${totalProcessedRows}`);
+      console.log(`[ACCOUNT 3 DEBUG] =================================`);
+    }
     
     // Show top contributing rows if result is significant
     if (Math.abs(finalResult) > 10000) {
-      console.log(`[ANAF DEBUG] Top contributing rows:`);
-      sumDetails.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-                .slice(0, 5)
-                .forEach(detail => {
-                  console.log(`[ANAF DEBUG] Row ${detail.row}: ${detail.date} | ${detail.filter} | Value: ${detail.value}`);
-                });
     }
 
     return finalResult;
