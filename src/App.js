@@ -3937,7 +3937,7 @@ function App() {
       return;
     }
 
-    if (!dateInterval.startDate || !dateInterval.endDate) {
+    if (!startDate || !endDate) {
       setStatus('Please select a date interval first');
       return;
     }
@@ -3984,7 +3984,7 @@ function App() {
         contaData,
         anafData,
         accountMappings,
-        dateInterval,
+        dateInterval: { startDate, endDate },
         contaDateColumnIndex,
         anafDateColumnIndex,
         contaValueColumnIndex,
