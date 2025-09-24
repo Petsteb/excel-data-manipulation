@@ -3975,7 +3975,7 @@ function App() {
       });
 
       // Find date and value column indices (you may need to adjust these based on your data structure)
-      const contaDateColumnIndex = selectedDateColumns.length > 0 ? selectedDateColumns[0] : 0;
+      const contaDateColumnIndex = contabilitateSelectedDateColumns.length > 0 ? contabilitateSelectedDateColumns[0] : 0;
       const anafDateColumnIndex = anafSelectedDateColumns.length > 0 ? anafSelectedDateColumns[0] : 0;
       const contaValueColumnIndex = contaDateColumnIndex + 1; // Assuming value column is next to date
       const anafValueColumnIndex = anafDateColumnIndex + 1; // Assuming value column is next to date
