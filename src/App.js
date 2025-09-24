@@ -3962,6 +3962,7 @@ function App() {
         anafFiles,
         accountConfigs,
         anafAccountFiles,
+        anafAccountConfigs,
         outputPath
       });
 

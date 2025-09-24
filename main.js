@@ -1383,8 +1383,9 @@ function calculateContaAccountSum(account, startDate, endDate, processedContaFil
 
 // Helper function to calculate ANAF account sums for a specific date range (same logic as frontend)
 function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles, config = {}) {
-  const { filterColumn = 'CTG_SUME', filterValue = account, sumColumn = 'SUMA_PLATA' } = config;
+  const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
   let sum = 0;
+  let subtractSum = 0;
 
   console.log(`Calculating ANAF sum for account: ${account}, dates: ${startDate} - ${endDate}`);
   console.log(`Config: filterColumn=${filterColumn}, filterValue=${filterValue}, sumColumn=${sumColumn}`);
@@ -1518,8 +1519,117 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
     }
   });
 
-  console.log(`Total sum for account ${account}: ${sum}`);
-  return sum;
+  // Calculate subtraction if configured
+  if (subtractConfig && subtractConfig.filterValue) {
+    console.log(`Calculating subtraction with config:`, subtractConfig);
+
+    filesToProcess.forEach((file) => {
+      const fileName = file.filePath || file.name || 'Unknown';
+      let subtractMatchingRows = 0;
+
+      if (file.data && Array.isArray(file.data)) {
+        file.data.forEach((row, index) => {
+          // Skip company info row (0) and column header row (1)
+          if (index === 0 || index === 1) return;
+
+          // Get values from row
+          const ctgSumeValue = row[6]; // CTG_SUME column
+          const atributPlValue = row[12]; // ATRIBUT_PL column
+          const imeCodeValue = row[0]; // IME_COD_IMPOZIT column
+          const denumireValue = row[1]; // DENUMIRE_IMPOZIT column
+          const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column
+          const incasariValue = parseFloat(row[13]) || 0; // INCASARI column
+          const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column
+          const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column
+
+          // Date filtering using SCADENTA and TERM_PLATA columns - same as main calculation
+          let rowDate = null;
+
+          // First check SCADENTA column (index 4)
+          const scadentaDate = row[4];
+          if (scadentaDate && scadentaDate.trim() !== '') {
+            const scadentaISO = parseDDMMYYYY(scadentaDate);
+            if (scadentaISO) {
+              rowDate = new Date(scadentaISO + 'T12:00:00');
+            }
+          }
+
+          // If SCADENTA is null or unparseable, fall back to TERM_PLATA column (index 5)
+          if (!rowDate) {
+            const termPlataDate = row[5];
+            if (termPlataDate && termPlataDate.trim() !== '') {
+              const termISO = parseDDMMYYYY(termPlataDate);
+              if (termISO) {
+                rowDate = new Date(termISO + 'T12:00:00');
+              }
+            }
+          }
+
+          // If both SCADENTA and TERM_PLATA are null or unparseable, skip the row
+          if (!rowDate) {
+            return; // Skip rows with no valid date
+          }
+
+          // Apply interval filtering after selecting date source
+          if ((start && rowDate < start) || (end && rowDate > end)) {
+            return; // Skip rows outside the date interval
+          }
+
+          // Apply subtraction filter based on selected filter column
+          let matchesSubtractFilter = false;
+          switch (subtractConfig.filterColumn) {
+            case 'CTG_SUME':
+              matchesSubtractFilter = ctgSumeValue === subtractConfig.filterValue;
+              break;
+            case 'ATRIBUT_PL':
+              matchesSubtractFilter = atributPlValue === subtractConfig.filterValue;
+              break;
+            case 'IME_COD_IMPOZIT':
+              matchesSubtractFilter = imeCodeValue === subtractConfig.filterValue;
+              break;
+            case 'DENUMIRE_IMPOZIT':
+              matchesSubtractFilter = denumireValue === subtractConfig.filterValue;
+              break;
+            default:
+              matchesSubtractFilter = false;
+          }
+
+          if (matchesSubtractFilter) {
+            // Add to subtract sum based on selected sum column
+            let valueToSubtract = 0;
+
+            switch (subtractConfig.sumColumn) {
+              case 'SUMA_PLATA':
+                valueToSubtract = sumaPlataValue;
+                break;
+              case 'INCASARI':
+                valueToSubtract = incasariValue;
+                break;
+              case 'SUMA_NEACHITATA':
+                valueToSubtract = sumaNEValue;
+                break;
+              case 'RAMBURSARI':
+                valueToSubtract = rambursariValue;
+                break;
+              default:
+                valueToSubtract = sumaPlataValue;
+            }
+
+            subtractSum += valueToSubtract;
+            subtractMatchingRows++;
+          }
+        });
+      }
+
+      if (subtractMatchingRows > 0) {
+        console.log(`File ${fileName}: found ${subtractMatchingRows} subtraction rows, subtractSum=${subtractSum}`);
+      }
+    });
+  }
+
+  const finalSum = sum - subtractSum;
+  console.log(`Final sum for account ${account}: ${sum} - ${subtractSum} = ${finalSum}`);
+  return finalSum;
 }
 
 // Helper function to extract account from filename
@@ -1548,6 +1658,44 @@ function extractAccountFromFilename(filename) {
   return '';
 }
 
+// Helper function to get ANAF account config (same logic as frontend)
+function getAnafAccountConfig(account, anafAccountConfigs) {
+  // If user has custom config, use that
+  if (anafAccountConfigs[account]) {
+    return anafAccountConfigs[account];
+  }
+
+  // Apply automatic configuration based on Account 412 settings
+  // Default config for all accounts except 1/4423 and 1/4424
+  let defaultConfig = {
+    filterColumn: 'CTG_SUME',
+    filterValue: 'D',
+    sumColumn: 'SUMA_PLATA'
+    // No subtractConfig by default - only specific accounts should have subtraction
+  };
+
+  // For accounts that need subtraction, add it back
+  if (account !== '1/4423' && account !== '1/4424') {
+    defaultConfig.subtractConfig = {
+      filterColumn: 'ATRIBUT_PL',
+      filterValue: 'DIM',
+      sumColumn: 'INCASARI'
+    };
+  }
+
+  // Special configs for accounts 1/4423 and 1/4424 (no subtraction)
+  if (account === '1/4423' || account === '1/4424') {
+    defaultConfig = {
+      filterColumn: 'CTG_SUME',
+      filterValue: account,
+      sumColumn: 'SUMA_PLATA'
+      // No subtractConfig
+    };
+  }
+
+  return defaultConfig;
+}
+
 // Handle creating enhanced account relation analysis with monthly sums (using same logic as frontend)
 ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   contaData,
@@ -1558,6 +1706,7 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   anafFiles,
   accountConfigs = {},
   anafAccountFiles = {},
+  anafAccountConfigs = {},
   outputPath
 }) => {
   try {
@@ -1649,7 +1798,7 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           // Calculate ANAF sum for all related accounts on June 25th next year
           anafSum = 0;
           for (const anafAccount of anafAccounts) {
-            const config = { filterColumn: 'CTG_SUME', filterValue: anafAccount, sumColumn: 'SUMA_PLATA' };
+            const config = getAnafAccountConfig(anafAccount, anafAccountConfigs);
             anafSum += calculateAnafAccountSum(anafAccount, june25NextYear, june25NextYear, anafFiles, anafAccountFiles, config);
           }
 
@@ -1703,7 +1852,7 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           // Calculate ANAF sum for all related accounts in the next month
           anafSum = 0;
           for (const anafAccount of anafAccounts) {
-            const config = { filterColumn: 'CTG_SUME', filterValue: anafAccount, sumColumn: 'SUMA_PLATA' };
+            const config = getAnafAccountConfig(anafAccount, anafAccountConfigs);
             anafSum += calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles, config);
           }
         }
