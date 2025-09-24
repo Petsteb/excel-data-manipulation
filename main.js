@@ -1382,8 +1382,13 @@ function calculateContaAccountSum(account, startDate, endDate, processedContaFil
 }
 
 // Helper function to calculate ANAF account sums for a specific date range (same logic as frontend)
-function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles) {
+function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles, config = {}) {
+  const { filterColumn = 'CTG_SUME', filterValue = account, sumColumn = 'SUMA_PLATA' } = config;
   let sum = 0;
+
+  console.log(`Calculating ANAF sum for account: ${account}, dates: ${startDate} - ${endDate}`);
+  console.log(`Config: filterColumn=${filterColumn}, filterValue=${filterValue}, sumColumn=${sumColumn}`);
+
   const startISO = parseDDMMYYYY(startDate);
   const endISO = parseDDMMYYYY(endDate);
   const start = startISO ? new Date(startISO + 'T00:00:00') : null;
@@ -1401,11 +1406,32 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
         return false;
       });
 
+  console.log(`Found ${filesToProcess.length} files to process for account ${account}`);
+
   filesToProcess.forEach((file) => {
+    const fileName = file.filePath || file.name || 'Unknown';
+    console.log(`Processing file: ${fileName} for account ${account}`);
+
     if (file.data && Array.isArray(file.data)) {
+      let matchingRows = 0;
+      let processedRows = 0;
+
       file.data.forEach((row, index) => {
         // Skip company info row (0) and column header row (1)
         if (index === 0 || index === 1) return;
+
+        processedRows++;
+
+        // Get values from row
+        const termPlataValue = row[5]; // TERM_PLATA column
+        const ctgSumeValue = row[6]; // CTG_SUME column
+        const atributPlValue = row[12]; // ATRIBUT_PL column
+        const imeCodeValue = row[0]; // IME_COD_IMPOZIT column
+        const denumireValue = row[1]; // DENUMIRE_IMPOZIT column
+        const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column
+        const incasariValue = parseFloat(row[13]) || 0; // INCASARI column
+        const sumaNEValue = parseFloat(row[9]) || 0; // SUMA_NEACHITATA column
+        const rambursariValue = parseFloat(row[14]) || 0; // RAMBURSARI column
 
         // Date filtering using SCADENTA and TERM_PLATA columns
         let rowDate = null;
@@ -1430,22 +1456,69 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
           }
         }
 
-        // Check date range
-        if (rowDate) {
-          if (start && rowDate < start) return;
-          if (end && rowDate > end) return;
+        // If both SCADENTA and TERM_PLATA are null or unparseable, skip the row
+        if (!rowDate) {
+          return; // Skip rows with no valid date
         }
 
-        // Check if this row matches the account
-        const ctgSumeValue = row[6]; // CTG_SUME column
-        if (ctgSumeValue && ctgSumeValue.toString().includes(account)) {
-          const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column
-          sum += sumaPlataValue;
+        // Apply interval filtering after selecting date source
+        if ((start && rowDate < start) || (end && rowDate > end)) {
+          return; // Skip rows outside the date interval
         }
+
+        // Apply filter based on selected filter column
+        if (filterValue) {
+          let matchesFilter = false;
+          switch (filterColumn) {
+            case 'CTG_SUME':
+              matchesFilter = ctgSumeValue === filterValue;
+              break;
+            case 'ATRIBUT_PL':
+              matchesFilter = atributPlValue === filterValue;
+              break;
+            case 'IME_COD_IMPOZIT':
+              matchesFilter = imeCodeValue === filterValue;
+              break;
+            case 'DENUMIRE_IMPOZIT':
+              matchesFilter = denumireValue === filterValue;
+              break;
+            default:
+              matchesFilter = true;
+          }
+          if (!matchesFilter) {
+            return; // Skip rows that don't match the filter
+          }
+        }
+
+        // Add to sum based on selected sum column
+        let valueToAdd = 0;
+
+        switch (sumColumn) {
+          case 'SUMA_PLATA':
+            valueToAdd = sumaPlataValue;
+            break;
+          case 'INCASARI':
+            valueToAdd = incasariValue;
+            break;
+          case 'SUMA_NEACHITATA':
+            valueToAdd = sumaNEValue;
+            break;
+          case 'RAMBURSARI':
+            valueToAdd = rambursariValue;
+            break;
+          default:
+            valueToAdd = sumaPlataValue;
+        }
+
+        sum += valueToAdd;
+        matchingRows++;
       });
+
+      console.log(`File ${fileName}: processed ${processedRows} rows, found ${matchingRows} matching rows for account ${account}`);
     }
   });
 
+  console.log(`Total sum for account ${account}: ${sum}`);
   return sum;
 }
 
@@ -1488,6 +1561,13 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   outputPath
 }) => {
   try {
+    console.log('Enhanced analysis inputs:');
+    console.log('Account mappings:', accountMappings);
+    console.log('Date interval:', dateInterval);
+    console.log('Processed conta files count:', processedContaFiles?.length || 0);
+    console.log('ANAF files count:', anafFiles?.length || 0);
+    console.log('Account configs:', Object.keys(accountConfigs));
+    console.log('ANAF account files:', Object.keys(anafAccountFiles));
     const workbook = new ExcelJS.Workbook();
 
     // Convert date interval to proper format
@@ -1569,7 +1649,8 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           // Calculate ANAF sum for all related accounts on June 25th next year
           anafSum = 0;
           for (const anafAccount of anafAccounts) {
-            anafSum += calculateAnafAccountSum(anafAccount, june25NextYear, june25NextYear, anafFiles, anafAccountFiles);
+            const config = { filterColumn: 'CTG_SUME', filterValue: anafAccount, sumColumn: 'SUMA_PLATA' };
+            anafSum += calculateAnafAccountSum(anafAccount, june25NextYear, june25NextYear, anafFiles, anafAccountFiles, config);
           }
 
           // Add separate row for December 31st if there are transactions
@@ -1622,7 +1703,8 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           // Calculate ANAF sum for all related accounts in the next month
           anafSum = 0;
           for (const anafAccount of anafAccounts) {
-            anafSum += calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles);
+            const config = { filterColumn: 'CTG_SUME', filterValue: anafAccount, sumColumn: 'SUMA_PLATA' };
+            anafSum += calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles, config);
           }
         }
 
