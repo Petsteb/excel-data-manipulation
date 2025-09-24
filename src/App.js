@@ -3922,8 +3922,8 @@ function App() {
 
   const handleEnhancedRelationAnalysis = async () => {
     // Validate required data
-    if (!contaFiles.length) {
-      setStatus('Please load Conta files first');
+    if (!contabilitateFiles.length) {
+      setStatus('Please load Contabilitate files first');
       return;
     }
 
@@ -3957,7 +3957,7 @@ function App() {
 
       // Prepare conta and anaf data
       const contaData = [];
-      contaFiles.forEach(file => {
+      contabilitateFiles.forEach(file => {
         file.data.forEach((row, index) => {
           if (index >= commonLines) { // Skip header rows
             contaData.push(row);
@@ -8481,7 +8481,7 @@ function App() {
           <button
             className="merge-button"
             onClick={handleEnhancedRelationAnalysis}
-            disabled={isProcessing || !contaFiles.length || !anafFiles.length || Object.keys(accountMappings).length === 0}
+            disabled={isProcessing || !contabilitateFiles.length || !anafFiles.length || Object.keys(accountMappings).length === 0}
             style={{
               backgroundColor: '#8B5CF6',
               borderColor: '#7C3AED'
