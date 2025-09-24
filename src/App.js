@@ -3955,40 +3955,13 @@ function App() {
 
       setStatus('Creating enhanced relation analysis...');
 
-      // Prepare conta and anaf data
-      const contaData = [];
-      contabilitateFiles.forEach(file => {
-        file.data.forEach((row, index) => {
-          if (index >= commonLines) { // Skip header rows
-            contaData.push(row);
-          }
-        });
-      });
-
-      const anafData = [];
-      anafFiles.forEach(file => {
-        file.data.forEach((row, index) => {
-          if (index >= anafCommonLines) { // Skip header rows
-            anafData.push(row);
-          }
-        });
-      });
-
-      // Find date and value column indices (you may need to adjust these based on your data structure)
-      const contaDateColumnIndex = contabilitateSelectedDateColumns.length > 0 ? contabilitateSelectedDateColumns[0] : 0;
-      const anafDateColumnIndex = anafSelectedDateColumns.length > 0 ? anafSelectedDateColumns[0] : 0;
-      const contaValueColumnIndex = contaDateColumnIndex + 1; // Assuming value column is next to date
-      const anafValueColumnIndex = anafDateColumnIndex + 1; // Assuming value column is next to date
-
       const result = await window.electronAPI.createEnhancedRelationAnalysis({
-        contaData,
-        anafData,
         accountMappings,
         dateInterval: { startDate, endDate },
-        contaDateColumnIndex,
-        anafDateColumnIndex,
-        contaValueColumnIndex,
-        anafValueColumnIndex,
+        processedContaFiles,
+        anafFiles,
+        accountConfigs,
+        anafAccountFiles,
         outputPath
       });
 

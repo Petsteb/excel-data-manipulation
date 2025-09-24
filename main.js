@@ -1268,25 +1268,242 @@ function getJune25thTransactions(transactions, year, dateColumnIndex) {
   });
 }
 
-// Handle creating enhanced account relation analysis with monthly sums
+// Helper function to parse DD/MM/YYYY format dates
+function parseDDMMYYYY(dateString) {
+  if (!dateString || typeof dateString !== 'string') return null;
+
+  const parts = dateString.split('/');
+  if (parts.length !== 3) return null;
+
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+
+  return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+}
+
+// Helper function to calculate conta account sums for a specific date range (same logic as frontend)
+function calculateContaAccountSum(account, startDate, endDate, processedContaFiles, accountConfigs) {
+  if (!processedContaFiles.length) return 0;
+
+  let sum = 0;
+  const startISO = parseDDMMYYYY(startDate);
+  const endISO = parseDDMMYYYY(endDate);
+  const start = startISO ? new Date(startISO + 'T00:00:00') : null;
+  const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+
+  // Get account configuration
+  const config = accountConfigs[account] || {
+    filterColumn: 'cont',
+    filterValue: '',
+    sumColumn: 'suma_c'
+  };
+
+  for (const file of processedContaFiles) {
+    for (let i = 0; i < file.data.length; i++) {
+      const row = file.data[i];
+
+      // Apply filtering based on account configuration
+      let rowMatches = false;
+      let filterValue;
+
+      if (config.filterColumn === 'cont') {
+        filterValue = row[3]; // cont column at index 3
+      } else if (config.filterColumn === 'data') {
+        filterValue = row[0]; // data column
+      } else if (config.filterColumn === 'explicatie') {
+        filterValue = row[2]; // explicatie column
+      } else if (config.filterColumn === 'ndp') {
+        filterValue = row[1]; // ndp column
+      } else {
+        filterValue = row[3]; // default to cont
+      }
+
+      // Check if the row matches the filter criteria
+      if (config.filterColumn === 'cont') {
+        if (filterValue === account) {
+          rowMatches = true;
+        } else if (file.accountNumber) {
+          rowMatches = (file.accountNumber === account) ||
+                      (account.startsWith(file.accountNumber + '.'));
+        }
+      } else {
+        const targetFilterValue = config.filterValue || '';
+        rowMatches = filterValue && filterValue.toString().includes(targetFilterValue);
+      }
+
+      if (rowMatches) {
+        // Parse the date from the row
+        const rowDateValue = row[0]; // data column
+        let rowDate = null;
+
+        if (rowDateValue) {
+          if (rowDateValue instanceof Date) {
+            rowDate = rowDateValue;
+          } else if (typeof rowDateValue === 'number') {
+            rowDate = new Date((rowDateValue - 25569) * 86400 * 1000);
+          } else {
+            rowDate = new Date(rowDateValue);
+          }
+
+          if (isNaN(rowDate.getTime())) {
+            continue;
+          }
+        }
+
+        // Check date range
+        if (rowDate) {
+          if (start && rowDate < start) continue;
+          if (end && rowDate > end) continue;
+        }
+
+        // Apply sum rules based on account configuration
+        let columnIndex;
+        if (config.sumColumn === 'suma_c') {
+          columnIndex = 6; // suma_c at index 6
+        } else if (config.sumColumn === 'suma_d') {
+          columnIndex = 5; // suma_d at index 5
+        } else if (config.sumColumn === 'sold') {
+          columnIndex = 7; // sold at index 7
+        } else {
+          columnIndex = 6; // Default to suma_c
+        }
+
+        const value = parseFloat(row[columnIndex]) || 0;
+        sum += value;
+      }
+    }
+  }
+
+  return sum;
+}
+
+// Helper function to calculate ANAF account sums for a specific date range (same logic as frontend)
+function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles) {
+  let sum = 0;
+  const startISO = parseDDMMYYYY(startDate);
+  const endISO = parseDDMMYYYY(endDate);
+  const start = startISO ? new Date(startISO + 'T00:00:00') : null;
+  const end = endISO ? new Date(endISO + 'T23:59:59') : null;
+
+  // Get assigned files for this account, fallback to all files if none assigned
+  const assignedFileIds = anafAccountFiles[account] || [];
+  const filesToProcess = assignedFileIds.length > 0
+    ? anafFiles.filter(file => assignedFileIds.includes(file.filePath || file.name))
+    : anafFiles.filter(file => {
+        const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+        if (fileAccount === account) return true;
+        if (account.startsWith(fileAccount + '.')) return true;
+        if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') return true;
+        return false;
+      });
+
+  filesToProcess.forEach((file) => {
+    if (file.data && Array.isArray(file.data)) {
+      file.data.forEach((row, index) => {
+        // Skip company info row (0) and column header row (1)
+        if (index === 0 || index === 1) return;
+
+        // Date filtering using SCADENTA and TERM_PLATA columns
+        let rowDate = null;
+
+        // First check SCADENTA column (index 4)
+        const scadentaDate = row[4];
+        if (scadentaDate && scadentaDate.trim() !== '') {
+          const scadentaISO = parseDDMMYYYY(scadentaDate);
+          if (scadentaISO) {
+            rowDate = new Date(scadentaISO + 'T12:00:00');
+          }
+        }
+
+        // If SCADENTA is null or unparseable, fall back to TERM_PLATA column (index 5)
+        if (!rowDate) {
+          const termPlataDate = row[5];
+          if (termPlataDate && termPlataDate.trim() !== '') {
+            const termISO = parseDDMMYYYY(termPlataDate);
+            if (termISO) {
+              rowDate = new Date(termISO + 'T12:00:00');
+            }
+          }
+        }
+
+        // Check date range
+        if (rowDate) {
+          if (start && rowDate < start) return;
+          if (end && rowDate > end) return;
+        }
+
+        // Check if this row matches the account
+        const ctgSumeValue = row[6]; // CTG_SUME column
+        if (ctgSumeValue && ctgSumeValue.toString().includes(account)) {
+          const sumaPlataValue = parseFloat(row[8]) || 0; // SUMA_PLATA column
+          sum += sumaPlataValue;
+        }
+      });
+    }
+  });
+
+  return sum;
+}
+
+// Helper function to extract account from filename
+function extractAccountFromFilename(filename) {
+  if (!filename) return '';
+
+  const cleanFilename = filename.replace(/\.(xlsx?|csv)$/i, '').toLowerCase();
+
+  // Look for patterns like "fise_436" or "cont_444" etc.
+  const patterns = [
+    /fise[_\s]*(\d+)/,
+    /cont[_\s]*(\d+)/,
+    /account[_\s]*(\d+)/,
+    /acc[_\s]*(\d+)/,
+    /(\d+)$/,  // Number at end
+    /^(\d+)/   // Number at start
+  ];
+
+  for (const pattern of patterns) {
+    const match = cleanFilename.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return '';
+}
+
+// Handle creating enhanced account relation analysis with monthly sums (using same logic as frontend)
 ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   contaData,
   anafData,
   accountMappings,
   dateInterval,
-  contaDateColumnIndex = 0,
-  anafDateColumnIndex = 0,
-  contaValueColumnIndex = 1,
-  anafValueColumnIndex = 1,
+  processedContaFiles,
+  anafFiles,
+  accountConfigs = {},
+  anafAccountFiles = {},
   outputPath
 }) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    const startDate = new Date(dateInterval.startDate);
-    const endDate = new Date(dateInterval.endDate);
+
+    // Convert date interval to proper format
+    const startDate = dateInterval.startDate;
+    const endDate = dateInterval.endDate;
+
+    // Parse start and end dates
+    const startDateObj = new Date(parseDDMMYYYY(startDate) + 'T00:00:00');
+    const endDateObj = new Date(parseDDMMYYYY(endDate) + 'T23:59:59');
+
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      throw new Error('Invalid date interval provided');
+    }
 
     // Get all months in the date range
-    const monthsInRange = getMonthsInRange(startDate, endDate);
+    const monthsInRange = getMonthsInRange(startDateObj, endDateObj);
 
     // Process each account relation
     for (const [contaAccount, anafAccounts] of Object.entries(accountMappings)) {
@@ -1327,52 +1544,36 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
       // Process each month
       for (const monthInfo of monthsInRange) {
         const { year, month } = monthInfo;
-        const monthBoundaries = getMonthBoundaries(year, month);
 
-        // Handle December 31st special case
+        // Create month start and end dates in DD/MM/YYYY format
+        const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
+        const monthEnd = new Date(year, month, 0); // Last day of month
+        const monthEndStr = `${monthEnd.getDate().toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+
         let contaSum = 0;
         let anafSum = 0;
         let anafStartDate, anafEndDate;
 
         if (month === 12) {
-          // December: exclude Dec 31st from regular calculation
-          const regularDecemberEnd = new Date(year, 11, 30); // December 30th
-          const contaTransactions = filterTransactionsByDateRange(
-            contaData,
-            monthBoundaries.startDate,
-            regularDecemberEnd,
-            contaDateColumnIndex,
-            true // Exclude December 31st
-          );
+          // December: handle regular December (1-30) and December 31st separately
+          const regularDecemberEnd = `30/${month.toString().padStart(2, '0')}/${year}`;
 
-          // Calculate conta sum for December (excluding Dec 31st)
-          contaSum = contaTransactions.reduce((sum, transaction) => {
-            const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
-            return sum + value;
-          }, 0);
+          // Calculate conta sum for December 1-30
+          contaSum = calculateContaAccountSum(contaAccount, monthStart, regularDecemberEnd, processedContaFiles, accountConfigs);
 
           // For ANAF, get sum from June 25th of next year
+          const june25NextYear = `25/06/${year + 1}`;
           anafStartDate = new Date(year + 1, 5, 25); // June 25th next year
           anafEndDate = new Date(year + 1, 5, 25); // Same day
 
-          const anafTransactions = getJune25thTransactions(anafData, year, anafDateColumnIndex);
+          // Calculate ANAF sum for all related accounts on June 25th next year
+          anafSum = 0;
+          for (const anafAccount of anafAccounts) {
+            anafSum += calculateAnafAccountSum(anafAccount, june25NextYear, june25NextYear, anafFiles, anafAccountFiles);
+          }
 
-          // Calculate ANAF sum for June 25th of next year
-          anafSum = anafTransactions
-            .filter(transaction => anafAccounts.some(account =>
-              transaction.some(cell => cell && cell.toString().includes(account))
-            ))
-            .reduce((sum, transaction) => {
-              const value = parseFloat(transaction[anafValueColumnIndex]) || 0;
-              return sum + value;
-            }, 0);
-
-          // Add separate row for December 31st
-          const dec31Transactions = getDecember31stTransactions(contaData, year, contaDateColumnIndex);
-          const dec31Sum = dec31Transactions.reduce((sum, transaction) => {
-            const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
-            return sum + value;
-          }, 0);
+          // Add separate row for December 31st if there are transactions
+          const dec31Sum = calculateContaAccountSum(contaAccount, `31/12/${year}`, `31/12/${year}`, processedContaFiles, accountConfigs);
 
           if (dec31Sum !== 0) {
             const dec31Row = worksheet.getRow(rowIndex);
@@ -1405,77 +1606,56 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           }
         } else {
           // Regular month processing
-          const contaTransactions = filterTransactionsByDateRange(
-            contaData,
-            monthBoundaries.startDate,
-            monthBoundaries.endDate,
-            contaDateColumnIndex
-          );
-
-          // Calculate conta sum for this month
-          contaSum = contaTransactions
-            .filter(transaction =>
-              transaction.some(cell => cell && cell.toString().includes(contaAccount))
-            )
-            .reduce((sum, transaction) => {
-              const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
-              return sum + value;
-            }, 0);
+          contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, processedContaFiles, accountConfigs);
 
           // ANAF period is next month
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
-          const anafBoundaries = getMonthBoundaries(nextYear, nextMonth);
 
-          anafStartDate = anafBoundaries.startDate;
-          anafEndDate = anafBoundaries.endDate;
+          const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          const anafMonthEndDate = new Date(nextYear, nextMonth, 0); // Last day of next month
+          const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
 
-          const anafTransactions = filterTransactionsByDateRange(
-            anafData,
-            anafStartDate,
-            anafEndDate,
-            anafDateColumnIndex
-          );
+          anafStartDate = new Date(nextYear, nextMonth - 1, 1);
+          anafEndDate = anafMonthEndDate;
 
-          // Calculate ANAF sum for next month
-          anafSum = anafTransactions
-            .filter(transaction => anafAccounts.some(account =>
-              transaction.some(cell => cell && cell.toString().includes(account))
-            ))
-            .reduce((sum, transaction) => {
-              const value = parseFloat(transaction[anafValueColumnIndex]) || 0;
-              return sum + value;
-            }, 0);
+          // Calculate ANAF sum for all related accounts in the next month
+          anafSum = 0;
+          for (const anafAccount of anafAccounts) {
+            anafSum += calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles);
+          }
         }
 
-        // Add row to worksheet
-        const dataRow = worksheet.getRow(rowIndex);
-        dataRow.getCell(1).value = monthBoundaries.startDate;
-        dataRow.getCell(2).value = monthBoundaries.endDate;
-        dataRow.getCell(3).value = anafStartDate;
-        dataRow.getCell(4).value = anafEndDate;
-        dataRow.getCell(5).value = contaSum;
-        dataRow.getCell(6).value = anafSum;
-        dataRow.getCell(7).value = contaSum - anafSum;
+        // Add row to worksheet for regular month (or December 1-30)
+        if (contaSum !== 0 || anafSum !== 0) {
+          const dataRow = worksheet.getRow(rowIndex);
+          dataRow.getCell(1).value = new Date(year, month - 1, 1);
+          dataRow.getCell(2).value = new Date(year, month, 0);
+          dataRow.getCell(3).value = anafStartDate;
+          dataRow.getCell(4).value = anafEndDate;
+          dataRow.getCell(5).value = contaSum;
+          dataRow.getCell(6).value = anafSum;
+          dataRow.getCell(7).value = contaSum - anafSum;
 
-        // Apply conditional formatting to difference column
-        const diffCell = dataRow.getCell(7);
-        const diffValue = contaSum - anafSum;
-        if (diffValue >= -2 && diffValue <= 2) {
-          diffCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF90EE90' } // Green
-          };
-        } else {
-          diffCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFF6B6B' } // Red
-          };
+          // Apply conditional formatting to difference column
+          const diffCell = dataRow.getCell(7);
+          const diffValue = contaSum - anafSum;
+          if (diffValue >= -2 && diffValue <= 2) {
+            diffCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF90EE90' } // Green
+            };
+          } else {
+            diffCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFF6B6B' } // Red
+            };
+          }
+
+          rowIndex++;
         }
-
-        rowIndex++;
       }
 
       // Format date columns and add filters
@@ -1501,10 +1681,12 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
       }
 
       // Add autofilter
-      worksheet.autoFilter = {
-        from: 'A1',
-        to: `G${rowIndex - 1}`
-      };
+      if (rowIndex > 2) {
+        worksheet.autoFilter = {
+          from: 'A1',
+          to: `G${rowIndex - 1}`
+        };
+      }
     }
 
     // Save the workbook
