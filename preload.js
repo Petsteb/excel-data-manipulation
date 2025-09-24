@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
-  getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data)
+  getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data),
+  createEnhancedRelationAnalysis: (data) => ipcRenderer.invoke('create-enhanced-relation-analysis', data)
 });

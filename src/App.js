@@ -352,6 +352,7 @@ function App() {
     'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
+    'enhanced-analysis-button': { x: 550, y: 240, width: 120, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -389,7 +390,8 @@ function App() {
   const [dateColumnsPopupBatch, setDateColumnsPopupBatch] = useState(null); // 'contabilitate' or 'anaf'
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
-    { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true }
+    { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true },
+    { id: 'enhanced-analysis-button', name: 'Enhanced Analysis Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
   const [workspaceBounds, setWorkspaceBounds] = useState({
@@ -3910,6 +3912,91 @@ function App() {
         setStatus(`Successfully created summary file with ${worksheets.length} worksheet${worksheets.length !== 1 ? 's' : ''}: ${result.outputPath}`);
       } else {
         setStatus(`Error creating summary: ${result.error}`);
+      }
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEnhancedRelationAnalysis = async () => {
+    // Validate required data
+    if (!contaFiles.length) {
+      setStatus('Please load Conta files first');
+      return;
+    }
+
+    if (!anafFiles.length) {
+      setStatus('Please load ANAF files first');
+      return;
+    }
+
+    if (Object.keys(accountMappings).length === 0) {
+      setStatus('Please set up account mappings first');
+      return;
+    }
+
+    if (!dateInterval.startDate || !dateInterval.endDate) {
+      setStatus('Please select a date interval first');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setStatus('Choosing save location...');
+
+      const outputPath = await window.electronAPI.saveFileDialog();
+      if (!outputPath) {
+        setStatus('Save cancelled');
+        setIsProcessing(false);
+        return;
+      }
+
+      setStatus('Creating enhanced relation analysis...');
+
+      // Prepare conta and anaf data
+      const contaData = [];
+      contaFiles.forEach(file => {
+        file.data.forEach((row, index) => {
+          if (index >= commonLines) { // Skip header rows
+            contaData.push(row);
+          }
+        });
+      });
+
+      const anafData = [];
+      anafFiles.forEach(file => {
+        file.data.forEach((row, index) => {
+          if (index >= anafCommonLines) { // Skip header rows
+            anafData.push(row);
+          }
+        });
+      });
+
+      // Find date and value column indices (you may need to adjust these based on your data structure)
+      const contaDateColumnIndex = selectedDateColumns.length > 0 ? selectedDateColumns[0] : 0;
+      const anafDateColumnIndex = anafSelectedDateColumns.length > 0 ? anafSelectedDateColumns[0] : 0;
+      const contaValueColumnIndex = contaDateColumnIndex + 1; // Assuming value column is next to date
+      const anafValueColumnIndex = anafDateColumnIndex + 1; // Assuming value column is next to date
+
+      const result = await window.electronAPI.createEnhancedRelationAnalysis({
+        contaData,
+        anafData,
+        accountMappings,
+        dateInterval,
+        contaDateColumnIndex,
+        anafDateColumnIndex,
+        contaValueColumnIndex,
+        anafValueColumnIndex,
+        outputPath
+      });
+
+      if (result.success) {
+        setStatus(`Successfully created enhanced relation analysis: ${result.outputPath}`);
+        setCreatedFilePath(result.outputPath);
+      } else {
+        setStatus(`Error creating analysis: ${result.error}`);
       }
     } catch (error) {
       setStatus(`Error: ${error.message}`);
@@ -8299,7 +8386,7 @@ function App() {
         </div>
         
         {/* Generate Summary Button */}
-        <div 
+        <div
           className="merge-section panel button-panel"
           data-panel="generate-summary-button"
           draggable={isLayoutMode && !isScreenMode}
@@ -8319,20 +8406,20 @@ function App() {
           }}
         >
           {isLayoutMode && !isScreenMode && (
-            <div 
+            <div
               className="resize-handle"
               onMouseDown={(e) => handleResizeStart(e, 'generate-summary-button')}
             />
           )}
           {isIdMode && (
-            <div style={{ 
-              position: 'absolute', 
-              top: '4px', 
-              right: '4px', 
-              fontSize: '10px', 
-              color: GLOBAL_TEXT_COLOR, 
-              backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))', 
-              padding: '2px 4px', 
+            <div style={{
+              position: 'absolute',
+              top: '4px',
+              right: '4px',
+              fontSize: '10px',
+              color: GLOBAL_TEXT_COLOR,
+              backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))',
+              padding: '2px 4px',
               borderRadius: '2px',
               fontFamily: 'monospace',
               zIndex: 1000
@@ -8340,12 +8427,67 @@ function App() {
               generate-summary-button
             </div>
           )}
-          <button 
-            className="merge-button" 
+          <button
+            className="merge-button"
             onClick={handleGenerateSummary}
             disabled={isProcessing || Object.values(selectedWorksheets).every(v => !v)}
           >
             {isProcessing ? 'Creating Summary...' : t('generateSummary')}
+          </button>
+        </div>
+
+        {/* Enhanced Relation Analysis Button */}
+        <div
+          className="merge-section panel button-panel"
+          data-panel="enhanced-analysis-button"
+          draggable={isLayoutMode && !isScreenMode}
+          onDragStart={(e) => handleDragStart(e, { id: 'enhanced-analysis-button', type: 'button' })}
+          onDragEnd={handleDragEnd}
+          style={{
+            position: 'absolute',
+            left: `${getVisualPosition('enhanced-analysis-button').x}px`,
+            top: `${getVisualPosition('enhanced-analysis-button').y}px`,
+            width: `${getVisualPosition('enhanced-analysis-button').width}px`,
+            height: `${getVisualPosition('enhanced-analysis-button').height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {isLayoutMode && !isScreenMode && (
+            <div
+              className="resize-handle"
+              onMouseDown={(e) => handleResizeStart(e, 'enhanced-analysis-button')}
+            />
+          )}
+          {isIdMode && (
+            <div style={{
+              position: 'absolute',
+              top: '4px',
+              right: '4px',
+              fontSize: '10px',
+              color: GLOBAL_TEXT_COLOR,
+              backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))',
+              padding: '2px 4px',
+              borderRadius: '2px',
+              fontFamily: 'monospace',
+              zIndex: 1000
+            }}>
+              enhanced-analysis-button
+            </div>
+          )}
+          <button
+            className="merge-button"
+            onClick={handleEnhancedRelationAnalysis}
+            disabled={isProcessing || !contaFiles.length || !anafFiles.length || Object.keys(accountMappings).length === 0}
+            style={{
+              backgroundColor: '#8B5CF6',
+              borderColor: '#7C3AED'
+            }}
+          >
+            {isProcessing ? 'Creating Analysis...' : 'Enhanced Analysis'}
           </button>
         </div>
         

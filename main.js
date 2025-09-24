@@ -1115,9 +1115,9 @@ ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateCo
   try {
     const mergedData = [];
     let totalDataRows = 0;
-    
+
     const yRowIndex = (columnNamesRow || 1) - 1; // Convert to 0-based index
-    
+
     // Add common header lines from first file
     for (let i = 0; i < commonLines; i++) {
       if (filesData[0].data[i]) {
@@ -1125,11 +1125,11 @@ ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateCo
         mergedData.push(headerRow);
       }
     }
-    
+
     // Add data from all files
     filesData.forEach((fileData, fileIndex) => {
       const fileName = fileData.fileName || `File ${fileIndex + 1}`;
-      
+
       // Add data rows (skip common header lines)
       for (let rowIndex = commonLines; rowIndex < fileData.data.length; rowIndex++) {
         const row = fileData.data[rowIndex];
@@ -1144,7 +1144,7 @@ ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateCo
         }
       }
     });
-    
+
     return {
       success: true,
       mergedData: mergedData,
@@ -1160,6 +1160,366 @@ ipcMain.handle('merge-anaf-data', async (event, { filesData, commonLines, dateCo
       success: false,
       error: error.message,
       mergedData: null
+    };
+  }
+});
+
+// Helper function to get month boundaries
+function getMonthBoundaries(year, month) {
+  const startDate = new Date(year, month - 1, 1); // First day of month
+  const endDate = new Date(year, month, 0); // Last day of month
+  return { startDate, endDate };
+}
+
+// Helper function to get all months in date range
+function getMonthsInRange(startDate, endDate) {
+  const months = [];
+  const current = new Date(startDate);
+  current.setDate(1); // Start from first day of month
+
+  while (current <= endDate) {
+    months.push({
+      year: current.getFullYear(),
+      month: current.getMonth() + 1 // 1-based month
+    });
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  return months;
+}
+
+// Helper function to filter transactions by date range
+function filterTransactionsByDateRange(transactions, startDate, endDate, dateColumnIndex, excludeDecember31st = false) {
+  return transactions.filter(transaction => {
+    const dateValue = transaction[dateColumnIndex];
+    if (!dateValue) return false;
+
+    let transactionDate;
+    if (dateValue instanceof Date) {
+      transactionDate = dateValue;
+    } else if (typeof dateValue === 'number') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    } else if (typeof dateValue === 'string') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    }
+
+    if (!transactionDate || !(transactionDate instanceof Date)) {
+      return false;
+    }
+
+    // Exclude December 31st transactions if requested
+    if (excludeDecember31st &&
+        transactionDate.getMonth() === 11 && // December (0-based)
+        transactionDate.getDate() === 31) {
+      return false;
+    }
+
+    return transactionDate >= startDate && transactionDate <= endDate;
+  });
+}
+
+// Helper function to get December 31st transactions
+function getDecember31stTransactions(transactions, year, dateColumnIndex) {
+  return transactions.filter(transaction => {
+    const dateValue = transaction[dateColumnIndex];
+    if (!dateValue) return false;
+
+    let transactionDate;
+    if (dateValue instanceof Date) {
+      transactionDate = dateValue;
+    } else if (typeof dateValue === 'number') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    } else if (typeof dateValue === 'string') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    }
+
+    if (!transactionDate || !(transactionDate instanceof Date)) {
+      return false;
+    }
+
+    return transactionDate.getFullYear() === year &&
+           transactionDate.getMonth() === 11 && // December (0-based)
+           transactionDate.getDate() === 31;
+  });
+}
+
+// Helper function to get June 25th transactions for following year
+function getJune25thTransactions(transactions, year, dateColumnIndex) {
+  return transactions.filter(transaction => {
+    const dateValue = transaction[dateColumnIndex];
+    if (!dateValue) return false;
+
+    let transactionDate;
+    if (dateValue instanceof Date) {
+      transactionDate = dateValue;
+    } else if (typeof dateValue === 'number') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    } else if (typeof dateValue === 'string') {
+      transactionDate = transformDateValue(dateValue, dateColumnIndex, [dateColumnIndex]);
+    }
+
+    if (!transactionDate || !(transactionDate instanceof Date)) {
+      return false;
+    }
+
+    return transactionDate.getFullYear() === (year + 1) &&
+           transactionDate.getMonth() === 5 && // June (0-based)
+           transactionDate.getDate() === 25;
+  });
+}
+
+// Handle creating enhanced account relation analysis with monthly sums
+ipcMain.handle('create-enhanced-relation-analysis', async (event, {
+  contaData,
+  anafData,
+  accountMappings,
+  dateInterval,
+  contaDateColumnIndex = 0,
+  anafDateColumnIndex = 0,
+  contaValueColumnIndex = 1,
+  anafValueColumnIndex = 1,
+  outputPath
+}) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const startDate = new Date(dateInterval.startDate);
+    const endDate = new Date(dateInterval.endDate);
+
+    // Get all months in the date range
+    const monthsInRange = getMonthsInRange(startDate, endDate);
+
+    // Process each account relation
+    for (const [contaAccount, anafAccounts] of Object.entries(accountMappings)) {
+      const worksheetName = `Relation_${contaAccount}`;
+      const worksheet = workbook.addWorksheet(worksheetName);
+
+      // Set up headers
+      const headers = [
+        'Conta Month Start',
+        'Conta Month End',
+        'ANAF Period Start',
+        'ANAF Period End',
+        'Conta Sum',
+        'ANAF Sum',
+        'Difference'
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headers.forEach((header, index) => {
+        const cell = headerRow.getCell(index + 1);
+        cell.value = header;
+        cell.font = { bold: true };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      let rowIndex = 2;
+
+      // Process each month
+      for (const monthInfo of monthsInRange) {
+        const { year, month } = monthInfo;
+        const monthBoundaries = getMonthBoundaries(year, month);
+
+        // Handle December 31st special case
+        let contaSum = 0;
+        let anafSum = 0;
+        let anafStartDate, anafEndDate;
+
+        if (month === 12) {
+          // December: exclude Dec 31st from regular calculation
+          const regularDecemberEnd = new Date(year, 11, 30); // December 30th
+          const contaTransactions = filterTransactionsByDateRange(
+            contaData,
+            monthBoundaries.startDate,
+            regularDecemberEnd,
+            contaDateColumnIndex,
+            true // Exclude December 31st
+          );
+
+          // Calculate conta sum for December (excluding Dec 31st)
+          contaSum = contaTransactions.reduce((sum, transaction) => {
+            const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
+            return sum + value;
+          }, 0);
+
+          // For ANAF, get sum from June 25th of next year
+          anafStartDate = new Date(year + 1, 5, 25); // June 25th next year
+          anafEndDate = new Date(year + 1, 5, 25); // Same day
+
+          const anafTransactions = getJune25thTransactions(anafData, year, anafDateColumnIndex);
+
+          // Calculate ANAF sum for June 25th of next year
+          anafSum = anafTransactions
+            .filter(transaction => anafAccounts.some(account =>
+              transaction.some(cell => cell && cell.toString().includes(account))
+            ))
+            .reduce((sum, transaction) => {
+              const value = parseFloat(transaction[anafValueColumnIndex]) || 0;
+              return sum + value;
+            }, 0);
+
+          // Add separate row for December 31st
+          const dec31Transactions = getDecember31stTransactions(contaData, year, contaDateColumnIndex);
+          const dec31Sum = dec31Transactions.reduce((sum, transaction) => {
+            const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
+            return sum + value;
+          }, 0);
+
+          if (dec31Sum !== 0) {
+            const dec31Row = worksheet.getRow(rowIndex);
+            dec31Row.getCell(1).value = new Date(year, 11, 31); // Dec 31st
+            dec31Row.getCell(2).value = new Date(year, 11, 31); // Dec 31st
+            dec31Row.getCell(3).value = anafStartDate;
+            dec31Row.getCell(4).value = anafEndDate;
+            dec31Row.getCell(5).value = dec31Sum;
+            dec31Row.getCell(6).value = anafSum;
+            dec31Row.getCell(7).value = dec31Sum - anafSum;
+
+            // Apply conditional formatting
+            const diffCell = dec31Row.getCell(7);
+            const diffValue = dec31Sum - anafSum;
+            if (diffValue >= -2 && diffValue <= 2) {
+              diffCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF90EE90' } // Green
+              };
+            } else {
+              diffCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFF6B6B' } // Red
+              };
+            }
+
+            rowIndex++;
+          }
+        } else {
+          // Regular month processing
+          const contaTransactions = filterTransactionsByDateRange(
+            contaData,
+            monthBoundaries.startDate,
+            monthBoundaries.endDate,
+            contaDateColumnIndex
+          );
+
+          // Calculate conta sum for this month
+          contaSum = contaTransactions
+            .filter(transaction =>
+              transaction.some(cell => cell && cell.toString().includes(contaAccount))
+            )
+            .reduce((sum, transaction) => {
+              const value = parseFloat(transaction[contaValueColumnIndex]) || 0;
+              return sum + value;
+            }, 0);
+
+          // ANAF period is next month
+          const nextMonth = month === 12 ? 1 : month + 1;
+          const nextYear = month === 12 ? year + 1 : year;
+          const anafBoundaries = getMonthBoundaries(nextYear, nextMonth);
+
+          anafStartDate = anafBoundaries.startDate;
+          anafEndDate = anafBoundaries.endDate;
+
+          const anafTransactions = filterTransactionsByDateRange(
+            anafData,
+            anafStartDate,
+            anafEndDate,
+            anafDateColumnIndex
+          );
+
+          // Calculate ANAF sum for next month
+          anafSum = anafTransactions
+            .filter(transaction => anafAccounts.some(account =>
+              transaction.some(cell => cell && cell.toString().includes(account))
+            ))
+            .reduce((sum, transaction) => {
+              const value = parseFloat(transaction[anafValueColumnIndex]) || 0;
+              return sum + value;
+            }, 0);
+        }
+
+        // Add row to worksheet
+        const dataRow = worksheet.getRow(rowIndex);
+        dataRow.getCell(1).value = monthBoundaries.startDate;
+        dataRow.getCell(2).value = monthBoundaries.endDate;
+        dataRow.getCell(3).value = anafStartDate;
+        dataRow.getCell(4).value = anafEndDate;
+        dataRow.getCell(5).value = contaSum;
+        dataRow.getCell(6).value = anafSum;
+        dataRow.getCell(7).value = contaSum - anafSum;
+
+        // Apply conditional formatting to difference column
+        const diffCell = dataRow.getCell(7);
+        const diffValue = contaSum - anafSum;
+        if (diffValue >= -2 && diffValue <= 2) {
+          diffCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF90EE90' } // Green
+          };
+        } else {
+          diffCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFF6B6B' } // Red
+          };
+        }
+
+        rowIndex++;
+      }
+
+      // Format date columns and add filters
+      worksheet.columns = [
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Month Start
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Month End
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Period Start
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Period End
+        { width: 12 }, // Conta Sum
+        { width: 12 }, // ANAF Sum
+        { width: 12 }  // Difference
+      ];
+
+      // Set date formatting for date columns
+      for (let row = 2; row <= rowIndex - 1; row++) {
+        [1, 2, 3, 4].forEach(col => {
+          const cell = worksheet.getCell(row, col);
+          if (cell.value instanceof Date) {
+            cell.numFmt = 'dd/mm/yyyy';
+            cell.type = ExcelJS.ValueType.Date;
+          }
+        });
+      }
+
+      // Add autofilter
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: `G${rowIndex - 1}`
+      };
+    }
+
+    // Save the workbook
+    await workbook.xlsx.writeFile(outputPath);
+
+    return {
+      success: true,
+      outputPath: outputPath,
+      message: 'Enhanced relation analysis workbook created successfully'
+    };
+  } catch (error) {
+    console.error('Error creating enhanced relation analysis:', error);
+    return {
+      success: false,
+      error: error.message
     };
   }
 });
