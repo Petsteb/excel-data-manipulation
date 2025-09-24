@@ -2868,21 +2868,42 @@ function App() {
     return finalResult;
   };
 
-  const handleCalculateAnafSums = () => {
+  const handleCalculateAnafSums = async () => {
     if (selectedAnafAccounts.length === 0) {
       setStatus('Please select at least one ANAF account first');
       return;
     }
 
+    setStatus('Calculating ANAF sums using backend logic...');
+
     const newSums = {};
-    selectedAnafAccounts.forEach(account => {
-      const effectiveConfig = getAnafAccountConfig(account);
-      const sum = calculateAnafAccountSums(account, startDate, endDate, effectiveConfig);
-      newSums[account] = sum;
-    });
+
+    // Process each account using the backend calculation
+    for (const account of selectedAnafAccounts) {
+      try {
+        const result = await window.electronAPI.calculateAnafAccountSum({
+          account,
+          startDate,
+          endDate,
+          anafFiles,
+          anafAccountFiles,
+          anafAccountConfigs
+        });
+
+        if (result.success) {
+          newSums[account] = result.sum;
+        } else {
+          console.error(`Failed to calculate sum for account ${account}:`, result.error);
+          newSums[account] = 0;
+        }
+      } catch (error) {
+        console.error(`Error calculating sum for account ${account}:`, error);
+        newSums[account] = 0;
+      }
+    }
 
     setAnafAccountSums(newSums);
-    setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s)`);
+    setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s) using backend logic`);
   };
 
   // Helper function to get intersection of two date ranges
@@ -3095,7 +3116,7 @@ function App() {
   }, [accountMappings, selectedAccounts, selectedAnafAccounts]);
 
   // Unified calculation for both Conta and ANAF accounts
-  const handleCalculateAllSums = () => {
+  const handleCalculateAllSums = async () => {
     
     // First, automatically categorize any misplaced accounts
     const allSelectedAccounts = [...selectedAccounts, ...selectedAnafAccounts];
@@ -3127,7 +3148,7 @@ function App() {
     // Calculate ANAF sums using synchronized date intervals with their related conta accounts
     if (selectedAnafAccounts.length > 0) {
       const newAnafSums = {};
-      selectedAnafAccounts.forEach(anafAccount => {
+      for (const anafAccount of selectedAnafAccounts) {
         // Find the conta account that this ANAF account is related to
         const relatedContaAccount = Object.keys(accountMappings).find(contaAccount => 
           accountMappings[contaAccount].includes(anafAccount)
@@ -3155,15 +3176,40 @@ function App() {
           }
         }
         
-        const config = getAnafAccountConfig(anafAccount);
-        let sum = calculateAnafAccountSums(anafAccount, effectiveDateRange.startDate, effectiveDateRange.endDate, config);
-        
+        // Use backend calculation for ANAF sum
+        let sum = 0;
+        try {
+          const result = await window.electronAPI.calculateAnafAccountSum({
+            account: anafAccount,
+            startDate: effectiveDateRange.startDate,
+            endDate: effectiveDateRange.endDate,
+            anafFiles,
+            anafAccountFiles,
+            anafAccountConfigs
+          });
+          sum = result.success ? result.sum : 0;
+        } catch (error) {
+          console.error(`Error calculating ANAF sum for ${anafAccount}:`, error);
+          sum = 0;
+        }
+
         // Add transactions from additional dates (e.g., June 25th if conta ended on Dec 31st)
         if (effectiveDateRange.additionalDates && effectiveDateRange.additionalDates.length > 0) {
-          effectiveDateRange.additionalDates.forEach((additionalRange) => {
-            const additionalSum = calculateAnafAccountSums(anafAccount, additionalRange.startDate, additionalRange.endDate, config);
-            sum += additionalSum;
-          });
+          for (const additionalRange of effectiveDateRange.additionalDates) {
+            try {
+              const additionalResult = await window.electronAPI.calculateAnafAccountSum({
+                account: anafAccount,
+                startDate: additionalRange.startDate,
+                endDate: additionalRange.endDate,
+                anafFiles,
+                anafAccountFiles,
+                anafAccountConfigs
+              });
+              sum += additionalResult.success ? additionalResult.sum : 0;
+            } catch (error) {
+              console.error(`Error calculating additional ANAF sum for ${anafAccount}:`, error);
+            }
+          }
         } else {
           // FALLBACK: Check for June 25th transactions that are OUTSIDE the normal date range
           // This prevents double-counting transactions already included in the main calculation
@@ -3185,18 +3231,29 @@ function App() {
               
               // Only add if this June 25th is OUTSIDE the normal date range
               if (june25Parsed && (june25Parsed < startDateParsed || june25Parsed > endDateParsed)) {
-                const fallbackSum = calculateAnafAccountSums(anafAccount, june25Date, june25Date, config);
-                if (fallbackSum > 0) {
-                  sum += fallbackSum;
+                try {
+                  const fallbackResult = await window.electronAPI.calculateAnafAccountSum({
+                    account: anafAccount,
+                    startDate: june25Date,
+                    endDate: june25Date,
+                    anafFiles,
+                    anafAccountFiles,
+                    anafAccountConfigs
+                  });
+                  if (fallbackResult.success && fallbackResult.sum > 0) {
+                    sum += fallbackResult.sum;
+                  }
+                } catch (error) {
+                  console.error(`Error calculating fallback ANAF sum for ${anafAccount}:`, error);
                 }
               }
             }
           }
         }
-        
+
         newAnafSums[anafAccount] = sum;
         totalCalculated++;
-      });
+      }
       setAnafAccountSums(newAnafSums);
     }
     

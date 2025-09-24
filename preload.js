@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data),
-  createEnhancedRelationAnalysis: (data) => ipcRenderer.invoke('create-enhanced-relation-analysis', data)
+  createEnhancedRelationAnalysis: (data) => ipcRenderer.invoke('create-enhanced-relation-analysis', data),
+  calculateAnafAccountSum: (data) => ipcRenderer.invoke('calculate-anaf-account-sum', data)
 });

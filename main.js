@@ -1696,6 +1696,25 @@ function getAnafAccountConfig(account, anafAccountConfigs) {
   return defaultConfig;
 }
 
+// Handle calculating ANAF account sum using backend logic
+ipcMain.handle('calculate-anaf-account-sum', async (event, {
+  account,
+  startDate,
+  endDate,
+  anafFiles,
+  anafAccountFiles,
+  anafAccountConfigs
+}) => {
+  try {
+    const config = getAnafAccountConfig(account, anafAccountConfigs);
+    const sum = calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles, config);
+    return { success: true, sum };
+  } catch (error) {
+    console.error('Error calculating ANAF account sum:', error);
+    return { success: false, error: error.message, sum: 0 };
+  }
+});
+
 // Handle creating enhanced account relation analysis with monthly sums (using same logic as frontend)
 ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   contaData,
