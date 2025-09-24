@@ -2584,7 +2584,7 @@ function App() {
     const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
     let sum = 0;
     let subtractSum = 0;
-    
+
     let totalProcessedRows = 0;
     let totalFilteredOutRows = 0;
     let totalRowsChecked = 0;
@@ -2597,14 +2597,9 @@ function App() {
     const start = startISO ? new Date(startISO + 'T00:00:00') : null;
     const end = endISO ? new Date(endISO + 'T23:59:59') : null;
     
-    
-    // Debug specifically for account 3 transactions and their sum calculation
-    if (account === '3') {
-    }
-    
     // Get assigned files for this account, fallback to all files if none assigned
     const assignedFileIds = anafAccountFiles[account] || [];
-    const filesToProcess = assignedFileIds.length > 0 
+    const filesToProcess = assignedFileIds.length > 0
       ? anafFiles.filter(file => assignedFileIds.includes(file.filePath || file.name))
       : anafFiles.filter(file => {
           // Use original file detection logic as fallback
@@ -2614,13 +2609,6 @@ function App() {
           if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') return true;
           return false;
         });
-
-    
-    if (account === '3') {
-      filesToProcess.forEach((file, idx) => {
-        const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
-      });
-    }
     
     filesToProcess.forEach((file, fileIndex) => {
       const fileName = file.filePath ? file.filePath.split(/[/\\]/).pop() : file.name || 'Unknown';
@@ -2703,27 +2691,31 @@ function App() {
           // Apply filter based on selected filter column
           if (filterValue) {
             let matchesFilter = false;
+            let actualValue;
             switch (filterColumn) {
               case 'CTG_SUME':
+                actualValue = ctgSumeValue;
                 matchesFilter = ctgSumeValue === filterValue;
                 break;
               case 'ATRIBUT_PL':
+                actualValue = atributPlValue;
                 matchesFilter = atributPlValue === filterValue;
                 break;
               case 'IME_COD_IMPOZIT':
+                actualValue = imeCodeValue;
                 matchesFilter = imeCodeValue === filterValue;
                 break;
               case 'DENUMIRE_IMPOZIT':
+                actualValue = denumireValue;
                 matchesFilter = denumireValue === filterValue;
                 break;
               default:
                 matchesFilter = true;
             }
+
             if (!matchesFilter) {
               filteredOutRows++;
               totalFilteredOutRows++;
-              if (index <= 5 || sumaPlataValue > 1000) {
-              }
               return;
             }
           }
@@ -2873,15 +2865,6 @@ function App() {
     }
 
     const finalResult = sum - subtractSum;
-    
-    // Final debug summary for account 3
-    if (account === '3') {
-    }
-    
-    // Show top contributing rows if result is significant
-    if (Math.abs(finalResult) > 10000) {
-    }
-
     return finalResult;
   };
 
@@ -2890,14 +2873,14 @@ function App() {
       setStatus('Please select at least one ANAF account first');
       return;
     }
-    
+
     const newSums = {};
     selectedAnafAccounts.forEach(account => {
-      const config = anafAccountConfigs[account] || {};
-      const sum = calculateAnafAccountSums(account, startDate, endDate, config);
+      const effectiveConfig = getAnafAccountConfig(account);
+      const sum = calculateAnafAccountSums(account, startDate, endDate, effectiveConfig);
       newSums[account] = sum;
     });
-    
+
     setAnafAccountSums(newSums);
     setStatus(`Calculated sums for ${selectedAnafAccounts.length} ANAF account(s)`);
   };
