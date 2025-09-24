@@ -1987,28 +1987,12 @@ function App() {
     }
 
     // Special configs for accounts 1/4423 and 1/4424 (no subtraction)
-    if (account === '1/4423') {
+    if (account === '1/4423' || account === '1/4424') {
       defaultConfig = {
         filterColumn: 'CTG_SUME',
-        filterValue: '',
-        sumColumn: 'SUMA_PLATA',
-        subtractConfig: {
-          filterColumn: 'CTG_SUME',
-          filterValue: '',
-          sumColumn: 'SUMA_PLATA'
-        }
-      };
-    }
-    else if (account === '1/4424') {
-      defaultConfig = {
-        filterColumn: 'CTG_SUME',
-        filterValue: '',
-        sumColumn: 'SUMA_PLATA',
-        subtractConfig: {
-          filterColumn: 'CTG_SUME',
-          filterValue: '',
-          sumColumn: 'SUMA_PLATA'
-        }
+        filterValue: account,
+        sumColumn: 'SUMA_PLATA'
+        // No subtractConfig
       };
     }
     // Account 4423: CTG_SUME=D, SUMA_PLATA
