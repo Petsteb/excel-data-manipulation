@@ -1190,79 +1190,6 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let firstNonZeroMonth = null;
         let firstNonZeroYear = null;
 
-        // First pass: find the first non-zero month
-        if (params.includeEndOfYearTransactions) {
-          for (const monthInfo of monthsInRange) {
-            const { year, month } = monthInfo;
-            const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
-            let monthEndDay = new Date(year, month, 0).getDate();
-            let actualMonthEndDay = monthEndDay;
-            if (month === 12 && params.includeEndOfYearTransactions) {
-              actualMonthEndDay = 30;
-            }
-            const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-            const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
-
-            if (contaSum !== 0) {
-              firstNonZeroMonth = month;
-              firstNonZeroYear = year;
-              break;
-            }
-          }
-
-          // If first non-zero month is before June, add Dec 31 of previous year
-          if (firstNonZeroMonth && firstNonZeroMonth < 6) {
-            const prevYear = firstNonZeroYear - 1;
-            const contaDec31Start = `31/12/${prevYear}`;
-            const contaDec31End = `31/12/${prevYear}`;
-            const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
-
-            // ANAF: June 25th of firstNonZeroYear
-            const anafJune25Start = `25/06/${firstNonZeroYear}`;
-            const anafJune25End = `25/06/${firstNonZeroYear}`;
-
-            const anafEOYAccountSums = [];
-            let totalAnafEOYSum = 0;
-
-            for (const anafAccount of anafAccounts) {
-              const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31(${prevYear})->June25(${firstNonZeroYear})]`);
-              anafEOYAccountSums.push(accountSum);
-              totalAnafEOYSum += accountSum;
-            }
-
-            // Add previous year end-of-year row
-            const eoyDataRow = worksheet.getRow(rowIndex);
-
-            const contaDec31Display = new Date(prevYear, 11, 31, 12, 0, 0);
-            const anafJune25Display = new Date(firstNonZeroYear, 5, 25, 12, 0, 0);
-
-            eoyDataRow.getCell(1).value = contaDec31Display;
-            eoyDataRow.getCell(2).value = contaDec31Display;
-            eoyDataRow.getCell(3).value = anafJune25Display;
-            eoyDataRow.getCell(4).value = anafJune25Display;
-            eoyDataRow.getCell(5).value = contaDec31Sum;
-
-            let eoyColIndex = 6;
-            anafEOYAccountSums.forEach((sum) => {
-              eoyDataRow.getCell(eoyColIndex).value = sum;
-              eoyColIndex++;
-            });
-
-            const eoyDiffValue = contaDec31Sum - totalAnafEOYSum;
-            eoyDataRow.getCell(differenceColIndex).value = eoyDiffValue;
-
-            const eoyDiffCell = eoyDataRow.getCell(differenceColIndex);
-            if (eoyDiffValue >= -2 && eoyDiffValue <= 2) {
-              eoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
-            } else {
-              eoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
-            }
-
-            rowIndex++;
-          }
-        }
-
         // Process each month
         for (const monthInfo of monthsInRange) {
           const { year, month } = monthInfo;
@@ -1286,6 +1213,64 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           // Once we find the first non-zero, show all remaining months
           if (!foundFirstNonZero && contaSum !== 0) {
             foundFirstNonZero = true;
+            firstNonZeroMonth = month;
+            firstNonZeroYear = year;
+
+            // If end-of-year transactions enabled and first non-zero month is before June, add previous year's December row
+            if (params.includeEndOfYearTransactions && month < 6) {
+              const prevYear = year - 1;
+
+              // Conta: Only December 31st of previous year
+              const contaDec31Start = `31/12/${prevYear}`;
+              const contaDec31End = `31/12/${prevYear}`;
+              const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
+
+              // ANAF: December 1-30 of previous year
+              const anafDec1Start = `01/12/${prevYear}`;
+              const anafDec30End = `30/12/${prevYear}`;
+
+              const anafPrevDecAccountSums = [];
+              let totalAnafPrevDecSum = 0;
+
+              for (const anafAccount of anafAccounts) {
+                const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+                const accountSum = calculateAnafAccountSum(anafAccount, anafDec1Start, anafDec30End, params.anafFiles, params.anafAccountFiles, config, `[Monthly Prev Dec: ${contaAccount} Dec31->Dec1-30]`);
+                anafPrevDecAccountSums.push(accountSum);
+                totalAnafPrevDecSum += accountSum;
+              }
+
+              // Add previous year December row
+              const prevDecRow = worksheet.getRow(rowIndex);
+
+              // Display dates
+              const contaDec31Display = new Date(prevYear, 11, 31, 12, 0, 0); // Dec 31
+              const anafDec1Display = new Date(prevYear, 11, 1, 12, 0, 0); // Dec 1
+              const anafDec30Display = new Date(prevYear, 11, 30, 12, 0, 0); // Dec 30
+
+              prevDecRow.getCell(1).value = contaDec31Display;
+              prevDecRow.getCell(2).value = contaDec31Display;
+              prevDecRow.getCell(3).value = anafDec1Display;
+              prevDecRow.getCell(4).value = anafDec30Display;
+              prevDecRow.getCell(5).value = contaDec31Sum;
+
+              let prevDecColIndex = 6;
+              anafPrevDecAccountSums.forEach((sum) => {
+                prevDecRow.getCell(prevDecColIndex).value = sum;
+                prevDecColIndex++;
+              });
+
+              const prevDecDiffValue = contaDec31Sum - totalAnafPrevDecSum;
+              prevDecRow.getCell(differenceColIndex).value = prevDecDiffValue;
+
+              const prevDecDiffCell = prevDecRow.getCell(differenceColIndex);
+              if (prevDecDiffValue >= -2 && prevDecDiffValue <= 2) {
+                prevDecDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+              } else {
+                prevDecDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+              }
+
+              rowIndex++;
+            }
           }
 
           const nextMonth = month === 12 ? 1 : month + 1;
