@@ -1225,10 +1225,29 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const anafAccountSums = [];
           let totalAnafSum = 0;
 
+          // Check if we need to exclude June 25th (when conta is May and end-of-year toggle is on)
+          const isJuneWithEOY = (month === 5 && nextMonth === 6 && params.includeEndOfYearTransactions);
+
           // Always calculate ANAF sums regardless of conta sum
           for (const anafAccount of anafAccounts) {
             const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-            const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+
+            let accountSum = 0;
+            if (isJuneWithEOY) {
+              // Split June: 1-24 and 26-30 (exclude 25th)
+              const june1to24Start = `01/06/${nextYear}`;
+              const june1to24End = `24/06/${nextYear}`;
+              const june26to30Start = `26/06/${nextYear}`;
+              const june26to30End = `30/06/${nextYear}`;
+
+              const sum1to24 = calculateAnafAccountSum(anafAccount, june1to24Start, june1to24End, params.anafFiles, params.anafAccountFiles, config);
+              const sum26to30 = calculateAnafAccountSum(anafAccount, june26to30Start, june26to30End, params.anafFiles, params.anafAccountFiles, config);
+              accountSum = sum1to24 + sum26to30;
+            } else {
+              // Normal calculation for all other months
+              accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+            }
+
             anafAccountSums.push(accountSum);
             totalAnafSum += accountSum;
           }
