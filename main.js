@@ -1195,7 +1195,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const firstYear = firstMonthInfo.year;
 
           if (firstMonth < 6) {
-            // Add December 31st of previous year
+            // Add December 31st of previous year (always, even if sum is 0)
             const prevYear = firstYear - 1;
             const contaDec31Start = `31/12/${prevYear}`;
             const contaDec31End = `31/12/${prevYear}`;
@@ -1215,7 +1215,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               totalAnafEOYSum += accountSum;
             }
 
-            // Add pre-year end-of-year row
+            // Add pre-year end-of-year row (always, to maintain consistency)
             const eoyDataRow = worksheet.getRow(rowIndex);
 
             // Display dates (same date for start and end)
