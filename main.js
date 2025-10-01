@@ -1229,10 +1229,22 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
           // Add row to worksheet
           const dataRow = worksheet.getRow(rowIndex);
-          dataRow.getCell(1).value = new Date(year, month - 1, 1);
-          dataRow.getCell(2).value = new Date(year, month, 0);
-          dataRow.getCell(3).value = anafStartDate;
-          dataRow.getCell(4).value = anafEndDate;
+
+          // Create conta dates for display (first to last day of month)
+          // Set time to noon to avoid timezone boundary issues
+          const contaMonthLastDay = new Date(year, month, 0).getDate();
+          const contaStartDisplay = new Date(year, month - 1, 1, 12, 0, 0);
+          const contaEndDisplay = new Date(year, month - 1, contaMonthLastDay, 12, 0, 0);
+
+          // Create ANAF dates for display (first to last day of next month)
+          const anafMonthLastDay = new Date(nextYear, nextMonth, 0).getDate();
+          const anafStartDisplay = new Date(nextYear, nextMonth - 1, 1, 12, 0, 0);
+          const anafEndDisplay = new Date(nextYear, nextMonth - 1, anafMonthLastDay, 12, 0, 0);
+
+          dataRow.getCell(1).value = contaStartDisplay;
+          dataRow.getCell(2).value = contaEndDisplay;
+          dataRow.getCell(3).value = anafStartDisplay;
+          dataRow.getCell(4).value = anafEndDisplay;
           dataRow.getCell(5).value = contaSum;
 
           let currentColIndex = 6;
