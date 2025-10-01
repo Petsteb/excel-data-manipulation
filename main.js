@@ -1187,40 +1187,55 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
         let rowIndex = 3;
         let foundFirstNonZero = false;
+        let firstNonZeroMonth = null;
+        let firstNonZeroYear = null;
 
-        // Check if first month is before June and end-of-year toggle is enabled
-        if (monthsInRange.length > 0 && params.includeEndOfYearTransactions) {
-          const firstMonthInfo = monthsInRange[0];
-          const firstMonth = firstMonthInfo.month;
-          const firstYear = firstMonthInfo.year;
+        // First pass: find the first non-zero month
+        if (params.includeEndOfYearTransactions) {
+          for (const monthInfo of monthsInRange) {
+            const { year, month } = monthInfo;
+            const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
+            let monthEndDay = new Date(year, month, 0).getDate();
+            let actualMonthEndDay = monthEndDay;
+            if (month === 12 && params.includeEndOfYearTransactions) {
+              actualMonthEndDay = 30;
+            }
+            const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+            const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
 
-          if (firstMonth < 6) {
-            // Add December 31st of previous year (always, even if sum is 0)
-            const prevYear = firstYear - 1;
+            if (contaSum !== 0) {
+              firstNonZeroMonth = month;
+              firstNonZeroYear = year;
+              break;
+            }
+          }
+
+          // If first non-zero month is before June, add Dec 31 of previous year
+          if (firstNonZeroMonth && firstNonZeroMonth < 6) {
+            const prevYear = firstNonZeroYear - 1;
             const contaDec31Start = `31/12/${prevYear}`;
             const contaDec31End = `31/12/${prevYear}`;
             const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
 
-            // ANAF: Only June 25th of current first year
-            const anafJune25Start = `25/06/${firstYear}`;
-            const anafJune25End = `25/06/${firstYear}`;
+            // ANAF: June 25th of firstNonZeroYear
+            const anafJune25Start = `25/06/${firstNonZeroYear}`;
+            const anafJune25End = `25/06/${firstNonZeroYear}`;
 
             const anafEOYAccountSums = [];
             let totalAnafEOYSum = 0;
 
             for (const anafAccount of anafAccounts) {
               const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31(${prevYear})->June25(${firstYear})]`);
+              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31(${prevYear})->June25(${firstNonZeroYear})]`);
               anafEOYAccountSums.push(accountSum);
               totalAnafEOYSum += accountSum;
             }
 
-            // Add pre-year end-of-year row (always, to maintain consistency)
+            // Add previous year end-of-year row
             const eoyDataRow = worksheet.getRow(rowIndex);
 
-            // Display dates (same date for start and end)
-            const contaDec31Display = new Date(prevYear, 11, 31, 12, 0, 0); // Dec 31 previous year
-            const anafJune25Display = new Date(firstYear, 5, 25, 12, 0, 0); // June 25 first year
+            const contaDec31Display = new Date(prevYear, 11, 31, 12, 0, 0);
+            const anafJune25Display = new Date(firstNonZeroYear, 5, 25, 12, 0, 0);
 
             eoyDataRow.getCell(1).value = contaDec31Display;
             eoyDataRow.getCell(2).value = contaDec31Display;
