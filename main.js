@@ -1311,6 +1311,128 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               }
 
               rowIndex++;
+
+              // Now add ALL months from January of current year up to (but not including) current month
+              for (let intermediateMonth = 1; intermediateMonth < month; intermediateMonth++) {
+                const intMonthStart = `01/${intermediateMonth.toString().padStart(2, '0')}/${year}`;
+                let intMonthEndDay = new Date(year, intermediateMonth, 0).getDate();
+                let intActualMonthEndDay = intMonthEndDay;
+                if (intermediateMonth === 12 && params.includeEndOfYearTransactions) {
+                  intActualMonthEndDay = 30;
+                }
+                const intMonthEndStr = `${intActualMonthEndDay.toString().padStart(2, '0')}/${intermediateMonth.toString().padStart(2, '0')}/${year}`;
+
+                const intContaSum = calculateContaAccountSum(contaAccount, intMonthStart, intMonthEndStr, params.processedContaFiles, params.accountConfigs);
+
+                const intNextMonth = intermediateMonth === 12 ? 1 : intermediateMonth + 1;
+                const intNextYear = intermediateMonth === 12 ? year + 1 : year;
+                const intAnafMonthStart = `01/${intNextMonth.toString().padStart(2, '0')}/${intNextYear}`;
+                const intAnafMonthEndDate = new Date(intNextYear, intNextMonth, 0);
+                const intAnafMonthEnd = `${intAnafMonthEndDate.getDate().toString().padStart(2, '0')}/${intNextMonth.toString().padStart(2, '0')}/${intNextYear}`;
+
+                const intAnafAccountSums = [];
+                let intTotalAnafSum = 0;
+
+                const intIsJuneWithEOY = (intermediateMonth === 5 && intNextMonth === 6 && params.includeEndOfYearTransactions);
+
+                for (const anafAccount of anafAccounts) {
+                  const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+                  let accountSum = 0;
+                  if (intIsJuneWithEOY) {
+                    const june1to24Start = `01/06/${intNextYear}`;
+                    const june1to24End = `24/06/${intNextYear}`;
+                    const june26to30Start = `26/06/${intNextYear}`;
+                    const june26to30End = `30/06/${intNextYear}`;
+                    const sum1to24 = calculateAnafAccountSum(anafAccount, june1to24Start, june1to24End, params.anafFiles, params.anafAccountFiles, config, `[Monthly Intermediate: ${contaAccount} May->June part1]`);
+                    const sum26to30 = calculateAnafAccountSum(anafAccount, june26to30Start, june26to30End, params.anafFiles, params.anafAccountFiles, config, `[Monthly Intermediate: ${contaAccount} May->June part2]`);
+                    accountSum = sum1to24 + sum26to30;
+                  } else {
+                    accountSum = calculateAnafAccountSum(anafAccount, intAnafMonthStart, intAnafMonthEnd, params.anafFiles, params.anafAccountFiles, config, `[Monthly Intermediate: ${contaAccount} ${year}/${intermediateMonth}]`);
+                  }
+                  intAnafAccountSums.push(accountSum);
+                  intTotalAnafSum += accountSum;
+                }
+
+                const intDataRow = worksheet.getRow(rowIndex);
+                const intContaStartDisplay = new Date(year, intermediateMonth - 1, 1, 12, 0, 0);
+                const intContaEndDisplay = new Date(year, intermediateMonth - 1, intActualMonthEndDay, 12, 0, 0);
+                const intAnafMonthLastDay = new Date(intNextYear, intNextMonth, 0).getDate();
+                const intAnafStartDisplay = new Date(intNextYear, intNextMonth - 1, 1, 12, 0, 0);
+                const intAnafEndDisplay = new Date(intNextYear, intNextMonth - 1, intAnafMonthLastDay, 12, 0, 0);
+
+                intDataRow.getCell(1).value = intContaStartDisplay;
+                intDataRow.getCell(2).value = intContaEndDisplay;
+                intDataRow.getCell(3).value = intAnafStartDisplay;
+                intDataRow.getCell(4).value = intAnafEndDisplay;
+                intDataRow.getCell(5).value = intContaSum;
+
+                let intColIndex = 6;
+                intAnafAccountSums.forEach((sum) => {
+                  intDataRow.getCell(intColIndex).value = sum;
+                  intColIndex++;
+                });
+
+                const intDiffValue = intContaSum - intTotalAnafSum;
+                intDataRow.getCell(differenceColIndex).value = intDiffValue;
+
+                const intDiffCell = intDataRow.getCell(differenceColIndex);
+                if (intDiffValue >= -2 && intDiffValue <= 2) {
+                  intDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+                } else {
+                  intDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+                }
+
+                rowIndex++;
+
+                // If this intermediate month is December and end-of-year enabled, add Dec 31 row
+                if (intermediateMonth === 12 && params.includeEndOfYearTransactions) {
+                  const intContaDec31Start = `31/12/${year}`;
+                  const intContaDec31End = `31/12/${year}`;
+                  const intContaDec31Sum = calculateContaAccountSum(contaAccount, intContaDec31Start, intContaDec31End, params.processedContaFiles, params.accountConfigs);
+
+                  const june25NextYear = year + 1;
+                  const intAnafJune25Start = `25/06/${june25NextYear}`;
+                  const intAnafJune25End = `25/06/${june25NextYear}`;
+
+                  const intAnafEOYAccountSums = [];
+                  let intTotalAnafEOYSum = 0;
+
+                  for (const anafAccount of anafAccounts) {
+                    const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+                    const accountSum = calculateAnafAccountSum(anafAccount, intAnafJune25Start, intAnafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly Intermediate EOY: ${contaAccount} Dec31->June25]`);
+                    intAnafEOYAccountSums.push(accountSum);
+                    intTotalAnafEOYSum += accountSum;
+                  }
+
+                  const intEoyDataRow = worksheet.getRow(rowIndex);
+                  const intContaDec31Display = new Date(year, 11, 31, 12, 0, 0);
+                  const intAnafJune25Display = new Date(june25NextYear, 5, 25, 12, 0, 0);
+
+                  intEoyDataRow.getCell(1).value = intContaDec31Display;
+                  intEoyDataRow.getCell(2).value = intContaDec31Display;
+                  intEoyDataRow.getCell(3).value = intAnafJune25Display;
+                  intEoyDataRow.getCell(4).value = intAnafJune25Display;
+                  intEoyDataRow.getCell(5).value = intContaDec31Sum;
+
+                  let intEoyColIndex = 6;
+                  intAnafEOYAccountSums.forEach((sum) => {
+                    intEoyDataRow.getCell(intEoyColIndex).value = sum;
+                    intEoyColIndex++;
+                  });
+
+                  const intEoyDiffValue = intContaDec31Sum - intTotalAnafEOYSum;
+                  intEoyDataRow.getCell(differenceColIndex).value = intEoyDiffValue;
+
+                  const intEoyDiffCell = intEoyDataRow.getCell(differenceColIndex);
+                  if (intEoyDiffValue >= -2 && intEoyDiffValue <= 2) {
+                    intEoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+                  } else {
+                    intEoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+                  }
+
+                  rowIndex++;
+                }
+              }
             }
           }
 
