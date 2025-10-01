@@ -1188,12 +1188,22 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let rowIndex = 3;
         let foundFirstNonZero = false;
 
+        // Track December 31st years for end-of-year processing
+        const december31stYears = [];
+
         // Process each month
         for (const monthInfo of monthsInRange) {
           const { year, month } = monthInfo;
           const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
-          const monthEnd = new Date(year, month, 0);
-          const monthEndStr = `${monthEnd.getDate().toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+
+          // If December and end-of-year transactions enabled, end on Dec 30 instead of Dec 31
+          let monthEnd = new Date(year, month, 0);
+          let monthEndDay = monthEnd.getDate();
+          if (month === 12 && params.includeEndOfYearTransactions) {
+            monthEndDay = 30; // Exclude Dec 31
+            december31stYears.push(year); // Track for later processing
+          }
+          const monthEndStr = `${monthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
 
@@ -1264,6 +1274,62 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           }
 
           rowIndex++;
+        }
+
+        // Process end-of-year transactions (December 31st → June 25th next year)
+        if (params.includeEndOfYearTransactions && december31stYears.length > 0) {
+          for (const year of december31stYears) {
+            // Conta: Only December 31st
+            const contaDec31Start = `31/12/${year}`;
+            const contaDec31End = `31/12/${year}`;
+            const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
+
+            // ANAF: Only June 25th of next year (even if outside interval)
+            const nextYear = year + 1;
+            const anafJune25Start = `25/06/${nextYear}`;
+            const anafJune25End = `25/06/${nextYear}`;
+
+            const anafAccountSums = [];
+            let totalAnafSum = 0;
+
+            for (const anafAccount of anafAccounts) {
+              const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config);
+              anafAccountSums.push(accountSum);
+              totalAnafSum += accountSum;
+            }
+
+            // Add end-of-year row
+            const dataRow = worksheet.getRow(rowIndex);
+
+            // Display dates
+            const contaDec31Display = new Date(year, 11, 31, 12, 0, 0); // Dec 31
+            const anafJune25Display = new Date(nextYear, 5, 25, 12, 0, 0); // June 25
+
+            dataRow.getCell(1).value = contaDec31Display;
+            dataRow.getCell(2).value = contaDec31Display;
+            dataRow.getCell(3).value = anafJune25Display;
+            dataRow.getCell(4).value = anafJune25Display;
+            dataRow.getCell(5).value = contaDec31Sum;
+
+            let currentColIndex = 6;
+            anafAccountSums.forEach((sum) => {
+              dataRow.getCell(currentColIndex).value = sum;
+              currentColIndex++;
+            });
+
+            const diffValue = contaDec31Sum - totalAnafSum;
+            dataRow.getCell(differenceColIndex).value = diffValue;
+
+            const diffCell = dataRow.getCell(differenceColIndex);
+            if (diffValue >= -2 && diffValue <= 2) {
+              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+            } else {
+              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+            }
+
+            rowIndex++;
+          }
         }
 
         // Add sum of differences formula to row 2

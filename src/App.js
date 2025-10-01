@@ -290,6 +290,9 @@ function App() {
     anafMergedData: true,
     monthlyAnalysis: false
   });
+
+  // End-of-year transactions toggle for monthly analysis
+  const [includeEndOfYearTransactions, setIncludeEndOfYearTransactions] = useState(false);
   
   // Account mapping state (1 conta account to multiple anaf accounts)
   // Default mappings from conta anaf.txt
@@ -3821,7 +3824,8 @@ function App() {
           anafFiles: anafFiles,
           accountConfigs: accountConfigs,
           anafAccountFiles: anafAccountFiles,
-          anafAccountConfigs: anafAccountConfigs
+          anafAccountConfigs: anafAccountConfigs,
+          includeEndOfYearTransactions: includeEndOfYearTransactions
         } : null
       };
 
@@ -8377,6 +8381,40 @@ function App() {
                   </div>
                 </div>
               </label>
+
+              {/* Sub-option: Include end-of-year transactions */}
+              {selectedWorksheets.monthlyAnalysis && (
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  padding: '10px 15px 10px 40px',
+                  cursor: 'pointer',
+                  backgroundColor: GLOBAL_PANEL_BG,
+                  borderRadius: '4px',
+                  marginTop: '5px',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = GLOBAL_PANEL_HOVER;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = GLOBAL_PANEL_BG;
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={includeEndOfYearTransactions}
+                    onChange={(e) => setIncludeEndOfYearTransactions(e.target.checked)}
+                    style={{ marginTop: '2px' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Separate End-of-Year Transactions</div>
+                    <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                      (Creates 13th row per year: Dec 31st conta → June 25th next year ANAF)
+                    </div>
+                  </div>
+                </label>
+              )}
             </div>
 
             {Object.values(selectedWorksheets).every(v => !v) && (
