@@ -1240,12 +1240,12 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               const june26to30Start = `26/06/${nextYear}`;
               const june26to30End = `30/06/${nextYear}`;
 
-              const sum1to24 = calculateAnafAccountSum(anafAccount, june1to24Start, june1to24End, params.anafFiles, params.anafAccountFiles, config);
-              const sum26to30 = calculateAnafAccountSum(anafAccount, june26to30Start, june26to30End, params.anafFiles, params.anafAccountFiles, config);
+              const sum1to24 = calculateAnafAccountSum(anafAccount, june1to24Start, june1to24End, params.anafFiles, params.anafAccountFiles, config, `[Monthly: ${contaAccount} May->June part1]`);
+              const sum26to30 = calculateAnafAccountSum(anafAccount, june26to30Start, june26to30End, params.anafFiles, params.anafAccountFiles, config, `[Monthly: ${contaAccount} May->June part2]`);
               accountSum = sum1to24 + sum26to30;
             } else {
               // Normal calculation for all other months
-              accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+              accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config, `[Monthly: ${contaAccount} ${year}/${month}]`);
             }
 
             anafAccountSums.push(accountSum);
@@ -1307,7 +1307,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
             for (const anafAccount of anafAccounts) {
               const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config);
+              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31->June25]`);
               anafEOYAccountSums.push(accountSum);
               totalAnafEOYSum += accountSum;
             }
@@ -1701,10 +1701,17 @@ function calculateContaAccountSum(account, startDate, endDate, processedContaFil
 }
 
 // Helper function to calculate ANAF account sums for a specific date range (same logic as frontend)
-function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles, config = {}) {
+function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAccountFiles, config = {}, debugContext = '') {
   const { filterColumn = 'CTG_SUME', filterValue = '', sumColumn = 'SUMA_PLATA', subtractConfig } = config;
   let sum = 0;
   let subtractSum = 0;
+
+  // Debug flag for account 3
+  const isDebugAccount = account === '3';
+  if (isDebugAccount) {
+    console.log(`\n=== ANAF ACCOUNT 3 DEBUG ${debugContext} ===`);
+    console.log(`Date range: ${startDate} to ${endDate}`);
+  }
 
   const startISO = parseDDMMYYYY(startDate);
   const endISO = parseDDMMYYYY(endDate);
@@ -1835,6 +1842,12 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
             valueToAdd = sumaPlataValue;
         }
 
+        // Debug logging for account 3
+        if (isDebugAccount && valueToAdd !== 0) {
+          const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'NO_DATE';
+          console.log(`  Transaction: Date=${dateStr}, Value=${valueToAdd}, CTG_SUME=${ctgSumeValue}, SUMA_PLATA=${sumaPlataValue}`);
+        }
+
         sum += valueToAdd;
       });
     }
@@ -1938,7 +1951,17 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
     });
   }
 
-  return sum - subtractSum;
+  const finalSum = sum - subtractSum;
+
+  // Debug logging for account 3
+  if (isDebugAccount) {
+    console.log(`  Total sum: ${sum}`);
+    console.log(`  Subtract sum: ${subtractSum}`);
+    console.log(`  Final sum: ${finalSum}`);
+    console.log(`=== END DEBUG ===\n`);
+  }
+
+  return finalSum;
 }
 
 // Helper function to extract account from filename
