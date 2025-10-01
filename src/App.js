@@ -8396,7 +8396,7 @@ function App() {
                   transition: 'background-color 0.2s'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = GLOBAL_PANEL_HOVER;
+                  e.target.style.backgroundColor = GLOBAL_HOVER_BG;
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = GLOBAL_PANEL_BG;
