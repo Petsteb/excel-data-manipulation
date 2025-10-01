@@ -1186,6 +1186,67 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         let rowIndex = 3;
+        let foundFirstNonZero = false;
+
+        // Check if first month is before June and end-of-year toggle is enabled
+        if (monthsInRange.length > 0 && params.includeEndOfYearTransactions) {
+          const firstMonthInfo = monthsInRange[0];
+          const firstMonth = firstMonthInfo.month;
+          const firstYear = firstMonthInfo.year;
+
+          if (firstMonth < 6) {
+            // Add December 31st of previous year
+            const prevYear = firstYear - 1;
+            const contaDec31Start = `31/12/${prevYear}`;
+            const contaDec31End = `31/12/${prevYear}`;
+            const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
+
+            // ANAF: Only June 25th of current first year
+            const anafJune25Start = `25/06/${firstYear}`;
+            const anafJune25End = `25/06/${firstYear}`;
+
+            const anafEOYAccountSums = [];
+            let totalAnafEOYSum = 0;
+
+            for (const anafAccount of anafAccounts) {
+              const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+              const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31(${prevYear})->June25(${firstYear})]`);
+              anafEOYAccountSums.push(accountSum);
+              totalAnafEOYSum += accountSum;
+            }
+
+            // Add pre-year end-of-year row
+            const eoyDataRow = worksheet.getRow(rowIndex);
+
+            // Display dates (same date for start and end)
+            const contaDec31Display = new Date(prevYear, 11, 31, 12, 0, 0); // Dec 31 previous year
+            const anafJune25Display = new Date(firstYear, 5, 25, 12, 0, 0); // June 25 first year
+
+            eoyDataRow.getCell(1).value = contaDec31Display;
+            eoyDataRow.getCell(2).value = contaDec31Display;
+            eoyDataRow.getCell(3).value = anafJune25Display;
+            eoyDataRow.getCell(4).value = anafJune25Display;
+            eoyDataRow.getCell(5).value = contaDec31Sum;
+
+            let eoyColIndex = 6;
+            anafEOYAccountSums.forEach((sum) => {
+              eoyDataRow.getCell(eoyColIndex).value = sum;
+              eoyColIndex++;
+            });
+
+            const eoyDiffValue = contaDec31Sum - totalAnafEOYSum;
+            eoyDataRow.getCell(differenceColIndex).value = eoyDiffValue;
+
+            const eoyDiffCell = eoyDataRow.getCell(differenceColIndex);
+            if (eoyDiffValue >= -2 && eoyDiffValue <= 2) {
+              eoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+            } else {
+              eoyDiffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+            }
+
+            rowIndex++;
+          }
+        }
 
         // Process each month
         for (const monthInfo of monthsInRange) {
@@ -1201,6 +1262,16 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
+
+          // Skip months until we find the first non-zero conta sum
+          if (!foundFirstNonZero && contaSum === 0) {
+            continue;
+          }
+
+          // Once we find the first non-zero, show all remaining months
+          if (!foundFirstNonZero && contaSum !== 0) {
+            foundFirstNonZero = true;
+          }
 
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
