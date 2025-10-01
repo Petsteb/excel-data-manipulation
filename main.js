@@ -1092,10 +1092,195 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         }
       }
     });
-    
+
+    // Add Monthly Analysis worksheets if requested
+    if (summaryData.includeMonthlyAnalysis && summaryData.monthlyAnalysisParams) {
+      const params = summaryData.monthlyAnalysisParams;
+
+      // Helper function to convert column number to Excel column letter
+      const getColumnLetter = (colNum) => {
+        let letter = '';
+        while (colNum > 0) {
+          const remainder = (colNum - 1) % 26;
+          letter = String.fromCharCode(65 + remainder) + letter;
+          colNum = Math.floor((colNum - 1) / 26);
+        }
+        return letter;
+      };
+
+      // Process each account relation for monthly analysis
+      for (const [contaAccount, anafAccounts] of Object.entries(params.accountMappings)) {
+        const worksheetName = `Monthly_${contaAccount}`;
+        const worksheet = workbook.addWorksheet(worksheetName);
+
+        // Get all months in the date range
+        const startDateObj = new Date(parseDDMMYYYY(params.dateInterval.startDate) + 'T00:00:00');
+        const endDateObj = new Date(parseDDMMYYYY(params.dateInterval.endDate) + 'T23:59:59');
+        const monthsInRange = getMonthsInRange(startDateObj, endDateObj);
+
+        // Build headers
+        const sourceRow = worksheet.getRow(1);
+        worksheet.mergeCells('A1:B1');
+        sourceRow.getCell(1).value = 'CONTA';
+        worksheet.mergeCells('C1:D1');
+        sourceRow.getCell(3).value = 'ANAF';
+        sourceRow.getCell(5).value = 'CONTA';
+
+        const anafStartCol = 6;
+        const anafEndCol = 5 + anafAccounts.length;
+        if (anafAccounts.length > 0) {
+          const startColLetter = getColumnLetter(anafStartCol);
+          const endColLetter = getColumnLetter(anafEndCol);
+          worksheet.mergeCells(`${startColLetter}1:${endColLetter}1`);
+          sourceRow.getCell(anafStartCol).value = 'ANAF';
+        }
+
+        const diffCol = anafEndCol + 1;
+        sourceRow.getCell(diffCol).value = '';
+        const sumOfDiffCol = diffCol + 1;
+        sourceRow.getCell(sumOfDiffCol).value = 'Sum of Differences';
+
+        // Style source row
+        for (let i = 1; i <= sumOfDiffCol; i++) {
+          const cell = sourceRow.getCell(i);
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD0D0D0' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+
+        // Row 2: Column headers
+        const headerRow = worksheet.getRow(2);
+        headerRow.getCell(1).value = 'Interval Start';
+        headerRow.getCell(2).value = 'Interval End';
+        headerRow.getCell(3).value = 'Interval Start';
+        headerRow.getCell(4).value = 'Interval End';
+        headerRow.getCell(5).value = contaAccount;
+
+        let colIndex = 6;
+        anafAccounts.forEach((anafAccount) => {
+          headerRow.getCell(colIndex).value = anafAccount;
+          colIndex++;
+        });
+
+        const differenceColIndex = colIndex;
+        headerRow.getCell(differenceColIndex).value = 'Difference';
+        colIndex++;
+        const sumOfDifferencesColIndex = colIndex;
+
+        // Style header row (excluding Sum of Differences column)
+        for (let i = 1; i < sumOfDifferencesColIndex; i++) {
+          const cell = headerRow.getCell(i);
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+
+        // Style Sum of Differences column in row 2
+        const sumHeaderCell = headerRow.getCell(sumOfDifferencesColIndex);
+        sumHeaderCell.font = { bold: true };
+        sumHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD0D0D0' } };
+        sumHeaderCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        let rowIndex = 3;
+
+        // Process each month
+        for (const monthInfo of monthsInRange) {
+          const { year, month } = monthInfo;
+          const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
+          const monthEnd = new Date(year, month, 0);
+          const monthEndStr = `${monthEnd.getDate().toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+
+          const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
+
+          const nextMonth = month === 12 ? 1 : month + 1;
+          const nextYear = month === 12 ? year + 1 : year;
+          const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          const anafMonthEndDate = new Date(nextYear, nextMonth, 0);
+          const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+
+          const anafStartDate = new Date(nextYear, nextMonth - 1, 1);
+          const anafEndDate = anafMonthEndDate;
+
+          const anafAccountSums = [];
+          let totalAnafSum = 0;
+          for (const anafAccount of anafAccounts) {
+            const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+            const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+            anafAccountSums.push(accountSum);
+            totalAnafSum += accountSum;
+          }
+
+          if (contaSum !== 0 || totalAnafSum !== 0) {
+            const dataRow = worksheet.getRow(rowIndex);
+            dataRow.getCell(1).value = new Date(year, month - 1, 1);
+            dataRow.getCell(2).value = new Date(year, month, 0);
+            dataRow.getCell(3).value = anafStartDate;
+            dataRow.getCell(4).value = anafEndDate;
+            dataRow.getCell(5).value = contaSum;
+
+            let currentColIndex = 6;
+            anafAccountSums.forEach((sum) => {
+              dataRow.getCell(currentColIndex).value = sum;
+              currentColIndex++;
+            });
+
+            const diffValue = contaSum - totalAnafSum;
+            dataRow.getCell(differenceColIndex).value = diffValue;
+
+            const diffCell = dataRow.getCell(differenceColIndex);
+            if (diffValue >= -2 && diffValue <= 2) {
+              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+            } else {
+              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+            }
+
+            rowIndex++;
+          }
+        }
+
+        // Add sum of differences formula to row 2
+        const differenceColLetter = getColumnLetter(differenceColIndex);
+        const sumCell = worksheet.getCell(2, sumOfDifferencesColIndex);
+        sumCell.value = { formula: `SUM($${differenceColLetter}$3:$${differenceColLetter}$${rowIndex - 1})` };
+
+        // Format columns
+        const totalColumns = 5 + anafAccounts.length + 2;
+        const columnWidths = [
+          { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 12 }
+        ];
+        anafAccounts.forEach(() => columnWidths.push({ width: 12 }));
+        columnWidths.push({ width: 12 });
+        columnWidths.push({ width: 20 });
+        worksheet.columns = columnWidths;
+
+        // Set date formatting
+        for (let row = 3; row <= rowIndex - 1; row++) {
+          [1, 2, 3, 4].forEach(col => {
+            const cell = worksheet.getCell(row, col);
+            if (cell.value instanceof Date) {
+              cell.numFmt = 'dd/mm/yyyy';
+              cell.type = ExcelJS.ValueType.Date;
+            }
+          });
+        }
+
+        // Freeze panes
+        worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 2 }];
+
+        // Add autofilter
+        if (rowIndex > 3) {
+          const lastColumn = getColumnLetter(differenceColIndex);
+          worksheet.autoFilter = { from: 'A2', to: `${lastColumn}${rowIndex - 1}` };
+        }
+      }
+    }
+
     // Save the workbook
     await workbook.xlsx.writeFile(outputPath);
-    
+
     return {
       success: true,
       outputPath: outputPath,
@@ -1272,7 +1457,20 @@ function getJune25thTransactions(transactions, year, dateColumnIndex) {
 function parseDDMMYYYY(dateString) {
   if (!dateString || typeof dateString !== 'string') return null;
 
-  const parts = dateString.split('/');
+  let parts;
+
+  // Handle DD.MM.YYYY format (dots)
+  if (dateString.includes('.')) {
+    parts = dateString.split('.');
+  }
+  // Handle DD/MM/YYYY format (slashes)
+  else if (dateString.includes('/')) {
+    parts = dateString.split('/');
+  }
+  else {
+    return null;
+  }
+
   if (parts.length !== 3) return null;
 
   const day = parseInt(parts[0], 10);
@@ -1387,9 +1585,6 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
   let sum = 0;
   let subtractSum = 0;
 
-  console.log(`Calculating ANAF sum for account: ${account}, dates: ${startDate} - ${endDate}`);
-  console.log(`Config: filterColumn=${filterColumn}, filterValue=${filterValue}, sumColumn=${sumColumn}`);
-
   const startISO = parseDDMMYYYY(startDate);
   const endISO = parseDDMMYYYY(endDate);
   const start = startISO ? new Date(startISO + 'T00:00:00') : null;
@@ -1397,34 +1592,42 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
 
   // Get assigned files for this account, fallback to all files if none assigned
   const assignedFileIds = anafAccountFiles[account] || [];
+
   const filesToProcess = assignedFileIds.length > 0
     ? anafFiles.filter(file => assignedFileIds.includes(file.filePath || file.name))
     : anafFiles.filter(file => {
         const fileAccount = extractAccountFromFilename(file.filePath || file.name || '');
+
+        // Exact match
         if (fileAccount === account) return true;
-        if (account.startsWith(fileAccount + '.')) return true;
+
+        // Handle sub-accounts (e.g., 446.CV -> 446)
+        if (account.includes('.') && account.startsWith(fileAccount + '.')) return true;
+
+        // Special cases for 1/4423 and 1/4424
         if ((account === '1/4423' || account === '1/4424') && fileAccount === '1') return true;
+
+        // Handle common ANAF account patterns
+        // Account 33 might be in a file like imp_411.xls or imp_416.xls for similar accounts
+        if (account === '33') {
+          // Try common related accounts for 33
+          if (['411', '412', '416', '421', '422', '423'].includes(fileAccount)) {
+            return true;
+          }
+        }
+
         return false;
       });
 
-  console.log(`Found ${filesToProcess.length} files to process for account ${account}`);
-
   filesToProcess.forEach((file) => {
-    const fileName = file.filePath || file.name || 'Unknown';
-    console.log(`Processing file: ${fileName} for account ${account}`);
-
     if (file.data && Array.isArray(file.data)) {
-      let matchingRows = 0;
-      let processedRows = 0;
-
       file.data.forEach((row, index) => {
         // Skip company info row (0) and column header row (1)
-        if (index === 0 || index === 1) return;
-
-        processedRows++;
+        if (index === 0 || index === 1) {
+          return;
+        }
 
         // Get values from row
-        const termPlataValue = row[5]; // TERM_PLATA column
         const ctgSumeValue = row[6]; // CTG_SUME column
         const atributPlValue = row[12]; // ATRIBUT_PL column
         const imeCodeValue = row[0]; // IME_COD_IMPOZIT column
@@ -1512,21 +1715,13 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
         }
 
         sum += valueToAdd;
-        matchingRows++;
       });
-
-      console.log(`File ${fileName}: processed ${processedRows} rows, found ${matchingRows} matching rows for account ${account}`);
     }
   });
 
   // Calculate subtraction if configured
   if (subtractConfig && subtractConfig.filterValue) {
-    console.log(`Calculating subtraction with config:`, subtractConfig);
-
     filesToProcess.forEach((file) => {
-      const fileName = file.filePath || file.name || 'Unknown';
-      let subtractMatchingRows = 0;
-
       if (file.data && Array.isArray(file.data)) {
         file.data.forEach((row, index) => {
           // Skip company info row (0) and column header row (1)
@@ -1616,20 +1811,13 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
             }
 
             subtractSum += valueToSubtract;
-            subtractMatchingRows++;
           }
         });
-      }
-
-      if (subtractMatchingRows > 0) {
-        console.log(`File ${fileName}: found ${subtractMatchingRows} subtraction rows, subtractSum=${subtractSum}`);
       }
     });
   }
 
-  const finalSum = sum - subtractSum;
-  console.log(`Final sum for account ${account}: ${sum} - ${subtractSum} = ${finalSum}`);
-  return finalSum;
+  return sum - subtractSum;
 }
 
 // Helper function to extract account from filename
@@ -1710,13 +1898,6 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
   outputPath
 }) => {
   try {
-    console.log('Enhanced analysis inputs:');
-    console.log('Account mappings:', accountMappings);
-    console.log('Date interval:', dateInterval);
-    console.log('Processed conta files count:', processedContaFiles?.length || 0);
-    console.log('ANAF files count:', anafFiles?.length || 0);
-    console.log('Account configs:', Object.keys(accountConfigs));
-    console.log('ANAF account files:', Object.keys(anafAccountFiles));
     const workbook = new ExcelJS.Workbook();
 
     // Convert date interval to proper format
@@ -1739,21 +1920,92 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
       const worksheetName = `Relation_${contaAccount}`;
       const worksheet = workbook.addWorksheet(worksheetName);
 
-      // Set up headers
-      const headers = [
-        'Conta Month Start',
-        'Conta Month End',
-        'ANAF Period Start',
-        'ANAF Period End',
-        'Conta Sum',
-        'ANAF Sum',
-        'Difference'
-      ];
+      // Helper function to convert column number to Excel column letter
+      const getColumnLetter = (colNum) => {
+        let letter = '';
+        while (colNum > 0) {
+          const remainder = (colNum - 1) % 26;
+          letter = String.fromCharCode(65 + remainder) + letter;
+          colNum = Math.floor((colNum - 1) / 26);
+        }
+        return letter;
+      };
 
-      const headerRow = worksheet.getRow(1);
-      headers.forEach((header, index) => {
-        const cell = headerRow.getCell(index + 1);
-        cell.value = header;
+      // Row 1: Source type labels (CONTA/ANAF) with merged cells
+      const sourceRow = worksheet.getRow(1);
+
+      // Merge cells A1:B1 for "CONTA"
+      worksheet.mergeCells('A1:B1');
+      sourceRow.getCell(1).value = 'CONTA';
+
+      // Merge cells C1:D1 for "ANAF"
+      worksheet.mergeCells('C1:D1');
+      sourceRow.getCell(3).value = 'ANAF';
+
+      // Cell E1 for "CONTA"
+      sourceRow.getCell(5).value = 'CONTA';
+
+      // Merge cells for ANAF accounts section
+      const anafStartCol = 6;
+      const anafEndCol = 5 + anafAccounts.length;
+      if (anafAccounts.length > 0) {
+        const startColLetter = getColumnLetter(anafStartCol);
+        const endColLetter = getColumnLetter(anafEndCol);
+        worksheet.mergeCells(`${startColLetter}1:${endColLetter}1`);
+        sourceRow.getCell(anafStartCol).value = 'ANAF';
+      }
+
+      // Difference column - leave empty
+      const diffCol = anafEndCol + 1;
+      sourceRow.getCell(diffCol).value = '';
+
+      // Sum of Differences column - add label in row 1
+      const sumOfDiffCol = diffCol + 1;
+      sourceRow.getCell(sumOfDiffCol).value = 'Sum of Differences';
+
+      // Style source row
+      for (let i = 1; i <= sumOfDiffCol; i++) {
+        const cell = sourceRow.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD0D0D0' }
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      }
+
+      // Row 2: Column headers
+      const headerRow = worksheet.getRow(2);
+      headerRow.getCell(1).value = 'Interval Start';
+      headerRow.getCell(2).value = 'Interval End';
+      headerRow.getCell(3).value = 'Interval Start';
+      headerRow.getCell(4).value = 'Interval End';
+      headerRow.getCell(5).value = contaAccount;
+
+      colIndex = 6;
+      anafAccounts.forEach((anafAccount) => {
+        headerRow.getCell(colIndex).value = anafAccount;
+        colIndex++;
+      });
+
+      headerRow.getCell(colIndex).value = 'Difference';
+      const differenceColIndex = colIndex;
+      colIndex++;
+
+      // Sum of Differences column - will have the sum value in row 2
+      const sumOfDifferencesColIndex = colIndex;
+      // Don't set value yet, will be set after processing all months
+
+      // Style header row (excluding Sum of Differences column)
+      for (let i = 1; i < colIndex; i++) {
+        const cell = headerRow.getCell(i);
         cell.font = { bold: true };
         cell.fill = {
           type: 'pattern',
@@ -1766,9 +2018,26 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
           bottom: { style: 'thin' },
           right: { style: 'thin' }
         };
-      });
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      }
 
-      let rowIndex = 2;
+      // Style Sum of Differences column in row 2 (same as row 1)
+      const sumHeaderCell = headerRow.getCell(sumOfDifferencesColIndex);
+      sumHeaderCell.font = { bold: true };
+      sumHeaderCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD0D0D0' }
+      };
+      sumHeaderCell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      let rowIndex = 3;
 
       // Process each month
       for (const monthInfo of monthsInRange) {
@@ -1779,98 +2048,53 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
         const monthEnd = new Date(year, month, 0); // Last day of month
         const monthEndStr = `${monthEnd.getDate().toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
-        let contaSum = 0;
-        let anafSum = 0;
-        let anafStartDate, anafEndDate;
+        // Calculate conta sum for the full month (including all days)
+        const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, processedContaFiles, accountConfigs);
 
-        if (month === 12) {
-          // December: handle regular December (1-30) and December 31st separately
-          const regularDecemberEnd = `30/${month.toString().padStart(2, '0')}/${year}`;
+        // ANAF period is next month (offset by one month into the future)
+        const nextMonth = month === 12 ? 1 : month + 1;
+        const nextYear = month === 12 ? year + 1 : year;
 
-          // Calculate conta sum for December 1-30
-          contaSum = calculateContaAccountSum(contaAccount, monthStart, regularDecemberEnd, processedContaFiles, accountConfigs);
+        const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+        const anafMonthEndDate = new Date(nextYear, nextMonth, 0); // Last day of next month
+        const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
 
-          // For ANAF, get sum from June 25th of next year
-          const june25NextYear = `25/06/${year + 1}`;
-          anafStartDate = new Date(year + 1, 5, 25); // June 25th next year
-          anafEndDate = new Date(year + 1, 5, 25); // Same day
+        const anafStartDate = new Date(nextYear, nextMonth - 1, 1);
+        const anafEndDate = anafMonthEndDate;
 
-          // Calculate ANAF sum for all related accounts on June 25th next year
-          anafSum = 0;
-          for (const anafAccount of anafAccounts) {
-            const config = getAnafAccountConfig(anafAccount, anafAccountConfigs);
-            anafSum += calculateAnafAccountSum(anafAccount, june25NextYear, june25NextYear, anafFiles, anafAccountFiles, config);
-          }
-
-          // Add separate row for December 31st if there are transactions
-          const dec31Sum = calculateContaAccountSum(contaAccount, `31/12/${year}`, `31/12/${year}`, processedContaFiles, accountConfigs);
-
-          if (dec31Sum !== 0) {
-            const dec31Row = worksheet.getRow(rowIndex);
-            dec31Row.getCell(1).value = new Date(year, 11, 31); // Dec 31st
-            dec31Row.getCell(2).value = new Date(year, 11, 31); // Dec 31st
-            dec31Row.getCell(3).value = anafStartDate;
-            dec31Row.getCell(4).value = anafEndDate;
-            dec31Row.getCell(5).value = dec31Sum;
-            dec31Row.getCell(6).value = anafSum;
-            dec31Row.getCell(7).value = dec31Sum - anafSum;
-
-            // Apply conditional formatting
-            const diffCell = dec31Row.getCell(7);
-            const diffValue = dec31Sum - anafSum;
-            if (diffValue >= -2 && diffValue <= 2) {
-              diffCell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF90EE90' } // Green
-              };
-            } else {
-              diffCell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFFF6B6B' } // Red
-              };
-            }
-
-            rowIndex++;
-          }
-        } else {
-          // Regular month processing
-          contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, processedContaFiles, accountConfigs);
-
-          // ANAF period is next month
-          const nextMonth = month === 12 ? 1 : month + 1;
-          const nextYear = month === 12 ? year + 1 : year;
-
-          const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
-          const anafMonthEndDate = new Date(nextYear, nextMonth, 0); // Last day of next month
-          const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
-
-          anafStartDate = new Date(nextYear, nextMonth - 1, 1);
-          anafEndDate = anafMonthEndDate;
-
-          // Calculate ANAF sum for all related accounts in the next month
-          anafSum = 0;
-          for (const anafAccount of anafAccounts) {
-            const config = getAnafAccountConfig(anafAccount, anafAccountConfigs);
-            anafSum += calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles, config);
-          }
+        // Calculate ANAF sum for each related account in the next month
+        const anafAccountSums = [];
+        let totalAnafSum = 0;
+        for (const anafAccount of anafAccounts) {
+          const config = getAnafAccountConfig(anafAccount, anafAccountConfigs);
+          const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, anafFiles, anafAccountFiles, config);
+          anafAccountSums.push(accountSum);
+          totalAnafSum += accountSum;
         }
 
-        // Add row to worksheet for regular month (or December 1-30)
-        if (contaSum !== 0 || anafSum !== 0) {
+        // Add row to worksheet
+        if (contaSum !== 0 || totalAnafSum !== 0) {
           const dataRow = worksheet.getRow(rowIndex);
           dataRow.getCell(1).value = new Date(year, month - 1, 1);
           dataRow.getCell(2).value = new Date(year, month, 0);
           dataRow.getCell(3).value = anafStartDate;
           dataRow.getCell(4).value = anafEndDate;
           dataRow.getCell(5).value = contaSum;
-          dataRow.getCell(6).value = anafSum;
-          dataRow.getCell(7).value = contaSum - anafSum;
+
+          // Add individual ANAF account sums
+          let currentColIndex = 6;
+          anafAccountSums.forEach((sum) => {
+            dataRow.getCell(currentColIndex).value = sum;
+            currentColIndex++;
+          });
+
+          // Add difference column
+          const differenceColIndex = currentColIndex;
+          dataRow.getCell(differenceColIndex).value = contaSum - totalAnafSum;
 
           // Apply conditional formatting to difference column
-          const diffCell = dataRow.getCell(7);
-          const diffValue = contaSum - anafSum;
+          const diffCell = dataRow.getCell(differenceColIndex);
+          const diffValue = contaSum - totalAnafSum;
           if (diffValue >= -2 && diffValue <= 2) {
             diffCell.fill = {
               type: 'pattern',
@@ -1889,19 +2113,37 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
         }
       }
 
+      // Add sum of differences formula to row 2
+      const differenceColLetter = getColumnLetter(differenceColIndex);
+      const sumCell = worksheet.getCell(2, sumOfDifferencesColIndex);
+      sumCell.value = { formula: `SUM($${differenceColLetter}$3:$${differenceColLetter}$${rowIndex - 1})` };
+      // Style is already applied above
+
       // Format date columns and add filters
-      worksheet.columns = [
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Month Start
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Month End
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Period Start
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Period End
-        { width: 12 }, // Conta Sum
-        { width: 12 }, // ANAF Sum
-        { width: 12 }  // Difference
+      const totalColumns = 5 + anafAccounts.length + 2; // 4 date cols + 1 conta + N anaf + 1 diff + 1 sum of diff
+      const columnWidths = [
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Interval Start
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Interval End
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval Start
+        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval End
+        { width: 12 } // Conta account
       ];
 
+      // Add widths for ANAF accounts
+      anafAccounts.forEach(() => {
+        columnWidths.push({ width: 12 });
+      });
+
+      // Add width for Difference column
+      columnWidths.push({ width: 12 });
+
+      // Add width for Sum of Differences column
+      columnWidths.push({ width: 20 });
+
+      worksheet.columns = columnWidths;
+
       // Set date formatting for date columns
-      for (let row = 2; row <= rowIndex - 1; row++) {
+      for (let row = 3; row <= rowIndex - 1; row++) {
         [1, 2, 3, 4].forEach(col => {
           const cell = worksheet.getCell(row, col);
           if (cell.value instanceof Date) {
@@ -1911,11 +2153,17 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
         });
       }
 
-      // Add autofilter
-      if (rowIndex > 2) {
+      // Freeze the first 2 rows
+      worksheet.views = [
+        { state: 'frozen', xSplit: 0, ySplit: 2 }
+      ];
+
+      // Add autofilter starting from row 2 (exclude Sum of Differences column)
+      if (rowIndex > 3) {
+        const lastColumn = getColumnLetter(differenceColIndex); // Only up to Difference column
         worksheet.autoFilter = {
-          from: 'A1',
-          to: `G${rowIndex - 1}`
+          from: 'A2',
+          to: `${lastColumn}${rowIndex - 1}`
         };
       }
     }

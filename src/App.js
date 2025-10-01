@@ -287,7 +287,8 @@ function App() {
   const [selectedWorksheets, setSelectedWorksheets] = useState({
     relationsSummary: true,
     accountsSummary: true,
-    anafMergedData: true
+    anafMergedData: true,
+    monthlyAnalysis: false
   });
   
   // Account mapping state (1 conta account to multiple anaf accounts)
@@ -352,7 +353,6 @@ function App() {
     'sums-panel': { x: 540, y: 20, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'worksheet-selection-panel': { x: 540, y: 240, width: DEFAULT_PANEL_WIDTH, height: DEFAULT_PANEL_HEIGHT },
     'generate-summary-button': { x: 450, y: 240, width: DEFAULT_BUTTON_SIZE, height: DEFAULT_BUTTON_SIZE },
-    'enhanced-analysis-button': { x: 550, y: 240, width: 120, height: DEFAULT_BUTTON_SIZE },
     'final-summary-panel': { x: 300, y: 560, width: 300, height: 200 }
   });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -391,7 +391,6 @@ function App() {
   const [columnSampleData, setColumnSampleData] = useState([]);
   const [availableButtons] = useState([
     { id: 'generate-summary-button', name: 'Generate Summary Button', type: 'button', active: true },
-    { id: 'enhanced-analysis-button', name: 'Enhanced Analysis Button', type: 'button', active: true }
   ]);
   const [collisionMatrix, setCollisionMatrix] = useState(null);
   const [workspaceBounds, setWorkspaceBounds] = useState({
@@ -3788,9 +3787,33 @@ function App() {
         }
       }
 
+      // Generate Monthly Analysis worksheets if selected
+      if (selectedWorksheets.monthlyAnalysis && contabilitateFiles.length > 0 && anafFiles.length > 0 && startDate && endDate) {
+        setStatus('Generating monthly analysis...');
+
+        // We'll add these worksheets to the workbook in the backend
+        // The backend will handle creating the monthly analysis sheets
+      }
+
       // Create the summary workbook with selected worksheets
       const summaryWorkbookData = {
-        worksheets: worksheets
+        worksheets: worksheets,
+        includeMonthlyAnalysis: selectedWorksheets.monthlyAnalysis && contabilitateFiles.length > 0 && anafFiles.length > 0 && startDate && endDate,
+        // Monthly analysis parameters
+        monthlyAnalysisParams: selectedWorksheets.monthlyAnalysis ? {
+          contaData: null, // Not needed for combined approach
+          anafData: null, // Not needed for combined approach
+          accountMappings: defaultAccountMappings,
+          dateInterval: {
+            startDate,
+            endDate
+          },
+          processedContaFiles: contabilitateFiles,
+          anafFiles: anafFiles,
+          accountConfigs: accountConfigs,
+          anafAccountFiles: anafAccountFiles,
+          anafAccountConfigs: anafAccountConfigs
+        } : null
       };
 
       const result = await window.electronAPI.createSummaryWorkbook({
@@ -8309,8 +8332,44 @@ function App() {
                   </div>
                 </div>
               </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '8px',
+                borderRadius: '6px',
+                backgroundColor: GLOBAL_PANEL_BG,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectedWorksheets.monthlyAnalysis}
+                  onChange={(e) => setSelectedWorksheets({
+                    ...selectedWorksheets,
+                    monthlyAnalysis: e.target.checked
+                  })}
+                  style={{ marginTop: '2px' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Monthly Analysis</div>
+                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
+                    (Detailed monthly comparison for each account relation)
+                    {(!contabilitateFiles.length || !anafFiles.length || !startDate || !endDate) && (
+                      <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - Requires Conta files, ANAF files, and date interval</em>
+                    )}
+                  </div>
+                </div>
+              </label>
             </div>
-            
+
             {Object.values(selectedWorksheets).every(v => !v) && (
               <div style={{ 
                 marginTop: '15px', 
@@ -8377,61 +8436,6 @@ function App() {
           </button>
         </div>
 
-        {/* Enhanced Relation Analysis Button */}
-        <div
-          className="merge-section panel button-panel"
-          data-panel="enhanced-analysis-button"
-          draggable={isLayoutMode && !isScreenMode}
-          onDragStart={(e) => handleDragStart(e, { id: 'enhanced-analysis-button', type: 'button' })}
-          onDragEnd={handleDragEnd}
-          style={{
-            position: 'absolute',
-            left: `${getVisualPosition('enhanced-analysis-button').x}px`,
-            top: `${getVisualPosition('enhanced-analysis-button').y}px`,
-            width: `${getVisualPosition('enhanced-analysis-button').width}px`,
-            height: `${getVisualPosition('enhanced-analysis-button').height}px`,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          {isLayoutMode && !isScreenMode && (
-            <div
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, 'enhanced-analysis-button')}
-            />
-          )}
-          {isIdMode && (
-            <div style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              fontSize: '10px',
-              color: GLOBAL_TEXT_COLOR,
-              backgroundColor: 'var(--theme-panel-bg, rgba(0,0,0,0.1))',
-              padding: '2px 4px',
-              borderRadius: '2px',
-              fontFamily: 'monospace',
-              zIndex: 1000
-            }}>
-              enhanced-analysis-button
-            </div>
-          )}
-          <button
-            className="merge-button"
-            onClick={handleEnhancedRelationAnalysis}
-            disabled={isProcessing || !contabilitateFiles.length || !anafFiles.length || Object.keys(accountMappings).length === 0}
-            style={{
-              backgroundColor: '#8B5CF6',
-              borderColor: '#7C3AED'
-            }}
-          >
-            {isProcessing ? 'Creating Analysis...' : 'Enhanced Analysis'}
-          </button>
-        </div>
-        
         {/* Panel 9 - Final Summary */}
         <div 
           className={`merged-files-section panel ${selectedPanelsForCentering.includes('final-summary-panel') ? 'selected-for-centering' : ''}`}
