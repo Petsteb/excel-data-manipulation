@@ -1113,9 +1113,10 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const worksheetName = `Monthly_${contaAccount}`;
         const worksheet = workbook.addWorksheet(worksheetName);
 
-        // Get all months in the date range
-        const startDateObj = new Date(parseDDMMYYYY(params.dateInterval.startDate) + 'T00:00:00');
-        const endDateObj = new Date(parseDDMMYYYY(params.dateInterval.endDate) + 'T23:59:59');
+        // Get effective date range for this specific conta account (same as Relations Summary)
+        const accountDateRange = params.accountDateRanges?.[contaAccount] || params.dateInterval;
+        const startDateObj = new Date(parseDDMMYYYY(accountDateRange.startDate) + 'T00:00:00');
+        const endDateObj = new Date(parseDDMMYYYY(accountDateRange.endDate) + 'T23:59:59');
         const monthsInRange = getMonthsInRange(startDateObj, endDateObj);
 
         // Build headers
@@ -1185,6 +1186,12 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         let rowIndex = 3;
+        let foundFirstNonZero = false;
+
+        // Get effective ANAF date range for this conta account
+        const anafEffectiveDateRange = params.anafDateRanges?.[contaAccount];
+        const anafStartLimit = anafEffectiveDateRange?.startDate ? new Date(parseDDMMYYYY(anafEffectiveDateRange.startDate) + 'T00:00:00') : null;
+        const anafEndLimit = anafEffectiveDateRange?.endDate ? new Date(parseDDMMYYYY(anafEffectiveDateRange.endDate) + 'T23:59:59') : null;
 
         // Process each month
         for (const monthInfo of monthsInRange) {
@@ -1195,50 +1202,70 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
 
+          // Skip months until we find the first non-zero conta sum
+          if (!foundFirstNonZero && contaSum === 0) {
+            continue;
+          }
+
+          // Once we find the first non-zero, show all remaining months
+          if (!foundFirstNonZero && contaSum !== 0) {
+            foundFirstNonZero = true;
+          }
+
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
-          const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
-          const anafMonthEndDate = new Date(nextYear, nextMonth, 0);
-          const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          // ANAF dates: start on 18th, end on 25th (not full month)
+          const anafMonthStart = `18/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          const anafMonthEnd = `25/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
 
-          const anafStartDate = new Date(nextYear, nextMonth - 1, 1);
-          const anafEndDate = anafMonthEndDate;
+          const anafStartDate = new Date(nextYear, nextMonth - 1, 18);
+          const anafEndDate = new Date(nextYear, nextMonth - 1, 25);
 
           const anafAccountSums = [];
           let totalAnafSum = 0;
-          for (const anafAccount of anafAccounts) {
-            const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-            const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
-            anafAccountSums.push(accountSum);
-            totalAnafSum += accountSum;
-          }
 
-          if (contaSum !== 0 || totalAnafSum !== 0) {
-            const dataRow = worksheet.getRow(rowIndex);
-            dataRow.getCell(1).value = new Date(year, month - 1, 1);
-            dataRow.getCell(2).value = new Date(year, month, 0);
-            dataRow.getCell(3).value = anafStartDate;
-            dataRow.getCell(4).value = anafEndDate;
-            dataRow.getCell(5).value = contaSum;
+          // Check if this ANAF month falls within the effective ANAF date range
+          const isAnafMonthInRange = (!anafStartLimit || anafEndDate >= anafStartLimit) &&
+                                     (!anafEndLimit || anafStartDate <= anafEndLimit);
 
-            let currentColIndex = 6;
-            anafAccountSums.forEach((sum) => {
-              dataRow.getCell(currentColIndex).value = sum;
-              currentColIndex++;
-            });
-
-            const diffValue = contaSum - totalAnafSum;
-            dataRow.getCell(differenceColIndex).value = diffValue;
-
-            const diffCell = dataRow.getCell(differenceColIndex);
-            if (diffValue >= -2 && diffValue <= 2) {
-              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
-            } else {
-              diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+          // Calculate ANAF sums only if the month is within the effective range
+          if (isAnafMonthInRange) {
+            for (const anafAccount of anafAccounts) {
+              const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+              const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+              anafAccountSums.push(accountSum);
+              totalAnafSum += accountSum;
             }
-
-            rowIndex++;
+          } else {
+            // Month is outside ANAF range, set all ANAF sums to 0
+            anafAccounts.forEach(() => anafAccountSums.push(0));
           }
+
+          // Add row to worksheet
+          const dataRow = worksheet.getRow(rowIndex);
+          dataRow.getCell(1).value = new Date(year, month - 1, 1);
+          dataRow.getCell(2).value = new Date(year, month, 0);
+          dataRow.getCell(3).value = anafStartDate;
+          dataRow.getCell(4).value = anafEndDate;
+          dataRow.getCell(5).value = contaSum;
+
+          let currentColIndex = 6;
+          anafAccountSums.forEach((sum) => {
+            dataRow.getCell(currentColIndex).value = sum;
+            currentColIndex++;
+          });
+
+          const diffValue = contaSum - totalAnafSum;
+          dataRow.getCell(differenceColIndex).value = diffValue;
+
+          const diffCell = dataRow.getCell(differenceColIndex);
+          if (diffValue >= -2 && diffValue <= 2) {
+            diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+          } else {
+            diffCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+          }
+
+          rowIndex++;
         }
 
         // Add sum of differences formula to row 2
@@ -1266,6 +1293,23 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             }
           });
         }
+
+        // Format number columns to show 2 decimal places
+        for (let row = 3; row <= rowIndex - 1; row++) {
+          // Format conta column (column 5)
+          worksheet.getCell(row, 5).numFmt = '0.00';
+
+          // Format ANAF account columns (columns 6 to 6+anafAccounts.length-1)
+          for (let col = 6; col < 6 + anafAccounts.length; col++) {
+            worksheet.getCell(row, col).numFmt = '0.00';
+          }
+
+          // Format difference column
+          worksheet.getCell(row, differenceColIndex).numFmt = '0.00';
+        }
+
+        // Format sum of differences cell in row 2
+        worksheet.getCell(2, sumOfDifferencesColIndex).numFmt = '0.00';
 
         // Freeze panes
         worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 2 }];

@@ -3659,16 +3659,16 @@ function App() {
       if (selectedWorksheets.relationsSummary) {
         const relationsSummary = [];
         relationsSummary.push(['Conta Account', 'ANAF Accounts', 'Conta Sum', 'ANAF Sum', 'Difference']);
-        
+
         Object.entries(defaultAccountMappings).forEach(([contaAccount, anafAccounts]) => {
           const contaSum = accountSums[contaAccount] || 0;
           let anafSum = 0;
-          
-          // Sum all related anaf accounts
+
+          // Always sum all related anaf accounts
           anafAccounts.forEach(anafAccount => {
             anafSum += anafAccountSums[anafAccount] || 0;
           });
-          
+
           const difference = contaSum - anafSum;
           relationsSummary.push([
             contaAccount,
@@ -3808,7 +3808,35 @@ function App() {
             startDate,
             endDate
           },
-          processedContaFiles: contabilitateFiles,
+          // Calculate effective date ranges for each conta account (same logic as Relations Summary)
+          accountDateRanges: Object.keys(defaultAccountMappings).reduce((acc, contaAccount) => {
+            const contaDateRange = getContaAccountDateRange(contaAccount);
+            const effectiveDateRange = contaDateRange ?
+              getDateRangeIntersection(startDate, endDate, contaDateRange.startDate, contaDateRange.endDate) :
+              { startDate, endDate };
+            acc[contaAccount] = effectiveDateRange;
+            return acc;
+          }, {}),
+          // Calculate effective ANAF date ranges for each relation (same logic as Relations Summary)
+          anafDateRanges: Object.entries(defaultAccountMappings).reduce((acc, [contaAccount, anafAccounts]) => {
+            const contaDateRange = getContaAccountDateRange(contaAccount);
+            if (contaDateRange) {
+              const contaEffectiveRange = getDateRangeIntersection(
+                startDate, endDate,
+                contaDateRange.startDate, contaDateRange.endDate
+              );
+              const anafEffectiveRange = getAnafDateInterval(
+                contaEffectiveRange.startDate,
+                contaEffectiveRange.endDate,
+                contaAccount
+              );
+              acc[contaAccount] = anafEffectiveRange;
+            } else {
+              acc[contaAccount] = { startDate, endDate };
+            }
+            return acc;
+          }, {}),
+          processedContaFiles: processedContaFiles,
           anafFiles: anafFiles,
           accountConfigs: accountConfigs,
           anafAccountFiles: anafAccountFiles,
