@@ -3817,25 +3817,6 @@ function App() {
             acc[contaAccount] = effectiveDateRange;
             return acc;
           }, {}),
-          // Calculate effective ANAF date ranges for each relation (same logic as Relations Summary)
-          anafDateRanges: Object.entries(defaultAccountMappings).reduce((acc, [contaAccount, anafAccounts]) => {
-            const contaDateRange = getContaAccountDateRange(contaAccount);
-            if (contaDateRange) {
-              const contaEffectiveRange = getDateRangeIntersection(
-                startDate, endDate,
-                contaDateRange.startDate, contaDateRange.endDate
-              );
-              const anafEffectiveRange = getAnafDateInterval(
-                contaEffectiveRange.startDate,
-                contaEffectiveRange.endDate,
-                contaAccount
-              );
-              acc[contaAccount] = anafEffectiveRange;
-            } else {
-              acc[contaAccount] = { startDate, endDate };
-            }
-            return acc;
-          }, {}),
           processedContaFiles: processedContaFiles,
           anafFiles: anafFiles,
           accountConfigs: accountConfigs,

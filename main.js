@@ -1188,11 +1188,6 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let rowIndex = 3;
         let foundFirstNonZero = false;
 
-        // Get effective ANAF date range for this conta account
-        const anafEffectiveDateRange = params.anafDateRanges?.[contaAccount];
-        const anafStartLimit = anafEffectiveDateRange?.startDate ? new Date(parseDDMMYYYY(anafEffectiveDateRange.startDate) + 'T00:00:00') : null;
-        const anafEndLimit = anafEffectiveDateRange?.endDate ? new Date(parseDDMMYYYY(anafEffectiveDateRange.endDate) + 'T23:59:59') : null;
-
         // Process each month
         for (const monthInfo of monthsInRange) {
           const { year, month } = monthInfo;
@@ -1214,31 +1209,22 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
-          // ANAF dates: start on 18th, end on 25th (not full month)
-          const anafMonthStart = `18/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
-          const anafMonthEnd = `25/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
+          const anafMonthEndDate = new Date(nextYear, nextMonth, 0);
+          const anafMonthEnd = `${anafMonthEndDate.getDate().toString().padStart(2, '0')}/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
 
-          const anafStartDate = new Date(nextYear, nextMonth - 1, 18);
-          const anafEndDate = new Date(nextYear, nextMonth - 1, 25);
+          const anafStartDate = new Date(nextYear, nextMonth - 1, 1);
+          const anafEndDate = anafMonthEndDate;
 
           const anafAccountSums = [];
           let totalAnafSum = 0;
 
-          // Check if this ANAF month falls within the effective ANAF date range
-          const isAnafMonthInRange = (!anafStartLimit || anafEndDate >= anafStartLimit) &&
-                                     (!anafEndLimit || anafStartDate <= anafEndLimit);
-
-          // Calculate ANAF sums only if the month is within the effective range
-          if (isAnafMonthInRange) {
-            for (const anafAccount of anafAccounts) {
-              const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
-              const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
-              anafAccountSums.push(accountSum);
-              totalAnafSum += accountSum;
-            }
-          } else {
-            // Month is outside ANAF range, set all ANAF sums to 0
-            anafAccounts.forEach(() => anafAccountSums.push(0));
+          // Always calculate ANAF sums regardless of conta sum
+          for (const anafAccount of anafAccounts) {
+            const config = getAnafAccountConfig(anafAccount, params.anafAccountConfigs);
+            const accountSum = calculateAnafAccountSum(anafAccount, anafMonthStart, anafMonthEnd, params.anafFiles, params.anafAccountFiles, config);
+            anafAccountSums.push(accountSum);
+            totalAnafSum += accountSum;
           }
 
           // Add row to worksheet
