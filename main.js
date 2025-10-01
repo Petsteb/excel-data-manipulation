@@ -1186,7 +1186,6 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         let rowIndex = 3;
-        let foundFirstNonZero = false;
 
         // Process each month
         for (const monthInfo of monthsInRange) {
@@ -1202,16 +1201,6 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
-
-          // Skip months until we find the first non-zero conta sum
-          if (!foundFirstNonZero && contaSum === 0) {
-            continue;
-          }
-
-          // Once we find the first non-zero, show all remaining months
-          if (!foundFirstNonZero && contaSum !== 0) {
-            foundFirstNonZero = true;
-          }
 
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
@@ -1706,13 +1695,6 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
   let sum = 0;
   let subtractSum = 0;
 
-  // Debug flag for account 3
-  const isDebugAccount = account === '3';
-  if (isDebugAccount) {
-    console.log(`\n=== ANAF ACCOUNT 3 DEBUG ${debugContext} ===`);
-    console.log(`Date range: ${startDate} to ${endDate}`);
-  }
-
   const startISO = parseDDMMYYYY(startDate);
   const endISO = parseDDMMYYYY(endDate);
   const start = startISO ? new Date(startISO + 'T00:00:00') : null;
@@ -1842,12 +1824,6 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
             valueToAdd = sumaPlataValue;
         }
 
-        // Debug logging for account 3
-        if (isDebugAccount && valueToAdd !== 0) {
-          const dateStr = rowDate ? rowDate.toISOString().split('T')[0] : 'NO_DATE';
-          console.log(`  Transaction: Date=${dateStr}, Value=${valueToAdd}, CTG_SUME=${ctgSumeValue}, SUMA_PLATA=${sumaPlataValue}`);
-        }
-
         sum += valueToAdd;
       });
     }
@@ -1952,14 +1928,6 @@ function calculateAnafAccountSum(account, startDate, endDate, anafFiles, anafAcc
   }
 
   const finalSum = sum - subtractSum;
-
-  // Debug logging for account 3
-  if (isDebugAccount) {
-    console.log(`  Total sum: ${sum}`);
-    console.log(`  Subtract sum: ${subtractSum}`);
-    console.log(`  Final sum: ${finalSum}`);
-    console.log(`=== END DEBUG ===\n`);
-  }
 
   return finalSum;
 }
