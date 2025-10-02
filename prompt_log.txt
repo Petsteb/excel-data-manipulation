@@ -24,3 +24,11 @@ Action: Modified logic to show all months from January onwards when auxiliary De
 Commit: 13cf490
 Version: 2.3.11
 
+
+====================
+Date: Thu, Oct  2, 2025 11:17:38 AM
+Prompt: in the monthly analysis with separate end of year i want youu to change the order of how things are done to be like this: first of all you find the first values that is not null from conta that is inside the specified date interval, then if that date is 31st of december you use the separate end of year normaly for this date and then use normal monthly sums starting from 1st of january for all of the transactions after the first date until the end of the date interval. if the first date from conta is between 1st of june and 30th of december then you use normally tthe separate end of year and monthly sums. if the first date from conta is between 1st of january and 31st of may then i want for the first june of anaf to use all of the transactions from that month including those from 25th of june and then for the rest of the conta months starting from june use normally the end of year and normal monthly sums until the end of the date interval
+Action: Refactored monthly analysis to use first transaction date instead of first non-zero month. Implemented three logic paths based on first date: Dec 31 (separate end-of-year first), Jan 1-May 31 (include June 25 in first June), June 1-Dec 30 (normal logic)
+Commit: 0160b91
+Version: 2.3.14
+
