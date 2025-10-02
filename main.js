@@ -1189,9 +1189,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let hasSeenJuneInAnaf = false;
 
         // Find the first transaction date for this conta account in the entire date range
-        const dateRangeStart = `01/${params.startMonth.toString().padStart(2, '0')}/${params.startYear}`;
-        const dateRangeEnd = `${new Date(params.endYear, params.endMonth, 0).getDate().toString().padStart(2, '0')}/${params.endMonth.toString().padStart(2, '0')}/${params.endYear}`;
-        const firstTransactionDate = findFirstContaTransactionDate(contaAccount, dateRangeStart, dateRangeEnd, params.processedContaFiles, params.accountConfigs);
+        const firstTransactionDate = findFirstContaTransactionDate(contaAccount, accountDateRange.startDate, accountDateRange.endDate, params.processedContaFiles, params.accountConfigs);
 
         // Determine the logic flow based on the first transaction date
         let firstDateDay = null;
