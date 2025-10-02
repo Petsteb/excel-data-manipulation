@@ -1068,10 +1068,21 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const lastRow = worksheetData.data.length;
         if (lastRow > 1) { // Only if there's data beyond the header
           for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
-            // Format number columns C, D, E to 2 decimals (only show decimals if not 0)
-            worksheet.getCell(rowIndex, 3).numFmt = '0.##'; // Conta Sum
-            worksheet.getCell(rowIndex, 4).numFmt = '0.##'; // ANAF Sum
-            worksheet.getCell(rowIndex, 5).numFmt = '0.##'; // Difference
+            // Format number columns C, D, E - show 2 decimals if decimal part exists, otherwise no decimals
+            const contaSumCell = worksheet.getCell(rowIndex, 3);
+            const anafSumCell = worksheet.getCell(rowIndex, 4);
+            const diffCell = worksheet.getCell(rowIndex, 5);
+
+            // Apply format based on whether value has decimals
+            if (typeof contaSumCell.value === 'number') {
+              contaSumCell.numFmt = (contaSumCell.value % 1 === 0) ? '0' : '0.00';
+            }
+            if (typeof anafSumCell.value === 'number') {
+              anafSumCell.numFmt = (anafSumCell.value % 1 === 0) ? '0' : '0.00';
+            }
+            if (typeof diffCell.value === 'number') {
+              diffCell.numFmt = (diffCell.value % 1 === 0) ? '0' : '0.00';
+            }
 
             const differenceCell = worksheet.getCell(rowIndex, 5); // Column E (Difference)
             const cellValue = differenceCell.value;
@@ -1102,7 +1113,11 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const lastRow = worksheetData.data.length;
         if (lastRow > 1) {
           for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
-            worksheet.getCell(rowIndex, 3).numFmt = '0.##'; // Sum column (only show decimals if not 0)
+            const sumCell = worksheet.getCell(rowIndex, 3);
+            // Show 2 decimals if decimal part exists, otherwise no decimals
+            if (typeof sumCell.value === 'number') {
+              sumCell.numFmt = (sumCell.value % 1 === 0) ? '0' : '0.00';
+            }
           }
         }
       }
@@ -1465,6 +1480,18 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
       }
     }
 
+    // Helper function to format numbers with exactly 2 decimals if decimal part exists
+    const formatNumber = (value) => {
+      if (typeof value !== 'number') return value;
+      // Round to 2 decimals
+      const rounded = Math.round(value * 100) / 100;
+      // Check if it has decimals
+      if (rounded % 1 === 0) {
+        return rounded; // Return integer if no decimal part
+      }
+      return parseFloat(rounded.toFixed(2)); // Return with exactly 2 decimals
+    };
+
     // Update Relations Summary and Accounts Summary with monthly analysis sums
     if (Object.keys(monthlyAnalysisSums).length > 0) {
       // Update Relations Summary worksheet
@@ -1477,9 +1504,25 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const contaAccount = row.getCell(1).value; // Column A: Conta Account
           if (contaAccount && monthlyAnalysisSums[contaAccount]) {
             const monthlyData = monthlyAnalysisSums[contaAccount];
-            row.getCell(3).value = monthlyData.contaSum; // Column C: Conta Sum
-            row.getCell(4).value = monthlyData.totalAnafSum; // Column D: ANAF Sum
-            row.getCell(5).value = monthlyData.contaSum - monthlyData.totalAnafSum; // Column E: Difference
+
+            const contaSumCell = row.getCell(3);
+            const anafSumCell = row.getCell(4);
+            const diffCell = row.getCell(5);
+
+            contaSumCell.value = formatNumber(monthlyData.contaSum); // Column C: Conta Sum
+            anafSumCell.value = formatNumber(monthlyData.totalAnafSum); // Column D: ANAF Sum
+            diffCell.value = formatNumber(monthlyData.contaSum - monthlyData.totalAnafSum); // Column E: Difference
+
+            // Apply number format based on whether value has decimals
+            if (typeof contaSumCell.value === 'number') {
+              contaSumCell.numFmt = (contaSumCell.value % 1 === 0) ? '0' : '0.00';
+            }
+            if (typeof anafSumCell.value === 'number') {
+              anafSumCell.numFmt = (anafSumCell.value % 1 === 0) ? '0' : '0.00';
+            }
+            if (typeof diffCell.value === 'number') {
+              diffCell.numFmt = (diffCell.value % 1 === 0) ? '0' : '0.00';
+            }
 
             // Update conditional formatting for difference cell
             const differenceCell = row.getCell(5);
@@ -1513,13 +1556,25 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const account = row.getCell(1).value; // Column A: Account
           const accountType = row.getCell(2).value; // Column B: Type
 
+          const sumCell = row.getCell(3);
+
           if (accountType === 'Conta' && monthlyAnalysisSums[account]) {
-            row.getCell(3).value = monthlyAnalysisSums[account].contaSum; // Column C: Sum
+            sumCell.value = formatNumber(monthlyAnalysisSums[account].contaSum); // Column C: Sum
+
+            // Apply number format based on whether value has decimals
+            if (typeof sumCell.value === 'number') {
+              sumCell.numFmt = (sumCell.value % 1 === 0) ? '0' : '0.00';
+            }
           } else if (accountType === 'ANAF') {
             // Find which conta account this anaf account belongs to
             for (const [contaAccount, monthlyData] of Object.entries(monthlyAnalysisSums)) {
               if (monthlyData.anafSums && monthlyData.anafSums[account] !== undefined) {
-                row.getCell(3).value = monthlyData.anafSums[account]; // Column C: Sum
+                sumCell.value = formatNumber(monthlyData.anafSums[account]); // Column C: Sum
+
+                // Apply number format based on whether value has decimals
+                if (typeof sumCell.value === 'number') {
+                  sumCell.numFmt = (sumCell.value % 1 === 0) ? '0' : '0.00';
+                }
                 break;
               }
             }
