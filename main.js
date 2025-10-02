@@ -4,12 +4,21 @@ const fs = require('fs');
 const ExcelJS = require('exceljs');
 const XLSX = require('xlsx');
 
-// Suppress Electron cache errors
+// Suppress Electron cache errors and improve font rendering
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu-vsync');
+app.commandLine.appendSwitch('enable-font-antialiasing');
+app.commandLine.appendSwitch('high-dpi-support', '1');
 
 // Settings storage
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+
+// New config files storage
+const configDir = path.join(app.getPath('userData'), 'config');
+const panelsConfigFile = path.join(configDir, 'panels-config.json');
+const appConfigFile = path.join(configDir, 'app-config.json');
+const accountsConfigFile = path.join(configDir, 'accounts-config.json');
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
@@ -158,10 +167,15 @@ const DEFAULT_SETTINGS = {
   }
 };
 
+// Default config structures for new multi-file system
+const DEFAULT_PANELS_CONFIG = require('./config-templates/panels-config.json');
+const DEFAULT_APP_CONFIG = require('./config-templates/app-config.json');
+const DEFAULT_ACCOUNTS_CONFIG = require('./config-templates/accounts-config.json');
+
 // Deep merge function
 function deepMerge(target, source) {
   const result = { ...target };
-  
+
   for (const key in source) {
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       result[key] = deepMerge(result[key] || {}, source[key]);
@@ -169,7 +183,7 @@ function deepMerge(target, source) {
       result[key] = source[key];
     }
   }
-  
+
   return result;
 }
 
@@ -196,6 +210,85 @@ function saveSettings(settings) {
     return true;
   } catch (error) {
     console.error('Error saving settings:', error);
+    return false;
+  }
+}
+
+// New config system functions
+function ensureConfigDir() {
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+}
+
+function loadPanelsConfig() {
+  try {
+    ensureConfigDir();
+    if (fs.existsSync(panelsConfigFile)) {
+      const savedConfig = JSON.parse(fs.readFileSync(panelsConfigFile, 'utf8'));
+      return deepMerge(DEFAULT_PANELS_CONFIG, savedConfig);
+    }
+  } catch (error) {
+    console.error('Error loading panels config:', error);
+  }
+  return { ...DEFAULT_PANELS_CONFIG };
+}
+
+function savePanelsConfig(config) {
+  try {
+    ensureConfigDir();
+    fs.writeFileSync(panelsConfigFile, JSON.stringify(config, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving panels config:', error);
+    return false;
+  }
+}
+
+function loadAppConfig() {
+  try {
+    ensureConfigDir();
+    if (fs.existsSync(appConfigFile)) {
+      const savedConfig = JSON.parse(fs.readFileSync(appConfigFile, 'utf8'));
+      return deepMerge(DEFAULT_APP_CONFIG, savedConfig);
+    }
+  } catch (error) {
+    console.error('Error loading app config:', error);
+  }
+  return { ...DEFAULT_APP_CONFIG };
+}
+
+function saveAppConfig(config) {
+  try {
+    ensureConfigDir();
+    fs.writeFileSync(appConfigFile, JSON.stringify(config, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving app config:', error);
+    return false;
+  }
+}
+
+function loadAccountsConfig() {
+  try {
+    ensureConfigDir();
+    if (fs.existsSync(accountsConfigFile)) {
+      const savedConfig = JSON.parse(fs.readFileSync(accountsConfigFile, 'utf8'));
+      return deepMerge(DEFAULT_ACCOUNTS_CONFIG, savedConfig);
+    }
+  } catch (error) {
+    console.error('Error loading accounts config:', error);
+  }
+  return { ...DEFAULT_ACCOUNTS_CONFIG };
+}
+
+function saveAccountsConfig(config) {
+  try {
+    ensureConfigDir();
+    fs.writeFileSync(accountsConfigFile, JSON.stringify(config, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving accounts config:', error);
     return false;
   }
 }
@@ -876,13 +969,38 @@ ipcMain.handle('get-column-names', async (event, { filesData, rowIndex, commonLi
   }
 });
 
-// Handle settings
+// Handle settings (legacy)
 ipcMain.handle('load-settings', async () => {
   return loadSettings();
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
   return saveSettings(settings);
+});
+
+// Handle new config system
+ipcMain.handle('load-panels-config', async () => {
+  return loadPanelsConfig();
+});
+
+ipcMain.handle('save-panels-config', async (event, config) => {
+  return savePanelsConfig(config);
+});
+
+ipcMain.handle('load-app-config', async () => {
+  return loadAppConfig();
+});
+
+ipcMain.handle('save-app-config', async (event, config) => {
+  return saveAppConfig(config);
+});
+
+ipcMain.handle('load-accounts-config', async () => {
+  return loadAccountsConfig();
+});
+
+ipcMain.handle('save-accounts-config', async (event, config) => {
+  return saveAccountsConfig(config);
 });
 
 // Helper function to transform date values (restored from proven working commit 42a9ca0)
@@ -1157,7 +1275,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             if (width > maxWidth) maxWidth = width;
           }
         });
-        worksheet.getColumn(3).width = Math.min(maxWidth, 25);
+        worksheet.getColumn(3).width = Math.min(maxWidth, 35);
       }
     });
 
@@ -1465,7 +1583,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         // Format columns
         const totalColumns = 5 + anafAccounts.length + 2;
         const columnWidths = [
-          { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 12 }
+          { width: 15 }, { width: 15 }, { width: 20 }, { width: 20 }, { width: 18 }
         ];
         anafAccounts.forEach(() => columnWidths.push({ width: 12 }));
         columnWidths.push({ width: 12 });
@@ -2470,9 +2588,9 @@ ipcMain.handle('create-enhanced-relation-analysis', async (event, {
       const columnWidths = [
         { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Interval Start
         { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // Conta Interval End
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval Start
-        { width: 15, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval End
-        { width: 12 } // Conta account
+        { width: 20, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval Start
+        { width: 20, style: { numFmt: 'dd/mm/yyyy' } }, // ANAF Interval End
+        { width: 18 } // Conta account
       ];
 
       // Add widths for ANAF accounts

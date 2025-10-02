@@ -1,0 +1,158 @@
+{
+  "version": "1.0.0",
+  "theme": {
+    "current": "professional",
+    "customThemes": []
+  },
+  "language": {
+    "current": "en",
+    "available": ["en", "ro", "de", "fr", "es"]
+  },
+  "layout": {
+    "mode": "normal",
+    "layoutMode": {
+      "enabled": false,
+      "onlyPanels": ["anaf-header-panel", "anaf-date-panel", "sums-panel"],
+      "showControlPanel": false
+    }
+  },
+  "screens": {
+    "mode": {
+      "enabled": false,
+      "step": "idle"
+    },
+    "homeScreen": null,
+    "secondaryScreens": [],
+    "currentScreen": "home",
+    "tabPosition": "left",
+    "creatingScreenRect": null,
+    "selectedPanelsForCentering": []
+  },
+  "view": {
+    "panOffset": { "x": 0, "y": 0 },
+    "normalModeScreenPosition": { "x": 0, "y": 0 },
+    "zoom": 1,
+    "gridVisible": true,
+    "gridSize": 20,
+    "snapToGrid": true,
+    "isPanningDisabled": true
+  },
+  "window": {
+    "isFirstLaunch": true,
+    "width": 1200,
+    "height": 800,
+    "x": null,
+    "y": null,
+    "isMaximized": false,
+    "isFullScreen": false
+  },
+  "upperRightButtons": {
+    "dashboard": {
+      "visible": true,
+      "enabled": true,
+      "order": 1
+    },
+    "theme": {
+      "visible": true,
+      "enabled": true,
+      "order": 2
+    },
+    "language": {
+      "visible": true,
+      "enabled": true,
+      "order": 3
+    },
+    "layoutMode": {
+      "visible": true,
+      "enabled": true,
+      "order": 4
+    },
+    "screenMode": {
+      "visible": true,
+      "enabled": true,
+      "order": 5
+    },
+    "settings": {
+      "visible": true,
+      "enabled": true,
+      "order": 6
+    }
+  },
+  "menus": {
+    "themeMenu": {
+      "open": false,
+      "position": { "x": 0, "y": 0 }
+    },
+    "languageMenu": {
+      "open": false,
+      "position": { "x": 0, "y": 0 }
+    },
+    "layoutControlPanel": {
+      "open": false,
+      "position": { "x": 0, "y": 0 }
+    }
+  },
+  "ui": {
+    "showDashboard": false,
+    "showSettings": false,
+    "contextMenus": {
+      "account": null,
+      "anafAccount": null,
+      "mapping": null,
+      "screen": null
+    },
+    "modals": {
+      "anafSelection": {
+        "open": false,
+        "contaAccount": "",
+        "selectedAnafAccount": ""
+      },
+      "contaSelection": {
+        "open": false,
+        "selectedContaAccount": ""
+      },
+      "mergedFilesPopup": {
+        "open": false
+      },
+      "screenNamePopup": {
+        "open": false,
+        "name": ""
+      },
+      "screenRenameDialog": {
+        "open": false,
+        "screenId": null,
+        "value": ""
+      },
+      "colorPicker": {
+        "open": false,
+        "targetId": null
+      }
+    },
+    "dropdowns": {
+      "filterDropdown": false,
+      "sumDropdown": false,
+      "anafFilterDropdown": false,
+      "anafSumDropdown": false,
+      "anafSubtractFilterDropdown": false,
+      "anafSubtractSumDropdown": false,
+      "anafFilterValueDropdown": false,
+      "anafSubtractFilterValueDropdown": false
+    }
+  },
+  "processing": {
+    "isProcessing": false,
+    "status": "",
+    "summaryGenerated": false
+  },
+  "files": {
+    "lastUsedPaths": {
+      "conta": null,
+      "anaf": null,
+      "output": null
+    },
+    "recentFiles": {
+      "conta": [],
+      "anaf": []
+    }
+  }
+}

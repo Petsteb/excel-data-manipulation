@@ -1,0 +1,143 @@
+{
+  "version": "1.0.0",
+  "panels": {
+    "contabilitate-upload-panel": {
+      "position": { "x": 20, "y": 20 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "uploadedFiles": [],
+        "selectedFileIndices": []
+      }
+    },
+    "anaf-upload-panel": {
+      "position": { "x": 800, "y": 20 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "uploadedFiles": [],
+        "selectedFileIndices": []
+      }
+    },
+    "contabilitate-summary-panel": {
+      "position": { "x": 20, "y": 240 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "columnNames": [],
+        "selectedDateColumns": [],
+        "autoDetectedDateColumns": [],
+        "dateColumnsWithTime": []
+      }
+    },
+    "anaf-summary-panel": {
+      "position": { "x": 800, "y": 240 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "columnNames": [],
+        "selectedDateColumns": [],
+        "autoDetectedDateColumns": [],
+        "dateColumnsWithTime": []
+      }
+    },
+    "anaf-header-panel": {
+      "position": { "x": 800, "y": 460 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "commonLines": 1,
+        "columnNamesRow": 1,
+        "selectedDateColumns": [],
+        "dateColumnsWithTime": []
+      }
+    },
+    "anaf-date-panel": {
+      "position": { "x": 800, "y": 680 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "selectedDateColumns": [],
+        "autoDetectedDateColumns": [],
+        "dateColumnsWithTime": []
+      }
+    },
+    "account-selection-panel": {
+      "position": { "x": 280, "y": 20 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "dateInterval": {
+          "startDate": "01/01/2001",
+          "endDate": "05/06/2025"
+        },
+        "selectedAccounts": [],
+        "selectedAnafAccounts": [],
+        "accountConfigs": {},
+        "anafAccountConfigs": {},
+        "anafSubtractionEnabled": {}
+      }
+    },
+    "account-mapping-panel": {
+      "position": { "x": 280, "y": 240 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "accountMappings": {
+          "436": ["480"],
+          "444": ["2", "9"],
+          "4315": ["412", "451", "458", "483"],
+          "4316": ["432", "459", "461"],
+          "4411": ["3"],
+          "4418": ["14"],
+          "4423": ["1/4423"],
+          "4424": ["1/4424"],
+          "446.DIV": ["7"],
+          "446.CHIRII": ["628"],
+          "446.CV": ["33"]
+        }
+      }
+    },
+    "sums-panel": {
+      "position": { "x": 540, "y": 20 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "accountSums": {},
+        "anafAccountSums": {},
+        "monthlyAnalysisSums": {}
+      }
+    },
+    "worksheet-selection-panel": {
+      "position": { "x": 540, "y": 240 },
+      "size": { "width": 240, "height": 180 },
+      "visible": true,
+      "settings": {
+        "selectedWorksheets": {
+          "contaMergedData": true,
+          "anafMergedData": true,
+          "relationsSummary": true,
+          "contaAccountSums": true,
+          "anafAccountSums": true
+        },
+        "includeEndOfYearTransactions": false
+      }
+    },
+    "final-summary-panel": {
+      "position": { "x": 300, "y": 560 },
+      "size": { "width": 300, "height": 200 },
+      "visible": true,
+      "settings": {
+        "processingSummary": null,
+        "createdFilePath": ""
+      }
+    }
+  },
+  "buttons": {
+    "generate-summary-button": {
+      "position": { "x": 540, "y": 460 },
+      "size": { "width": 240, "height": 80 },
+      "visible": true
+    }
+  }
+}

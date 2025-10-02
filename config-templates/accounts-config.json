@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "conta": {
+    "defaultAccounts": [
+      "4423",
+      "4424",
+      "4315",
+      "4316",
+      "444",
+      "436",
+      "4411",
+      "4418",
+      "446.DIV",
+      "446.CHIRII",
+      "446.CV"
+    ],
+    "availableAccounts": [
+      "4423",
+      "4424",
+      "4315",
+      "4316",
+      "444",
+      "436",
+      "4411",
+      "4418",
+      "446.DIV",
+      "446.CHIRII",
+      "446.CV"
+    ],
+    "customAccounts": [],
+    "removedDefaultAccounts": [],
+    "accountFiles": {},
+    "sumFormulas": {},
+    "headerSettings": {
+      "commonLines": 1,
+      "columnNamesRow": 1
+    }
+  },
+  "anaf": {
+    "defaultAccounts": [
+      "1/4423",
+      "1/4424",
+      "2",
+      "3",
+      "7",
+      "9",
+      "14",
+      "33",
+      "412",
+      "432",
+      "451",
+      "458",
+      "459",
+      "461",
+      "480",
+      "483",
+      "628"
+    ],
+    "availableAccounts": [
+      "1/4423",
+      "1/4424",
+      "2",
+      "3",
+      "7",
+      "9",
+      "14",
+      "33",
+      "412",
+      "432",
+      "451",
+      "458",
+      "459",
+      "461",
+      "480",
+      "483",
+      "628"
+    ],
+    "customAccounts": [],
+    "removedDefaultAccounts": [],
+    "accountFiles": {},
+    "sumFormulas": {},
+    "headerSettings": {
+      "commonLines": 1,
+      "columnNamesRow": 1
+    }
+  },
+  "accountInput": {
+    "showContaInput": false,
+    "showAnafInput": false,
+    "newContaAccountInput": "",
+    "newAnafAccountInput": ""
+  }
+}

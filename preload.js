@@ -11,5 +11,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getColumnNames: (data) => ipcRenderer.invoke('get-column-names', data),
-  createEnhancedRelationAnalysis: (data) => ipcRenderer.invoke('create-enhanced-relation-analysis', data)
+  createEnhancedRelationAnalysis: (data) => ipcRenderer.invoke('create-enhanced-relation-analysis', data),
+  // New config system APIs
+  loadPanelsConfig: () => ipcRenderer.invoke('load-panels-config'),
+  savePanelsConfig: (config) => ipcRenderer.invoke('save-panels-config', config),
+  loadAppConfig: () => ipcRenderer.invoke('load-app-config'),
+  saveAppConfig: (config) => ipcRenderer.invoke('save-app-config', config),
+  loadAccountsConfig: () => ipcRenderer.invoke('load-accounts-config'),
+  saveAccountsConfig: (config) => ipcRenderer.invoke('save-accounts-config', config)
 });
