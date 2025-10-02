@@ -32,3 +32,11 @@ Action: Refactored monthly analysis to use first transaction date instead of fir
 Commit: 0160b91
 Version: 2.3.14
 
+
+====================
+Date: Thu, Oct  2, 2025 11:27:13 AM
+Prompt: [Error] TypeError: Cannot read properties of undefined (reading 'toString') at line 1192
+Action: Fixed TypeError by using accountDateRange.startDate/endDate instead of undefined params.startMonth/endMonth/startYear/endYear properties
+Commit: 7e25ac4
+Version: 2.3.15
+
