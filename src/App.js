@@ -3727,36 +3727,13 @@ function App() {
 
           let fileNames = [];
           if (filesUsed.length > 0) {
-            // Use assigned files
+            // Use assigned files only
             fileNames = filesUsed.map(filePath => {
               const file = anafFiles.find(f => (f.filePath || f.name) === filePath);
               return file ? (file.name || file.fileName || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
             });
-          } else {
-            // Fallback: find files that match this account
-            const detectedFiles = anafFiles.filter(file => {
-              const fileName = (file.name || file.fileName || '').toLowerCase();
-
-              // For accounts like 1/4423 and 1/4424, look for imp_1 pattern
-              if (account.includes('/')) {
-                const firstPart = account.split('/')[0]; // Get "1" from "1/4423"
-                if (fileName.includes(`imp_${firstPart}`)) {
-                  return true;
-                }
-              }
-
-              // Also try broader patterns
-              const accountLower = account.toLowerCase();
-              return fileName.includes(accountLower) ||
-                     fileName.includes(account.replace('/', '_').toLowerCase()) ||
-                     fileName.includes(account.replace('/', '').toLowerCase());
-            });
-
-            if (detectedFiles.length > 0) {
-              fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
-            }
-            // If no files found, leave fileNames empty to show "-"
           }
+          // If no files assigned, leave fileNames empty to show "-"
 
           accountsSummary.push([
             account,

@@ -1068,10 +1068,10 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const lastRow = worksheetData.data.length;
         if (lastRow > 1) { // Only if there's data beyond the header
           for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
-            // Format number columns C, D, E to 2 decimals
-            worksheet.getCell(rowIndex, 3).numFmt = '0.00'; // Conta Sum
-            worksheet.getCell(rowIndex, 4).numFmt = '0.00'; // ANAF Sum
-            worksheet.getCell(rowIndex, 5).numFmt = '0.00'; // Difference
+            // Format number columns C, D, E to 2 decimals (only show decimals if not 0)
+            worksheet.getCell(rowIndex, 3).numFmt = '0.##'; // Conta Sum
+            worksheet.getCell(rowIndex, 4).numFmt = '0.##'; // ANAF Sum
+            worksheet.getCell(rowIndex, 5).numFmt = '0.##'; // Difference
 
             const differenceCell = worksheet.getCell(rowIndex, 5); // Column E (Difference)
             const cellValue = differenceCell.value;
@@ -1102,7 +1102,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const lastRow = worksheetData.data.length;
         if (lastRow > 1) {
           for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
-            worksheet.getCell(rowIndex, 3).numFmt = '0.00'; // Sum column
+            worksheet.getCell(rowIndex, 3).numFmt = '0.##'; // Sum column (only show decimals if not 0)
           }
         }
       }
