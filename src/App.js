@@ -288,12 +288,18 @@ function App() {
     relationsSummary: true,
     accountsSummary: true,
     anafMergedData: true,
-    monthlyAnalysis: false
+    monthlyAnalysis: true
   });
 
   // End-of-year transactions toggle for monthly analysis
   const [includeEndOfYearTransactions, setIncludeEndOfYearTransactions] = useState(false);
-  
+
+  // Track if summary has been generated (to show sums in mapping panel)
+  const [summaryGenerated, setSummaryGenerated] = useState(false);
+
+  // Store monthly analysis sums for use in relations/accounts summary
+  const [monthlyAnalysisSums, setMonthlyAnalysisSums] = useState({});
+
   // Account mapping state (1 conta account to multiple anaf accounts)
   // Default mappings from conta anaf.txt
   const defaultAccountMappings = {
@@ -3912,6 +3918,15 @@ function App() {
           includesAnafMergedData: selectedWorksheets.anafMergedData,
           commonHeaderRows: parseInt(anafCommonLines)
         });
+
+        // Store monthly analysis sums if available
+        if (result.monthlyAnalysisSums) {
+          setMonthlyAnalysisSums(result.monthlyAnalysisSums);
+        }
+
+        // Mark that summary has been generated
+        setSummaryGenerated(true);
+
         setStatus(`Successfully created summary file with ${worksheets.length} worksheet${worksheets.length !== 1 ? 's' : ''}: ${result.outputPath}`);
       } else {
         setStatus(`Error creating summary: ${result.error}`);
@@ -7800,11 +7815,11 @@ function App() {
               <button
                 className="btn btn-primary"
                 onClick={handleCalculateAllSums}
-                disabled={(selectedAccounts.length === 0 && selectedAnafAccounts.length === 0) || isProcessing}
+                disabled={true}
                 style={{ width: '100%', marginTop: '10px' }}
-                title={startDate || endDate ? `Date range: ${startDate || 'start'} → ${endDate || 'end'}` : 'No date filter applied'}
+                title="Calculate all sums is disabled - sums are calculated during summary generation"
               >
-                Calculate All Sums 
+                Calculate All Sums
                 ({selectedAccounts.length} Conta + {selectedAnafAccounts.length} ANAF account{(selectedAccounts.length + selectedAnafAccounts.length) !== 1 ? 's' : ''})
                 {(startDate || endDate) && (
                   <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
@@ -7873,22 +7888,26 @@ function App() {
                   const isContaSelected = selectedAccounts.includes(contaAccount);
                   
                   // Check if this conta account has a calculated sum
-                  const contaSum = accountSums[contaAccount];
-                  const hasContaSum = contaSum !== undefined && contaSum !== null;
-                  
+                  // Use monthly analysis sums if available, otherwise use accountSums
+                  const monthlyData = monthlyAnalysisSums[contaAccount];
+                  const contaSum = monthlyData ? monthlyData.contaSum : (accountSums[contaAccount] || 0);
+                  const hasContaSum = summaryGenerated && monthlyData;
+
                   // Calculate total ANAF sum for mapped accounts
-                  const anafSum = mappedAnafAccounts.reduce((total, anafAccount) => {
-                    const anafValue = anafAccountSums[anafAccount];
-                    return total + (anafValue || 0);
-                  }, 0);
-                  
+                  const anafSum = monthlyData ?
+                    monthlyData.totalAnafSum :
+                    mappedAnafAccounts.reduce((total, anafAccount) => {
+                      const anafValue = anafAccountSums[anafAccount];
+                      return total + (anafValue || 0);
+                    }, 0);
+
                   // Calculate difference (conta sum - anaf sum)
                   const difference = hasContaSum ? (contaSum - anafSum) : null;
                   const isBalanced = difference !== null && Math.abs(difference) < 1; // Consider balanced if difference is less than 1
-                  
+
                   // Determine if this relation should be grayed out
-                  // Gray out relations for conta accounts that are not selected
-                  const shouldGrayOut = !isContaSelected;
+                  // Gray out relations for conta accounts that are not selected or no sums available
+                  const shouldGrayOut = !isContaSelected || !hasContaSum;
                   
                   return (
                     <div key={contaAccount} 
@@ -8244,75 +8263,11 @@ function App() {
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: '10px',
-                padding: '8px',
-                borderRadius: '6px',
-                backgroundColor: GLOBAL_PANEL_BG,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
-              }}>
-                <input
-                  type="checkbox"
-                  checked={selectedWorksheets.relationsSummary}
-                  onChange={(e) => setSelectedWorksheets({
-                    ...selectedWorksheets,
-                    relationsSummary: e.target.checked
-                  })}
-                  style={{ marginTop: '2px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Relations Summary</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
-                    (ANAF ↔ Conta account relationships and differences)
-                  </div>
-                </div>
-              </label>
-              
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: '10px',
-                padding: '8px',
-                borderRadius: '6px',
-                backgroundColor: GLOBAL_PANEL_BG,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
-              }}>
-                <input
-                  type="checkbox"
-                  checked={selectedWorksheets.accountsSummary}
-                  onChange={(e) => setSelectedWorksheets({
-                    ...selectedWorksheets,
-                    accountsSummary: e.target.checked
-                  })}
-                  style={{ marginTop: '2px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Accounts Summary</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
-                    (All account sums and file usage)
-                  </div>
-                </div>
-              </label>
-              
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
+              {/* Relations Summary, Accounts Summary, and Monthly Analysis are now always enabled */}
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
                 gap: '10px',
                 padding: '8px',
                 borderRadius: '6px',
@@ -8341,42 +8296,6 @@ function App() {
                     (All ANAF files combined into one table)
                     {anafFiles.length === 0 && (
                       <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - No ANAF files loaded</em>
-                    )}
-                  </div>
-                </div>
-              </label>
-
-              <label style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                padding: '8px',
-                borderRadius: '6px',
-                backgroundColor: GLOBAL_PANEL_BG,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = GLOBAL_HOVER_BG;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = GLOBAL_PANEL_BG;
-              }}>
-                <input
-                  type="checkbox"
-                  checked={selectedWorksheets.monthlyAnalysis}
-                  onChange={(e) => setSelectedWorksheets({
-                    ...selectedWorksheets,
-                    monthlyAnalysis: e.target.checked
-                  })}
-                  style={{ marginTop: '2px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: GLOBAL_TEXT_COLOR, fontWeight: '500', marginBottom: '4px' }}>Monthly Analysis</div>
-                  <div style={{ fontSize: '12px', color: GLOBAL_TEXT_COLOR, opacity: 0.8, lineHeight: '1.3' }}>
-                    (Detailed monthly comparison for each account relation)
-                    {(!contabilitateFiles.length || !anafFiles.length || !startDate || !endDate) && (
-                      <em style={{ color: 'var(--theme-warning, #f59e0b)' }}> - Requires Conta files, ANAF files, and date interval</em>
                     )}
                   </div>
                 </div>

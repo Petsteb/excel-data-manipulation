@@ -1094,6 +1094,7 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
     });
 
     // Add Monthly Analysis worksheets if requested
+    const monthlyAnalysisSums = {};
     if (summaryData.includeMonthlyAnalysis && summaryData.monthlyAnalysisParams) {
       const params = summaryData.monthlyAnalysisParams;
 
@@ -1190,6 +1191,11 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let firstNonZeroIndex = -1;
         let hasSeenJuneInAnaf = false;
 
+        // Track total sums for this relation
+        let totalContaSum = 0;
+        let totalAnafSumByAccount = {};
+        anafAccounts.forEach(acc => totalAnafSumByAccount[acc] = 0);
+
         // First pass: Find the first non-null (non-zero) conta value in the date interval
         // Check FULL months without end-of-year exclusions to find any data
         for (let i = 0; i < monthsInRange.length; i++) {
@@ -1226,6 +1232,9 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
+
+          // Accumulate conta sum for this relation
+          totalContaSum += contaSum;
 
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
@@ -1276,6 +1285,9 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
             anafAccountSums.push(accountSum);
             totalAnafSum += accountSum;
+
+            // Accumulate anaf sum for this relation
+            totalAnafSumByAccount[anafAccount] += accountSum;
           }
 
           // Add row to worksheet
@@ -1323,6 +1335,9 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             const contaDec31End = `31/12/${year}`;
             const contaDec31Sum = calculateContaAccountSum(contaAccount, contaDec31Start, contaDec31End, params.processedContaFiles, params.accountConfigs);
 
+            // Accumulate Dec 31 conta sum
+            totalContaSum += contaDec31Sum;
+
             // ANAF: Only June 25th of next year (even if outside interval)
             const june25NextYear = year + 1;
             const anafJune25Start = `25/06/${june25NextYear}`;
@@ -1336,6 +1351,9 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
               const accountSum = calculateAnafAccountSum(anafAccount, anafJune25Start, anafJune25End, params.anafFiles, params.anafAccountFiles, config, `[Monthly EOY: ${contaAccount} Dec31->June25]`);
               anafEOYAccountSums.push(accountSum);
               totalAnafEOYSum += accountSum;
+
+              // Accumulate June 25 anaf sum
+              totalAnafSumByAccount[anafAccount] += accountSum;
             }
 
             // Add end-of-year row
@@ -1422,6 +1440,76 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const lastColumn = getColumnLetter(differenceColIndex);
           worksheet.autoFilter = { from: 'A2', to: `${lastColumn}${rowIndex - 1}` };
         }
+
+        // Store the totals for this relation
+        monthlyAnalysisSums[contaAccount] = {
+          contaSum: totalContaSum,
+          anafSums: totalAnafSumByAccount,
+          totalAnafSum: Object.values(totalAnafSumByAccount).reduce((a, b) => a + b, 0)
+        };
+      }
+    }
+
+    // Update Relations Summary and Accounts Summary with monthly analysis sums
+    if (Object.keys(monthlyAnalysisSums).length > 0) {
+      // Update Relations Summary worksheet
+      const relationsSummarySheet = workbook.getWorksheet('Relations Summary');
+      if (relationsSummarySheet) {
+        // Find and update each relation's row
+        relationsSummarySheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return; // Skip header row
+
+          const contaAccount = row.getCell(1).value; // Column A: Conta Account
+          if (contaAccount && monthlyAnalysisSums[contaAccount]) {
+            const monthlyData = monthlyAnalysisSums[contaAccount];
+            row.getCell(3).value = monthlyData.contaSum; // Column C: Conta Sum
+            row.getCell(4).value = monthlyData.totalAnafSum; // Column D: ANAF Sum
+            row.getCell(5).value = monthlyData.contaSum - monthlyData.totalAnafSum; // Column E: Difference
+
+            // Update conditional formatting for difference cell
+            const differenceCell = row.getCell(5);
+            const diffValue = differenceCell.value;
+            if (typeof diffValue === 'number') {
+              if (diffValue >= -1 && diffValue <= 1) {
+                differenceCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFE8F5E8' }
+                };
+              } else {
+                differenceCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFFFEAEA' }
+                };
+              }
+            }
+          }
+        });
+      }
+
+      // Update Accounts Summary worksheet
+      const accountsSummarySheet = workbook.getWorksheet('Accounts Summary');
+      if (accountsSummarySheet) {
+        // Update conta account sums
+        accountsSummarySheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return; // Skip header row
+
+          const account = row.getCell(1).value; // Column A: Account
+          const accountType = row.getCell(2).value; // Column B: Type
+
+          if (accountType === 'Conta' && monthlyAnalysisSums[account]) {
+            row.getCell(3).value = monthlyAnalysisSums[account].contaSum; // Column C: Sum
+          } else if (accountType === 'ANAF') {
+            // Find which conta account this anaf account belongs to
+            for (const [contaAccount, monthlyData] of Object.entries(monthlyAnalysisSums)) {
+              if (monthlyData.anafSums && monthlyData.anafSums[account] !== undefined) {
+                row.getCell(3).value = monthlyData.anafSums[account]; // Column C: Sum
+                break;
+              }
+            }
+          }
+        });
       }
     }
 
@@ -1431,7 +1519,8 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
     return {
       success: true,
       outputPath: outputPath,
-      message: 'Summary workbook created successfully'
+      message: 'Summary workbook created successfully',
+      monthlyAnalysisSums: monthlyAnalysisSums
     };
   } catch (error) {
     console.error('Error creating summary workbook:', error);
