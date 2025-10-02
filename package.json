@@ -77,7 +77,8 @@
     "win": {
       "target": "portable",
       "certificateFile": null,
-      "certificatePassword": null
+      "certificatePassword": null,
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
