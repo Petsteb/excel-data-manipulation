@@ -61,7 +61,8 @@
       "Bash(npm version:*)",
       "Read(C:\\Users\\petst\\AppData\\Roaming\\excel-file-merger/**)",
       "Read(//c/Users/petst/**)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --env-filter '\nOLD_EMAIL=\"\"team@excel-merger.local\"\"\nCORRECT_NAME=\"\"Petsteb\"\"\nCORRECT_EMAIL=\"\"petsteb@gmail.com\"\"\nif [ \"\"$GIT_COMMITTER_EMAIL\"\" = \"\"$OLD_EMAIL\"\" ]\nthen\n    export GIT_COMMITTER_NAME=\"\"$CORRECT_NAME\"\"\n    export GIT_COMMITTER_EMAIL=\"\"$CORRECT_EMAIL\"\"\nfi\nif [ \"\"$GIT_AUTHOR_EMAIL\"\" = \"\"$OLD_EMAIL\"\" ]\nthen\n    export GIT_AUTHOR_NAME=\"\"$CORRECT_NAME\"\"\n    export GIT_AUTHOR_EMAIL=\"\"$CORRECT_EMAIL\"\"\nfi\n' --tag-name-filter cat -- --branches --tags)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
