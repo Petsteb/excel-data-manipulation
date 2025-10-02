@@ -3698,28 +3698,33 @@ function App() {
       if (selectedWorksheets.accountsSummary) {
         const accountsSummary = [];
         accountsSummary.push(['Account', 'Type', 'Sum', 'Files Used']);
-        
-        // Add Conta accounts
-        Object.entries(accountSums).forEach(([account, sum]) => {
+
+        // Add Conta accounts from account mappings
+        Object.keys(defaultAccountMappings).forEach(account => {
           const filesUsed = contaAccountFiles[account] || [];
           const fileNames = filesUsed.map(filePath => {
             // Extract filename from path
             const file = contabilitateFiles.find(f => (f.filePath || f.name) === filePath);
             return file ? (file.name || filePath.split(/[\\\/]/).pop()) : filePath.split(/[\\\/]/).pop();
           });
-          
+
           accountsSummary.push([
             account,
             'Conta',
-            parseFloat(sum.toFixed(2)),
+            0, // Will be updated from monthly analysis sums
             fileNames.join(', ') || 'All detected files'
           ]);
         });
-        
-        // Add ANAF accounts
-        Object.entries(anafAccountSums).forEach(([account, sum]) => {
+
+        // Add ANAF accounts from account mappings
+        const allAnafAccounts = new Set();
+        Object.values(defaultAccountMappings).forEach(anafAccounts => {
+          anafAccounts.forEach(account => allAnafAccounts.add(account));
+        });
+
+        allAnafAccounts.forEach(account => {
           const filesUsed = anafAccountFiles[account] || [];
-          
+
           let fileNames = [];
           if (filesUsed.length > 0) {
             // Use assigned files
@@ -3731,7 +3736,7 @@ function App() {
             // Fallback: find files that match this account
             const detectedFiles = anafFiles.filter(file => {
               const fileName = (file.name || file.fileName || '').toLowerCase();
-              
+
               // For accounts like 1/4423 and 1/4424, look for imp_1 pattern
               if (account.includes('/')) {
                 const firstPart = account.split('/')[0]; // Get "1" from "1/4423"
@@ -3739,14 +3744,14 @@ function App() {
                   return true;
                 }
               }
-              
+
               // Also try broader patterns
               const accountLower = account.toLowerCase();
-              return fileName.includes(accountLower) || 
+              return fileName.includes(accountLower) ||
                      fileName.includes(account.replace('/', '_').toLowerCase()) ||
                      fileName.includes(account.replace('/', '').toLowerCase());
             });
-            
+
             if (detectedFiles.length > 0) {
               fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
             } else {
@@ -3754,15 +3759,15 @@ function App() {
               fileNames = anafFiles.slice(0, 3).map(file => file.name || file.fileName || 'Unknown file');
             }
           }
-          
+
           accountsSummary.push([
             account,
             'ANAF',
-            parseFloat(sum.toFixed(2)),
+            0, // Will be updated from monthly analysis sums
             fileNames.join(', ') || 'No files available'
           ]);
         });
-        
+
         worksheets.push({
           name: 'Accounts Summary',
           data: accountsSummary
@@ -7810,23 +7815,6 @@ function App() {
                   />
                 </div>
               </div>
-
-              {/* Unified Calculate Button */}
-              <button
-                className="btn btn-primary"
-                onClick={handleCalculateAllSums}
-                disabled={true}
-                style={{ width: '100%', marginTop: '10px' }}
-                title="Calculate all sums is disabled - sums are calculated during summary generation"
-              >
-                Calculate All Sums
-                ({selectedAccounts.length} Conta + {selectedAnafAccounts.length} ANAF account{(selectedAccounts.length + selectedAnafAccounts.length) !== 1 ? 's' : ''})
-                {(startDate || endDate) && (
-                  <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                    [DATE]
-                  </span>
-                )}
-              </button>
             </div>
           </div>
         </div>
