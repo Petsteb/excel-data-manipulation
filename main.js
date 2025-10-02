@@ -1106,6 +1106,21 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             }
           }
         }
+
+        // Adjust column widths for numerical columns to fit content
+        // Columns C (Conta Sum), D (ANAF Sum), E (Difference)
+        [3, 4, 5].forEach(colNum => {
+          let maxWidth = 10; // Minimum width
+          worksheet.getColumn(colNum).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+            if (rowNumber > 1 && typeof cell.value === 'number') { // Skip header
+              // Calculate width based on formatted number
+              const formattedValue = cell.value % 1 === 0 ? cell.value.toString() : cell.value.toFixed(2);
+              const width = formattedValue.length + 2;
+              if (width > maxWidth) maxWidth = width;
+            }
+          });
+          worksheet.getColumn(colNum).width = Math.min(maxWidth, 20);
+        });
       }
 
       // Add number formatting for Accounts Summary worksheet
@@ -1120,6 +1135,18 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             }
           }
         }
+
+        // Adjust column width for Sum column (column C) to fit content
+        let maxWidth = 10; // Minimum width
+        worksheet.getColumn(3).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+          if (rowNumber > 1 && typeof cell.value === 'number') { // Skip header
+            // Calculate width based on formatted number
+            const formattedValue = cell.value % 1 === 0 ? cell.value.toString() : cell.value.toFixed(2);
+            const width = formattedValue.length + 2;
+            if (width > maxWidth) maxWidth = width;
+          }
+        });
+        worksheet.getColumn(3).width = Math.min(maxWidth, 20);
       }
     });
 
