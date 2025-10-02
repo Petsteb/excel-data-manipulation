@@ -1191,16 +1191,14 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         let hasSeenJuneInAnaf = false;
 
         // First pass: Find the first non-null (non-zero) conta value in the date interval
+        // Check FULL months without end-of-year exclusions to find any data
         for (let i = 0; i < monthsInRange.length; i++) {
           const { year, month } = monthsInRange[i];
           const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
 
-          let monthEndDay = new Date(year, month, 0).getDate();
-          let actualMonthEndDay = monthEndDay;
-          if (month === 12 && params.includeEndOfYearTransactions) {
-            actualMonthEndDay = 30;
-          }
-          const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+          // Always check the full month in the first pass (including Dec 31st)
+          const monthEndDay = new Date(year, month, 0).getDate();
+          const monthEndStr = `${monthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
 
