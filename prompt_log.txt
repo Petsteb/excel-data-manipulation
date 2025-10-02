@@ -1,0 +1,26 @@
+
+====================
+Date: 2025-10-02 00:07:36
+Prompt: in the monthly analysis with the separate end of year if the first month from conta that has a non null value is earlier than june then also make the sum for the 31st of december of the year before that for conta
+====================
+====================
+Date: Thu, Oct  2, 2025 12:22:16 AM
+Prompt: in the monthly analysis with the separate end of year if the first month from conta that has a non null value is earlier than june then also make the sum for the 31st of december of the year before that for conta and the sum for that entire december from 1st of december to 30th of december
+Action: Modified monthly analysis to add previous year December row when first non-null month is before June
+Commit: 58b76d2 2.3.9
+Version: 2.3.9
+
+====================
+Date: Thu, Oct  2, 2025 12:33:35 AM
+Prompt: in the monthly analysis with the separate end of year if the first month from conta that has a non null value is earlier than june thendo this: also make the sum for the 31st of december of the year before that for conta that is coupled with the 25th of june of next year from anaf and also add the sum for that entire december from 1st of december to 30th of december of the same year coupld with january from anaf
+Action: Added retroactive December rows (Dec 31 and Dec 1-30) when first conta month is before June
+Commit: 5bc8555
+Version: 2.3.10
+
+====================
+Date: Thu, Oct  2, 2025 12:45:33 AM
+Prompt: i also need the sums to be calculated for all of the conta and their anaf relation for all of the months from the auxiliary december until the end of the date interval
+Action: Modified logic to show all months from January onwards when auxiliary December rows are added
+Commit: 13cf490
+Version: 2.3.11
+

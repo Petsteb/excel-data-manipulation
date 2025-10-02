@@ -60,7 +60,8 @@
       "Bash(npm run commit-version:*)",
       "Bash(npm version:*)",
       "Read(C:\\Users\\petst\\AppData\\Roaming\\excel-file-merger/**)",
-      "Read(//c/Users/petst/**)"
+      "Read(//c/Users/petst/**)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
