@@ -1068,9 +1068,14 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         const lastRow = worksheetData.data.length;
         if (lastRow > 1) { // Only if there's data beyond the header
           for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
+            // Format number columns C, D, E to 2 decimals
+            worksheet.getCell(rowIndex, 3).numFmt = '0.00'; // Conta Sum
+            worksheet.getCell(rowIndex, 4).numFmt = '0.00'; // ANAF Sum
+            worksheet.getCell(rowIndex, 5).numFmt = '0.00'; // Difference
+
             const differenceCell = worksheet.getCell(rowIndex, 5); // Column E (Difference)
             const cellValue = differenceCell.value;
-            
+
             if (typeof cellValue === 'number') {
               if (cellValue >= -1 && cellValue <= 1) {
                 // Light green for values between -1 and 1
@@ -1088,6 +1093,16 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
                 };
               }
             }
+          }
+        }
+      }
+
+      // Add number formatting for Accounts Summary worksheet
+      if (worksheetData.name === 'Accounts Summary') {
+        const lastRow = worksheetData.data.length;
+        if (lastRow > 1) {
+          for (let rowIndex = 2; rowIndex <= lastRow; rowIndex++) {
+            worksheet.getCell(rowIndex, 3).numFmt = '0.00'; // Sum column
           }
         }
       }

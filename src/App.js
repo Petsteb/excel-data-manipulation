@@ -3712,7 +3712,7 @@ function App() {
             account,
             'Conta',
             0, // Will be updated from monthly analysis sums
-            fileNames.join(', ') || 'All detected files'
+            fileNames.length > 0 ? fileNames.join(', ') : '-'
           ]);
         });
 
@@ -3754,17 +3754,15 @@ function App() {
 
             if (detectedFiles.length > 0) {
               fileNames = detectedFiles.map(file => file.name || file.fileName || 'Unknown file');
-            } else {
-              // If no specific files found, show all available ANAF files for debugging
-              fileNames = anafFiles.slice(0, 3).map(file => file.name || file.fileName || 'Unknown file');
             }
+            // If no files found, leave fileNames empty to show "-"
           }
 
           accountsSummary.push([
             account,
             'ANAF',
             0, // Will be updated from monthly analysis sums
-            fileNames.join(', ') || 'No files available'
+            fileNames.length > 0 ? fileNames.join(', ') : '-'
           ]);
         });
 
