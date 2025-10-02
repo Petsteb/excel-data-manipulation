@@ -1186,12 +1186,36 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
         sumHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         let rowIndex = 3;
-        let foundFirstNonZero = false;
         let firstNonZeroMonth = null;
+        let firstNonZeroIndex = -1;
         let hasSeenJuneInAnaf = false;
 
-        // Process each month
-        for (const monthInfo of monthsInRange) {
+        // First pass: Find the first non-null (non-zero) conta value in the date interval
+        for (let i = 0; i < monthsInRange.length; i++) {
+          const { year, month } = monthsInRange[i];
+          const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
+
+          let monthEndDay = new Date(year, month, 0).getDate();
+          let actualMonthEndDay = monthEndDay;
+          if (month === 12 && params.includeEndOfYearTransactions) {
+            actualMonthEndDay = 30;
+          }
+          const monthEndStr = `${actualMonthEndDay.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+
+          const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
+
+          if (contaSum !== 0) {
+            firstNonZeroMonth = month;
+            firstNonZeroIndex = i;
+            break;
+          }
+        }
+
+        // Process each month starting from the first non-zero value
+        for (let i = firstNonZeroIndex; i < monthsInRange.length; i++) {
+          if (i === -1) break; // No non-zero values found
+
+          const monthInfo = monthsInRange[i];
           const { year, month } = monthInfo;
           const monthStart = `01/${month.toString().padStart(2, '0')}/${year}`;
 
@@ -1205,17 +1229,6 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
 
           const contaSum = calculateContaAccountSum(contaAccount, monthStart, monthEndStr, params.processedContaFiles, params.accountConfigs);
 
-          // Skip months until we find the first non-zero conta sum
-          if (!foundFirstNonZero && contaSum === 0) {
-            continue;
-          }
-
-          // Once we find the first non-zero, show all remaining months
-          if (!foundFirstNonZero && contaSum !== 0) {
-            foundFirstNonZero = true;
-            firstNonZeroMonth = month;
-          }
-
           const nextMonth = month === 12 ? 1 : month + 1;
           const nextYear = month === 12 ? year + 1 : year;
           const anafMonthStart = `01/${nextMonth.toString().padStart(2, '0')}/${nextYear}`;
@@ -1228,12 +1241,9 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           const anafAccountSums = [];
           let totalAnafSum = 0;
 
-          // Determine June handling based on when conta data starts:
-          // - If firstNonZeroMonth is Jun-Dec (6-12): use normal end-of-year logic for all months
-          // - If firstNonZeroMonth is Jan-May (1-5): include June 25th ONLY for the first June in anaf,
-          //   then use normal end-of-year logic for all subsequent months (starting from June conta onwards)
+          // Check if this is the first June in anaf and first conta month was before June
           const isFirstJuneInAnaf = (nextMonth === 6 && !hasSeenJuneInAnaf);
-          const shouldIncludeJune25 = (firstNonZeroMonth !== null && firstNonZeroMonth >= 1 && firstNonZeroMonth <= 5 && isFirstJuneInAnaf && params.includeEndOfYearTransactions);
+          const shouldIncludeJune25 = (firstNonZeroMonth !== null && firstNonZeroMonth < 6 && isFirstJuneInAnaf && params.includeEndOfYearTransactions);
 
           // Check if we need to exclude June 25th (when conta is May and end-of-year toggle is on, but not if we should include it)
           const isJuneWithEOY = (month === 5 && nextMonth === 6 && params.includeEndOfYearTransactions && !shouldIncludeJune25);
