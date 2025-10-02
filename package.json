@@ -1,6 +1,6 @@
 {
   "name": "excel-file-merger",
-  "version": "2.3.13",
+  "version": "2.3.14",
   "description": "Excel File Merger - A desktop app for merging Excel files with source tracking and date column detection",
   "main": "./main.js",
   "author": "Excel File Merger Team",
