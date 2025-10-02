@@ -1115,11 +1115,11 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
             if (rowNumber > 1 && typeof cell.value === 'number') { // Skip header
               // Calculate width based on formatted number
               const formattedValue = cell.value % 1 === 0 ? cell.value.toString() : cell.value.toFixed(2);
-              const width = formattedValue.length + 2;
+              const width = formattedValue.length + 4; // +4 for extra padding
               if (width > maxWidth) maxWidth = width;
             }
           });
-          worksheet.getColumn(colNum).width = Math.min(maxWidth, 20);
+          worksheet.getColumn(colNum).width = Math.min(maxWidth, 25);
         });
       }
 
@@ -1142,11 +1142,11 @@ ipcMain.handle('create-summary-workbook', async (event, { outputPath, summaryDat
           if (rowNumber > 1 && typeof cell.value === 'number') { // Skip header
             // Calculate width based on formatted number
             const formattedValue = cell.value % 1 === 0 ? cell.value.toString() : cell.value.toFixed(2);
-            const width = formattedValue.length + 2;
+            const width = formattedValue.length + 4; // +4 for extra padding
             if (width > maxWidth) maxWidth = width;
           }
         });
-        worksheet.getColumn(3).width = Math.min(maxWidth, 20);
+        worksheet.getColumn(3).width = Math.min(maxWidth, 25);
       }
     });
 
